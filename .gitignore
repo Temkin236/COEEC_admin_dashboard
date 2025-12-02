@@ -1,0 +1,41 @@
+# Node & build artifacts
+node_modules/
+dist/
+.cache/
+.tmp/
+.parcel-cache/
+.vite/
+
+# Package manager stores
+.pnpm-store/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & local config
+.env
+.env.*
+.env.local
+.env.production.local
+.env.development.local
+
+# Test coverage
+coverage/
+
+# Editor & OS junk
+.DS_Store
+Thumbs.db
+
+# Vite specific
+*.tsbuildinfo
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Docker
+.dockerignore
+
+# VS Code workspace state
+.vscode/
