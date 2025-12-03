@@ -29,9 +29,11 @@ const LoginPage = () => {
         <Space direction="vertical" size="large" className="w-full">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-[#1e3a5f] rounded-full flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">COEEC</span>
-              </div>
+              <img
+                src="/downloads/coeec-logo.png"
+                alt="COEEC"
+                className="h-16 w-16 rounded-full object-cover shadow-sm border border-neutral-200"
+              />
             </div>
             <Title level={2} className="mb-2">
               Admin Dashboard
@@ -64,7 +66,7 @@ const LoginPage = () => {
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} block className="bg-[#1e3a5f] hover:bg-[#2d5a8c]">
+              <Button type="primary" htmlType="submit" loading={loading} block>
                 Sign In
               </Button>
             </Form.Item>

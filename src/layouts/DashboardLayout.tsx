@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import { Dropdown, Avatar, Badge, Space, Typography, Button, Layout, Menu } from "antd"
+import { Layout, Menu, Dropdown, Avatar, Badge, Space, Button } from "antd"
 import type { MenuProps } from "antd"
 import {
   DashboardOutlined,
@@ -16,13 +14,13 @@ import {
   SettingOutlined,
   BellOutlined,
   GlobalOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from "@ant-design/icons"
 import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { logout } from "@/store/slices/authSlice"
 import { LANGUAGE_LABELS } from "@/utils/constants"
+import { SIDEBAR_TEXT, type LanguageKey } from "@/utils/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 // Pages
 import DashboardPage from "@/pages/dashboard/DashboardPage"
@@ -42,17 +40,28 @@ import ApprovalPage from "@/pages/approval/ApprovalPage"
 import SettingsPage from "@/pages/settings/SettingsPage"
 
 const { Header, Sider, Content } = Layout
-const { Text } = Typography
 
-type LanguageKey = "en" | "am" | "af"
+const HEADER_TEXT: Record<LanguageKey, { title: string; subtitle: string }> = {
+  en: {
+    title: "COEEC",
+    subtitle: "College of Electrical Engineering",
+  },
+  am: {
+    title: "ኮኢኢኢሲ",
+    subtitle: "የኤሌክትሪክ መምህራን ኮሌጅ",
+  },
+  af: {
+    title: "COEEC",
+    subtitle: "Kolleejjii Injinariingii Elektirikaa",
+  },
+}
 
 const DashboardLayout = () => {
-  const [collapsed, setCollapsed] = useState(false)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAppSelector((state) => state.auth)
-  const [currentLanguage, setCurrentLanguage] = useState<LanguageKey>("en")
+  const { language: currentLanguage, setLanguage } = useLanguage()
 
   const handleLogout = () => {
     dispatch(logout())
@@ -66,111 +75,71 @@ const DashboardLayout = () => {
       { key: "af", label: "Afaan Oromo" },
     ],
     onClick: ({ key }) => {
-      setCurrentLanguage(key as LanguageKey)
-      localStorage.setItem("language", key)
+      setLanguage(key as LanguageKey)
     },
   }
 
   const userMenu: MenuProps = {
     items: [
-      {
-        key: "profile",
-        icon: <UserOutlined />,
-        label: "Profile",
-        onClick: () => navigate("/settings/profile"),
-      },
-      {
-        key: "settings",
-        icon: <SettingOutlined />,
-        label: "Settings",
-        onClick: () => navigate("/settings"),
-      },
+      { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => navigate("/settings/profile") },
+      { key: "settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate("/settings") },
       { type: "divider" },
-      {
-        key: "logout",
-        icon: <LogoutOutlined />,
-        label: "Logout",
-        onClick: handleLogout,
-        danger: true,
-      },
+      { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: handleLogout, danger: true },
     ],
   }
 
   const menuItems: MenuProps["items"] = [
-    {
-      key: "/",
-      icon: <DashboardOutlined />,
-      label: <Link to="/">Dashboard</Link>,
-    },
+    { key: "/", icon: <DashboardOutlined />, label: <Link to="/">{SIDEBAR_TEXT[currentLanguage].dashboard}</Link> },
     {
       key: "content",
       icon: <FileTextOutlined />,
-      label: "Content",
+      label: SIDEBAR_TEXT[currentLanguage].content,
       children: [
-        { key: "/content/homepage", label: <Link to="/content/homepage">Homepage</Link> },
-        { key: "/content/about", label: <Link to="/content/about">About</Link> },
-        { key: "/content/departments", label: <Link to="/content/departments">Departments</Link> },
+        { key: "/content/homepage", label: <Link to="/content/homepage">{SIDEBAR_TEXT[currentLanguage].homepage}</Link> },
+        { key: "/content/about", label: <Link to="/content/about">{SIDEBAR_TEXT[currentLanguage].about}</Link> },
+        { key: "/content/departments", label: <Link to="/content/departments">{SIDEBAR_TEXT[currentLanguage].departments}</Link> },
       ],
     },
     {
       key: "staff",
       icon: <TeamOutlined />,
-      label: "Staff",
+      label: SIDEBAR_TEXT[currentLanguage].staff,
       children: [
-        { key: "/staff", label: <Link to="/staff">All Staff</Link> },
-        { key: "/staff/new", label: <Link to="/staff/new">Add Staff</Link> },
+        { key: "/staff", label: <Link to="/staff">{SIDEBAR_TEXT[currentLanguage].staffAll}</Link> },
+        { key: "/staff/new", label: <Link to="/staff/new">{SIDEBAR_TEXT[currentLanguage].staffAdd}</Link> },
       ],
     },
     {
       key: "research",
       icon: <ExperimentOutlined />,
-      label: "Research",
+      label: SIDEBAR_TEXT[currentLanguage].research,
       children: [
-        { key: "/research", label: <Link to="/research">Projects</Link> },
-        { key: "/research/publications", label: <Link to="/research/publications">Publications</Link> },
+        { key: "/research", label: <Link to="/research">{SIDEBAR_TEXT[currentLanguage].researchProjects}</Link> },
+        { key: "/research/publications", label: <Link to="/research/publications">{SIDEBAR_TEXT[currentLanguage].researchPublications}</Link> },
       ],
     },
     {
       key: "students",
       icon: <BookOutlined />,
-      label: "Students",
+      label: SIDEBAR_TEXT[currentLanguage].students,
       children: [
-        { key: "/students", label: <Link to="/students">Students</Link> },
-        { key: "/students/alumni", label: <Link to="/students/alumni">Alumni</Link> },
+        { key: "/students", label: <Link to="/students">{SIDEBAR_TEXT[currentLanguage].studentsAll}</Link> },
+        { key: "/students/alumni", label: <Link to="/students/alumni">{SIDEBAR_TEXT[currentLanguage].studentsAlumni}</Link> },
       ],
     },
-    {
-      key: "/academic",
-      icon: <BookOutlined />,
-      label: <Link to="/academic">Academic Info</Link>,
-    },
-    {
-      key: "/downloads",
-      icon: <DownloadOutlined />,
-      label: <Link to="/downloads">Downloads</Link>,
-    },
-    {
-      key: "/contact",
-      icon: <MessageOutlined />,
-      label: <Link to="/contact">Contact & Feedback</Link>,
-    },
-    {
-      key: "/approval",
-      icon: <FileTextOutlined />,
-      label: <Link to="/approval">Approvals</Link>,
-    },
+    { key: "/academic", icon: <BookOutlined />, label: <Link to="/academic">{SIDEBAR_TEXT[currentLanguage].academic}</Link> },
+    { key: "/downloads", icon: <DownloadOutlined />, label: <Link to="/downloads">{SIDEBAR_TEXT[currentLanguage].downloads}</Link> },
+    { key: "/contact", icon: <MessageOutlined />, label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link> },
+    { key: "/approval", icon: <FileTextOutlined />, label: <Link to="/approval">{SIDEBAR_TEXT[currentLanguage].approvals}</Link> },
   ]
 
   const getSelectedKeys = () => {
     const path = location.pathname
     if (path === "/") return ["/"]
-
     for (const item of menuItems ?? []) {
       if (item && "children" in item && item.children) {
         for (const child of item.children) {
-          if (typeof child !== "string" && path.startsWith(String(child.key))) {
-            return [String(child.key)]
-          }
+          if (typeof child !== "string" && path.startsWith(String(child.key))) return [String(child.key)]
         }
       } else if (item && typeof item !== "string" && path.startsWith(String(item.key))) {
         return [String(item.key)]
@@ -180,50 +149,44 @@ const DashboardLayout = () => {
   }
 
   return (
-    <Layout className="min-h-screen bg-[#f7f9fc]">
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        trigger={null}
-        breakpoint="lg"
-        collapsedWidth={64}
-        className="shadow-lg"
-        style={{ background: "#ffffff" }}
-      >
-        <div className="h-16 flex items-center justify-center border-b border-gray-200">
-          {!collapsed ? (
-            <div className="text-center">
-              <div className="text-[#1e3a5f] font-bold text-lg">COEEC</div>
-              <div className="text-xs text-gray-500">Admin CMS</div>
-            </div>
-          ) : (
-            <div className="text-[#1e3a5f] font-bold text-xl">C</div>
-          )}
+    <Layout style={{ height: "100vh", overflow: "hidden" }}>
+      <Sider width={240} theme="light" style={{ height: "100vh", position: "sticky", top: 0, left: 0 }}>
+        <div className="h-16 flex items-center justify-center border-b border-neutral-200">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/downloads/coeec-logo.png" alt="COEEC" className="h-8 w-8 rounded-full object-cover" />
+            <span className="text-primary font-semibold tracking-wide text-sm">
+              COEEC Admin
+            </span>
+          </Link>
         </div>
         <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} className="border-r-0" />
       </Sider>
-
-      <Layout>
-        <Header className="bg-white shadow-sm px-4 md:px-6 flex items-center justify-between">
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-lg"
-          />
-
+      <Layout style={{ height: "100vh", overflow: "hidden" }}>
+        <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-4 md:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 select-none">
+              <img
+                src="/downloads/coeec-logo.png"
+                alt="COEEC"
+                className="h-8 w-8 rounded-full object-cover shadow-sm border border-neutral-200"
+              />
+              <div className="hidden md:block leading-tight">
+                <div className="text-primary font-extrabold tracking-wide text-base">
+                  {HEADER_TEXT[currentLanguage].title}
+                </div>
+                <div className="text-neutral-600 text-xs uppercase tracking-wide">
+                  {HEADER_TEXT[currentLanguage].subtitle}
+                </div>
+              </div>
+            </div>
+          </div>
           <Space size="middle">
             <Dropdown menu={languageMenu} placement="bottomRight">
-              <Button type="text" icon={<GlobalOutlined />}>
-                {LANGUAGE_LABELS[currentLanguage]}
-              </Button>
+              <Button type="text" icon={<GlobalOutlined />}>{LANGUAGE_LABELS[currentLanguage]}</Button>
             </Dropdown>
-
             <Badge count={5}>
               <Button type="text" icon={<BellOutlined />} />
             </Badge>
-
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space className="cursor-pointer">
                 <Avatar style={{ backgroundColor: "#1e3a5f" }}>{user?.name?.charAt(0) || "U"}</Avatar>
@@ -234,8 +197,7 @@ const DashboardLayout = () => {
             </Dropdown>
           </Space>
         </Header>
-
-        <Content className="m-3 md:m-6">
+        <Content className="m-3 md:m-6" style={{ overflow: "auto", height: "calc(100vh - 64px)" }}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/content/homepage" element={<HomePage />} />

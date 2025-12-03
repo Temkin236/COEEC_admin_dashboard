@@ -71,20 +71,25 @@ export const fetchDashboardStats = createAsyncThunk<DashboardStats, void, { reje
     try {
       const response = await axiosInstance.get<DashboardStats>("/analytics/dashboard")
       return response.data
-    } catch (error) {
-      // Provide demo data in dev/offline mode
-      return demoDashboard()
+    } catch (err: any) {
+      // On failure, reject the promise. The reducer will handle the fallback.
+      console.error("Failed to fetch dashboard stats, using demo data as fallback.", err)
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch dashboard stats")
     }
   }
 )
 
-export const fetchVisitorStats = createAsyncThunk<VisitorStats, { startDate: string; endDate: string }>(
+export const fetchVisitorStats = createAsyncThunk<VisitorStats, { startDate: string; endDate: string }, { rejectValue: string }>(
   "analytics/fetchVisitorStats",
-  async ({ startDate, endDate }) => {
-    const response = await axiosInstance.get<VisitorStats>(
-      `/analytics/visitors?startDate=${startDate}&endDate=${endDate}`
-    )
-    return response.data
+  async ({ startDate, endDate }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get<VisitorStats>(
+        `/analytics/visitors?startDate=${startDate}&endDate=${endDate}`
+      )
+      return response.data
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Failed to fetch visitor stats")
+    }
   }
 )
 
@@ -92,7 +97,7 @@ type AnalyticsState = {
   dashboardStats: DashboardStats | null
   visitorStats: VisitorStats | null
   loading: boolean
-  error: string | null
+  error: string | null | unknown
 }
 
 const initialState: AnalyticsState = {
@@ -118,10 +123,21 @@ const analyticsSlice = createSlice({
       })
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload || "Failed to load dashboard"
+        state.error = action.payload
+        // Fallback to demo data on API failure
+        state.dashboardStats = demoDashboard()
+      })
+      .addCase(fetchVisitorStats.pending, (state) => {
+        state.loading = true
+        state.error = null
       })
       .addCase(fetchVisitorStats.fulfilled, (state, action) => {
+        state.loading = false
         state.visitorStats = action.payload
+      })
+      .addCase(fetchVisitorStats.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
       })
   },
 })
