@@ -85,7 +85,7 @@ const DashboardPage = () => {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-3 md:px-0">
       {/* Header */}
       <div>
         <Title level={2}>Dashboard</Title>
@@ -93,6 +93,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Cards */}
+      {/* Responsive stats cards */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
@@ -142,6 +143,7 @@ const DashboardPage = () => {
       </Row>
 
       {/* Charts */}
+      {/* Charts: ensure responsive containers and spacing */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
           <Card title="Visitor Trend (Last 7 Days)" bordered={false}>
@@ -184,6 +186,7 @@ const DashboardPage = () => {
       </Row>
 
       {/* Department Stats */}
+      {/* Department Stats bar chart */}
       <Row gutter={[16, 16]}>
         <Col xs={24}>
           <Card title="Department Statistics" bordered={false}>
@@ -204,34 +207,43 @@ const DashboardPage = () => {
       </Row>
 
       {/* Recent Activity */}
+      {/* Recent Activity with horizontal scroll on mobile */}
       <Card title="Recent Activity" bordered={false}>
-        <Table columns={recentColumns as any} dataSource={recentActivity} pagination={{ pageSize: 5 }} rowKey="id" />
+        <div className="overflow-x-auto">
+          <Table
+            columns={recentColumns as any}
+            dataSource={recentActivity}
+            pagination={{ pageSize: 5 }}
+            rowKey="id"
+          />
+        </div>
       </Card>
 
       {/* Quick Actions */}
+      {/* Quick Actions grid */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
             <FileTextOutlined className="text-4xl text-[#1a73e8] mb-2" />
             <Title level={4}>Create News</Title>
             <Text type="secondary">Add new announcement</Text>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
             <TeamOutlined className="text-4xl text-[#1a73e8] mb-2" />
             <Title level={4}>Add Staff</Title>
             <Text type="secondary">Register new faculty</Text>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
             <ExperimentOutlined className="text-4xl text-[#1a73e8] mb-2" />
             <Title level={4}>New Research</Title>
             <Text type="secondary">Add research project</Text>
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
             <FileTextOutlined className="text-4xl text-[#1a73e8] mb-2" />
             <Title level={4}>Approvals</Title>

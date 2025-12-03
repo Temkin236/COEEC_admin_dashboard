@@ -150,7 +150,13 @@ const DashboardLayout = () => {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
-      <Sider width={240} theme="light" style={{ height: "100vh", position: "sticky", top: 0, left: 0 }}>
+      {/* Hide sidebar on small screens for better mobile UX */}
+      <Sider
+        width={240}
+        theme="light"
+        style={{ height: "100vh", position: "sticky", top: 0, left: 0 }}
+        className="hidden md:block"
+      >
         <div className="h-16 flex items-center justify-center border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
             <img src="/downloads/coeec-logo.png" alt="COEEC" className="h-8 w-8 rounded-full object-cover" />
@@ -163,6 +169,7 @@ const DashboardLayout = () => {
       </Sider>
       <Layout style={{ height: "100vh", overflow: "hidden" }}>
         <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-4 md:px-6 flex items-center justify-between">
+          {/* Stack header content on small screens */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-3 select-none">
               <img
