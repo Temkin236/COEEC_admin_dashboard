@@ -44,15 +44,15 @@ const { Header, Sider, Content } = Layout
 const HEADER_TEXT: Record<LanguageKey, { title: string; subtitle: string }> = {
   en: {
     title: "COEEC",
-    subtitle: "College of Electrical Engineering",
+    subtitle: "College of Electrical and Computing",
   },
   am: {
     title: "COEEC",
-    subtitle: "የኤሌክትሪክ መምህራን ኮሌጅ",
+    subtitle: "የኤሌክትሪክ እና ኮምፒዩቲንግ ኮሌጅ",
   },
   af: {
     title: "COEEC",
-    subtitle: "Kolleejjii Injinariingii Elektirikaa",
+    subtitle: "Kolleejjii Elektirikaa fi Computing",
   },
 }
 
@@ -166,17 +166,20 @@ const DashboardLayout = () => {
         <div className="h-16 flex items-center justify-center border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
             <img src="/downloads/coeec-logo.png" alt="COEEC" className="h-8 w-8 rounded-full object-cover" />
-            <span className="text-primary font-semibold tracking-wide text-sm">
+            <span className="text-primary-600 font-semibold tracking-wide text-sm">
               COEEC Admin
             </span>
           </Link>
         </div>
-        <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} className="border-r-0" />
+        {/* Scrollable menu area when sidebar content exceeds viewport */}
+        <div className="overflow-y-auto" style={{ height: "calc(100vh - 64px)" }}>
+          <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} className="border-r-0" />
+        </div>
       </Sider>
       <Layout style={{ height: "100vh", overflow: "hidden" }}>
-        <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-4 md:px-6 flex items-center justify-between">
+        <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-3 sm:px-4 md:px-6 flex items-center justify-between">
           {/* Stack header content on small screens */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Mobile: menu button */}
             <Button
               type="text"
@@ -188,25 +191,27 @@ const DashboardLayout = () => {
               <span className="block w-5 h-[2px] bg-neutral-700 mb-[3px]"></span>
               <span className="block w-5 h-[2px] bg-neutral-700"></span>
             </Button>
-            <div className="flex items-center gap-3 select-none">
+            <div className="flex items-center gap-2 sm:gap-3 select-none">
               <img
                 src="/downloads/coeec-logo.png"
                 alt="COEEC"
-                className="h-8 w-8 rounded-full object-cover shadow-sm border border-neutral-200"
+                className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover shadow-sm border border-neutral-200"
               />
-              <div className="hidden md:block leading-tight">
-                <div className="text-primary font-extrabold tracking-wide text-base">
+              <div className="hidden sm:block leading-tight">
+                <div className="text-primary-600 font-extrabold tracking-wide text-sm sm:text-base">
                   {HEADER_TEXT[currentLanguage].title}
                 </div>
-                <div className="text-neutral-600 text-xs uppercase tracking-wide">
+                <div className="text-neutral-600 text-[10px] sm:text-xs uppercase tracking-wide line-clamp-1">
                   {HEADER_TEXT[currentLanguage].subtitle}
                 </div>
               </div>
             </div>
           </div>
-          <Space size="middle">
+          <Space size={12} wrap>
             <Dropdown menu={languageMenu} placement="bottomRight">
-              <Button type="text" icon={<GlobalOutlined />}>{LANGUAGE_LABELS[currentLanguage]}</Button>
+              <Button type="text" icon={<GlobalOutlined />} className="px-2 sm:px-3">
+                {LANGUAGE_LABELS[currentLanguage]}
+              </Button>
             </Dropdown>
             <Badge count={notifications.length} overflowCount={99}>
               <Button
@@ -214,13 +219,14 @@ const DashboardLayout = () => {
                 type="text"
                 icon={<BellOutlined />}
                 onClick={() => setNotificationsOpen(true)}
+                className="px-2 sm:px-3"
               />
             </Badge>
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space className="cursor-pointer">
                 <Avatar style={{ backgroundColor: "#17A2B8" }}>{user?.name?.charAt(0) || "U"}</Avatar>
-                <div className="hidden md:block">
-                  <div className="text-sm font-medium">{user?.name || "User"}</div>
+                <div className="hidden sm:block">
+                  <div className="text-xs sm:text-sm font-medium">{user?.name || "User"}</div>
                 </div>
               </Space>
             </Dropdown>
@@ -263,7 +269,12 @@ const DashboardLayout = () => {
             onClose={() => setMobileMenuOpen(false)}
             className="md:hidden"
           >
-            <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} />
+            <Menu
+              mode="inline"
+              selectedKeys={getSelectedKeys()}
+              items={menuItems}
+              className="[&_.ant-menu-item]:py-2 [&_.ant-menu-item]:text-sm"
+            />
           </Drawer>
           <Routes>
             <Route path="/" element={<DashboardPage />} />

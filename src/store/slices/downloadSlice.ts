@@ -72,7 +72,18 @@ const initialState: DownloadState = { items: [], total: 0, loading: false, error
 const downloadSlice = createSlice({
   name: "downloads",
   initialState,
-  reducers: {},
+  reducers: {
+    removeDownload: (state, action: PayloadAction<string | number>) => {
+      const id = action.payload
+      state.items = state.items.filter((it) => String(it.id) !== String(id))
+      state.total = Math.max(0, state.total - 1)
+    },
+    incrementDownloadCount: (state, action: PayloadAction<string | number>) => {
+      const id = action.payload
+      const item = state.items.find((it) => String(it.id) === String(id))
+      if (item) item.downloadCount = (item.downloadCount || 0) + 1
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchDownloads.pending, (state) => {
@@ -89,4 +100,5 @@ const downloadSlice = createSlice({
   },
 })
 
+export const { removeDownload, incrementDownloadCount } = downloadSlice.actions
 export default downloadSlice.reducer

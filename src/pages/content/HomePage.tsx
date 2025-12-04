@@ -69,12 +69,16 @@ const HomePage = () => {
     { title: "Type", dataIndex: "type", key: "type", render: (type: string) => <Tag color="blue">{type}</Tag> },
     { title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color={getStatusColor(status)}>{status}</Tag> },
     { title: "Language", dataIndex: "language", key: "language", render: (lang: string) => LANGUAGE_LABELS[lang] },
+    { title: "Title", dataIndex: "title", key: "title", ellipsis: true },
+    { title: "Type", dataIndex: "type", key: "type", render: (type: string) => <Tag color="processing">{type}</Tag>, responsive: ["sm"] },
+    { title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color={getStatusColor(status)}>{status}</Tag>, responsive: ["md"] },
+    { title: "Language", dataIndex: "language", key: "language", render: (lang: string) => LANGUAGE_LABELS[lang], responsive: ["lg"] },
     {
       title: "Actions",
       key: "actions",
       width: 150,
       render: (_: any, record: any) => (
-        <Space size="small">
+        <Space size="small" wrap>
           <Button type="text" icon={<EyeOutlined />} onClick={() => handleEdit(record)} />
           <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
@@ -84,31 +88,35 @@ const HomePage = () => {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-2 sm:p-4">
       <Card
         title="Homepage Content"
         extra={
-          <Space>
-            <Select value={currentLanguage} onChange={setCurrentLanguage} style={{ width: 150 }}>
+          <Space wrap>
+            <Select value={currentLanguage} onChange={setCurrentLanguage} style={{ width: 140 }} size="small">
               {Object.entries(LANGUAGE_LABELS).map(([key, label]) => (
                 <Select.Option key={key} value={key}>
                   {label}
                 </Select.Option>
               ))}
             </Select>
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={handleCreate}>
               Add Content
             </Button>
           </Space>
         }
       >
-        <Table
+        <div className="overflow-x-auto">
+          <Table
           columns={columns as any}
           dataSource={Array.isArray(homepage.items) ? homepage.items : []}
           loading={homepage.loading as any}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: 10, responsive: true }}
+          size="small"
+          scroll={{ x: 700 }}
         />
+        </div>
       </Card>
 
       <Modal
@@ -119,9 +127,9 @@ const HomePage = () => {
         width={800}
         okText={editingItem ? "Update" : "Create"}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
+        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-2">
           <Form.Item name="type" label="Content Type" rules={[{ required: true, message: "Please select content type" }]}>
-            <Select placeholder="Select type">
+            <Select placeholder="Select type" size="large">
               <Select.Option value="hero">Hero Section</Select.Option>
               <Select.Option value="news">News</Select.Option>
               <Select.Option value="event">Event</Select.Option>

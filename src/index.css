@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #163b6b; /* deep navy */
-  --primary-dark: #0f2a4c;
-  --primary-light: #1a73e8; /* info accent */
+  --primary-color: #17A2B8; /* brand primary */
+  --primary-dark: #117c8f;
+  --primary-light: #148ea3; /* hover */
   --accent-color: #ff5722;
   --accent-light: #ff7849;
   --text-primary: #1f2937;
@@ -35,6 +35,14 @@ body {
   background-color: var(--background);
   color: var(--text-primary);
   overflow: hidden;
+}
+
+/* Make bold text use primary color by default */
+b,
+strong,
+.font-bold,
+.font-extrabold {
+  color: var(--primary-color);
 }
 
 code {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, Table, Button, Space, Tag, Upload, Modal, Form, Input, Select, message } from "antd"
 import { UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchDownloads, uploadFile } from "@/store/slices/downloadSlice"
+import { fetchDownloads, uploadFile, removeDownload, incrementDownloadCount } from "@/store/slices/downloadSlice"
 import { formatRelativeTime } from "@/utils/helpers"
 
 const { TextArea } = Input
@@ -17,7 +17,7 @@ const DownloadsPage = () => {
   const [form] = Form.useForm()
 
   useEffect(() => {
-    dispatch(fetchDownloads() as any)
+    dispatch(fetchDownloads({ page: 1, limit: 10 }) as any)
   }, [dispatch])
 
   const handleUpload = async (values: any) => {
@@ -36,6 +36,33 @@ const DownloadsPage = () => {
     }
   }
 
+  const onDownload = (record: any) => {
+    const url = record?.url
+    if (!url || url === "#") {
+      message.warning("No file URL available")
+      return
+    }
+    try {
+      window.open(url, "_blank")
+      dispatch(incrementDownloadCount(record.id) as any)
+    } catch (e) {
+      message.error("Failed to open file")
+    }
+  }
+
+  const onDelete = (record: any) => {
+    Modal.confirm({
+      title: "Delete file",
+      content: `Remove "${record.title}" from downloads?`,
+      okText: "Delete",
+      okButtonProps: { danger: true },
+      onOk: () => {
+        dispatch(removeDownload(record.id) as any)
+        message.success("Removed")
+      },
+    })
+  }
+
   const columns = [
     {
       title: "File Name",
@@ -43,36 +70,48 @@ const DownloadsPage = () => {
       key: "title",
       render: (title: string) => (
         <Space>
-          <FileOutlined className="text-blue-500" />
+          <FileOutlined className="text-primary-600" />
           <span>{title}</span>
         </Space>
       ),
     },
-    { title: "Category", dataIndex: "category", key: "category", render: (category: string) => <Tag color="blue">{category}</Tag> },
-    { title: "Size", dataIndex: "size", key: "size", render: (size: number) => `${(size / 1024).toFixed(2)} KB` },
-    { title: "Uploaded", dataIndex: "createdAt", key: "createdAt", render: (date: string | Date) => formatRelativeTime(date) },
-    { title: "Downloads", dataIndex: "downloadCount", key: "downloads" },
+    { title: "Category", dataIndex: "category", key: "category", render: (category: string) => <Tag color="processing">{category}</Tag> },
+    { title: "Size", dataIndex: "size", key: "size", render: (size: number) => `${(size / 1024).toFixed(2)} KB`, responsive: ["md"] },
+    { title: "Uploaded", dataIndex: "createdAt", key: "createdAt", render: (date: string | Date) => formatRelativeTime(date), responsive: ["md"] },
+    { title: "Downloads", dataIndex: "downloadCount", key: "downloads", responsive: ["sm"] },
     {
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Space>
-          <Button type="link" icon={<DownloadOutlined />} onClick={() => window.open(record.url, "_blank")}>Download</Button>
-          <Button type="text" danger icon={<DeleteOutlined />} />
+          <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => onDownload(record)}>
+            Download
+          </Button>
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
         </Space>
       ),
     },
   ]
 
   const mockData = [
-    { id: 1, title: "Admission Form 2024", category: "Forms", size: 2048000, createdAt: new Date("2024-01-15"), downloadCount: 156, url: "#" },
-    { id: 2, title: "Course Syllabus - CS101", category: "Academic", size: 512000, createdAt: new Date("2024-02-01"), downloadCount: 89, url: "#" },
+    { id: 1, title: "Admission Form 2024", category: "Forms", size: 2048000, createdAt: new Date("2024-01-15"), downloadCount: 156, url: "" },
+    { id: 2, title: "Course Syllabus - CS101", category: "Academic", size: 512000, createdAt: new Date("2024-02-01"), downloadCount: 89, url: "" },
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-2 sm:p-4">
       <Card title="Download Center" extra={<Button type="primary" icon={<UploadOutlined />} onClick={() => setIsModalOpen(true)}>Upload File</Button>}>
-        <Table columns={columns as any} dataSource={Array.isArray(mockData) ? mockData : []} loading={!!loading} rowKey="id" pagination={{ pageSize: 10 }} />
+        <div className="overflow-x-auto">
+          <Table
+            columns={columns as any}
+            dataSource={Array.isArray(items) && items.length ? items : mockData}
+            loading={!!loading}
+            rowKey="id"
+            pagination={{ pageSize: 10, responsive: true }}
+            scroll={{ x: 700 }}
+            size="small"
+          />
+        </div>
       </Card>
 
       <Modal title="Upload File" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={() => form.submit()}>
