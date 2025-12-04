@@ -8,7 +8,7 @@ type ProtectedRouteProps = {
 }
 
 const ProtectedRoute = ({ children, requiredRoles = [] }: ProtectedRouteProps) => {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth)
+  const { isAuthenticated, user } = useAppSelector((state: any) => state.auth)
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />

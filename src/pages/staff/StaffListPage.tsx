@@ -16,7 +16,7 @@ const StaffListPage = () => {
   const [filters, setFilters] = useState<{ search: string; department: string }>({ search: "", department: "" })
 
   useEffect(() => {
-    dispatch(fetchStaff({ page, limit, filters }) as any)
+    dispatch((fetchStaff as any)({ page, limit, filters }))
   }, [dispatch, page, limit, filters])
 
   const handleDelete = async (id: string | number) => {
@@ -26,7 +26,7 @@ const StaffListPage = () => {
       okText: "Delete",
       okType: "danger",
       onOk: async () => {
-        await dispatch(deleteStaff(id) as any)
+        await dispatch((deleteStaff as any)(id))
         message.success("Staff deleted successfully")
       },
     })

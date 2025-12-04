@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Layout, Menu, Dropdown, Avatar, Badge, Space, Button } from "antd"
+import { Layout, Menu, Dropdown, Avatar, Badge, Space, Button, Drawer, List, Typography } from "antd"
 import type { MenuProps } from "antd"
 import {
   DashboardOutlined,
@@ -47,7 +47,7 @@ const HEADER_TEXT: Record<LanguageKey, { title: string; subtitle: string }> = {
     subtitle: "College of Electrical Engineering",
   },
   am: {
-    title: "ኮኢኢኢሲ",
+    title: "COEEC",
     subtitle: "የኤሌክትሪክ መምህራን ኮሌጅ",
   },
   af: {
@@ -62,6 +62,12 @@ const DashboardLayout = () => {
   const location = useLocation()
   const { user } = useAppSelector((state) => state.auth)
   const { language: currentLanguage, setLanguage } = useLanguage()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const notifications = [
+    { id: 1, title: "New staff member added", description: "A new staff profile was created." },
+    { id: 2, title: "Pending content approval", description: "There are pages awaiting review." },
+  ]
 
   const handleLogout = () => {
     dispatch(logout())
@@ -150,7 +156,7 @@ const DashboardLayout = () => {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Hide sidebar on small screens for better mobile UX */}
+      {/* Desktop sidebar; hidden on mobile */}
       <Sider
         width={240}
         theme="light"
@@ -171,6 +177,17 @@ const DashboardLayout = () => {
         <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-4 md:px-6 flex items-center justify-between">
           {/* Stack header content on small screens */}
           <div className="flex items-center gap-3">
+            {/* Mobile: menu button */}
+            <Button
+              type="text"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              {/* simple hamburger icon using three bars */}
+              <span className="block w-5 h-[2px] bg-neutral-700 mb-[3px]"></span>
+              <span className="block w-5 h-[2px] bg-neutral-700 mb-[3px]"></span>
+              <span className="block w-5 h-[2px] bg-neutral-700"></span>
+            </Button>
             <div className="flex items-center gap-3 select-none">
               <img
                 src="/downloads/coeec-logo.png"
@@ -191,12 +208,17 @@ const DashboardLayout = () => {
             <Dropdown menu={languageMenu} placement="bottomRight">
               <Button type="text" icon={<GlobalOutlined />}>{LANGUAGE_LABELS[currentLanguage]}</Button>
             </Dropdown>
-            <Badge count={5}>
-              <Button type="text" icon={<BellOutlined />} />
+            <Badge count={notifications.length} overflowCount={99}>
+              <Button
+                aria-label="Notifications"
+                type="text"
+                icon={<BellOutlined />}
+                onClick={() => setNotificationsOpen(true)}
+              />
             </Badge>
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space className="cursor-pointer">
-                <Avatar style={{ backgroundColor: "#1e3a5f" }}>{user?.name?.charAt(0) || "U"}</Avatar>
+                <Avatar style={{ backgroundColor: "#17A2B8" }}>{user?.name?.charAt(0) || "U"}</Avatar>
                 <div className="hidden md:block">
                   <div className="text-sm font-medium">{user?.name || "User"}</div>
                 </div>
@@ -204,7 +226,45 @@ const DashboardLayout = () => {
             </Dropdown>
           </Space>
         </Header>
+        {/* Notifications Drawer */}
         <Content className="m-3 md:m-6" style={{ overflow: "auto", height: "calc(100vh - 64px)" }}>
+          <Drawer
+            title="Notifications"
+            placement="right"
+            open={notificationsOpen}
+            onClose={() => setNotificationsOpen(false)}
+            size="large"
+          >
+            {notifications.length === 0 ? (
+              <Typography.Text type="secondary">No notifications yet.</Typography.Text>
+            ) : (
+              <List
+                itemLayout="vertical"
+                dataSource={notifications}
+                renderItem={(item) => (
+                  <List.Item key={item.id}>
+                    <List.Item.Meta
+                      title={<span className="font-medium">{item.title}</span>}
+                      description={<span className="text-sm text-gray-500">{item.description}</span>}
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
+          </Drawer>
+        {/* Mobile navigation drawer */}
+          <Drawer
+            title={SIDEBAR_TEXT[currentLanguage].dashboard}
+            placement="left"
+            getContainer={false}
+            maskClosable
+            size="default"
+            open={mobileMenuOpen}
+            onClose={() => setMobileMenuOpen(false)}
+            className="md:hidden"
+          >
+            <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} />
+          </Drawer>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/content/homepage" element={<HomePage />} />

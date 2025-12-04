@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { Row, Col, Card, Statistic, Table, Tag, Typography, Spin } from "antd"
 import { UserOutlined, TeamOutlined, ExperimentOutlined, FileTextOutlined, ArrowUpOutlined } from "@ant-design/icons"
 import {
@@ -28,6 +29,7 @@ const COLORS = ["#163b6b", "#1a73e8", "#ff5722", "#ff7849"]
 
 const DashboardPage = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { dashboardStats, loading } = useAppSelector((state) => state.analytics)
   const { user } = useAppSelector((state) => state.auth)
 
@@ -146,7 +148,7 @@ const DashboardPage = () => {
       {/* Charts: ensure responsive containers and spacing */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
-          <Card title="Visitor Trend (Last 7 Days)" bordered={false}>
+          <Card title="Visitor Trend (Last 7 Days)" variant="outlined">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={visitorTrend}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -161,7 +163,7 @@ const DashboardPage = () => {
         </Col>
 
         <Col xs={24} lg={8}>
-          <Card title="Content by Status" bordered={false}>
+          <Card title="Content by Status" variant="outlined">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -189,7 +191,7 @@ const DashboardPage = () => {
       {/* Department Stats bar chart */}
       <Row gutter={[16, 16]}>
         <Col xs={24}>
-          <Card title="Department Statistics" bordered={false}>
+          <Card title="Department Statistics" variant="outlined">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats.departmentStats}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -208,7 +210,7 @@ const DashboardPage = () => {
 
       {/* Recent Activity */}
       {/* Recent Activity with horizontal scroll on mobile */}
-      <Card title="Recent Activity" bordered={false}>
+      <Card title="Recent Activity" variant="outlined">
         <div className="overflow-x-auto">
           <Table
             columns={recentColumns as any}
@@ -223,29 +225,45 @@ const DashboardPage = () => {
       {/* Quick Actions grid */}
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
-            <FileTextOutlined className="text-4xl text-[#1a73e8] mb-2" />
+          <Card
+            hoverable
+            className="text-center cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/content/about")}
+          >
+            <FileTextOutlined className="text-4xl text-primary-500 mb-2" />
             <Title level={4}>Create News</Title>
             <Text type="secondary">Add new announcement</Text>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
-            <TeamOutlined className="text-4xl text-[#1a73e8] mb-2" />
+          <Card
+            hoverable
+            className="text-center cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/staff/new")}
+          >
+            <TeamOutlined className="text-4xl text-primary-500 mb-2" />
             <Title level={4}>Add Staff</Title>
             <Text type="secondary">Register new faculty</Text>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
-            <ExperimentOutlined className="text-4xl text-[#1a73e8] mb-2" />
+          <Card
+            hoverable
+            className="text-center cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/research")}
+          >
+            <ExperimentOutlined className="text-4xl text-primary-500 mb-2" />
             <Title level={4}>New Research</Title>
             <Text type="secondary">Add research project</Text>
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card hoverable className="text-center cursor-pointer hover:shadow-lg transition-shadow">
-            <FileTextOutlined className="text-4xl text-[#1a73e8] mb-2" />
+          <Card
+            hoverable
+            className="text-center cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/approval")}
+          >
+            <FileTextOutlined className="text-4xl text-primary-500 mb-2" />
             <Title level={4}>Approvals</Title>
             <Text type="secondary">Review pending items</Text>
           </Card>

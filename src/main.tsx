@@ -11,19 +11,19 @@ import { LanguageProvider } from "./contexts/LanguageContext"
 // Theme tuned to match ASTU COEEC look-and-feel (navy primary, soft grays)
 const theme: ThemeConfig = {
   token: {
-    // ASTU COEEC palette: deep navy + gold accent
-    colorPrimary: "#163b6b",
-    colorInfo: "#163b6b",
+    // Primary brand color updated to #17A2B8
+    colorPrimary: "#17A2B8",
+    colorInfo: "#17A2B8",
     colorWarning: "#fdbc2c",
     wireframe: false,
     borderRadius: 8,
     fontSize: 14,
     colorBgLayout: "#f8fafc",
     colorText: "#1f2937",
-    colorLink: "#163b6b",
-    colorLinkHover: "#1f4a7f",
-    colorPrimaryHover: "#1f4a7f",
-    colorPrimaryActive: "#122e53",
+    colorLink: "#17A2B8",
+    colorLinkHover: "#148ea3",
+    colorPrimaryHover: "#148ea3",
+    colorPrimaryActive: "#117c8f",
   },
   components: {
     Layout: {
@@ -31,8 +31,8 @@ const theme: ThemeConfig = {
       siderBg: "#ffffff",
     },
     Menu: {
-      itemSelectedBg: "#eaf2ff",
-      itemSelectedColor: "#163b6b",
+      itemSelectedBg: "#e6f7fb",
+      itemSelectedColor: "#17A2B8",
     },
     Card: {
       // Use modern variants instead of deprecated bordered
@@ -42,18 +42,18 @@ const theme: ThemeConfig = {
       // Use styles.content over deprecated valueStyle in pages
     },
     Button: {
-      colorPrimary: "#163b6b",
-      colorPrimaryHover: "#1f4a7f",
-      colorPrimaryActive: "#122e53",
+      colorPrimary: "#17A2B8",
+      colorPrimaryHover: "#148ea3",
+      colorPrimaryActive: "#117c8f",
     },
     Table: {
-      headerBg: "#f0f6ff",
-      headerColor: "#163b6b",
-      rowHoverBg: "#f7faff",
+      headerBg: "#e6f7fb",
+      headerColor: "#17A2B8",
+      rowHoverBg: "#f2fbfd",
       borderColor: "#e5e7eb",
     },
     Tabs: {
-      inkBarColor: "#1a73e8",
+      inkBarColor: "#17A2B8",
     },
   },
 }

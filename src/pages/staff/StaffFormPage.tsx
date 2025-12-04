@@ -24,7 +24,7 @@ const StaffFormPage = () => {
 
   useEffect(() => {
     if (isEdit) {
-      dispatch(fetchStaffById(id as string) as any)
+      dispatch((fetchStaffById as any)(id as string) as any)
     }
   }, [dispatch, id, isEdit])
 
@@ -40,7 +40,7 @@ const StaffFormPage = () => {
       const data = { ...values, researchAreas: values.researchAreas || [], publications: values.publications || [] }
       let savedStaff: any
       if (isEdit) {
-        savedStaff = await dispatch(updateStaff({ id, data }) as any).unwrap()
+        savedStaff = await dispatch((updateStaff as any)({ id, data }) as any).unwrap()
         message.success("Staff updated successfully")
       } else {
         savedStaff = await dispatch(createStaff(data) as any).unwrap()
@@ -48,7 +48,7 @@ const StaffFormPage = () => {
       }
 
       if (cvFile && savedStaff.id) {
-        await dispatch(uploadCV({ id: savedStaff.id, file: cvFile }) as any).unwrap()
+        await dispatch((uploadCV as any)({ id: savedStaff.id, file: cvFile }) as any).unwrap()
         message.success("CV uploaded successfully")
       }
 

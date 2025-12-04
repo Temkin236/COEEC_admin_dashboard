@@ -12,7 +12,7 @@ const AlumniPage = () => {
   const [filters, setFilters] = useState({ search: "", year: "" })
 
   useEffect(() => {
-    dispatch(fetchAlumni({ page: 1, limit: 10 }) as any)
+    dispatch((fetchAlumni as any)({ page: 1, limit: 10 }))
   }, [dispatch])
 
   const columns = [
@@ -31,22 +31,44 @@ const AlumniPage = () => {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-2 md:p-4">
       <Card
         title="Alumni Directory"
         extra={
-          <Space>
-            <Input placeholder="Search alumni..." prefix={<SearchOutlined />} style={{ width: 200 }} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
-            <Select placeholder="Graduation Year" style={{ width: 150 }} onChange={(value) => setFilters({ ...filters, year: String(value) })} allowClear>
-              <Select.Option value="2023">2023</Select.Option>
-              <Select.Option value="2022">2022</Select.Option>
-              <Select.Option value="2021">2021</Select.Option>
-            </Select>
-            <Button icon={<ExportOutlined />}>Export</Button>
-          </Space>
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="w-full sm:w-auto">
+              <Input
+                placeholder="Search alumni..."
+                prefix={<SearchOutlined />}
+                className="w-full sm:w-52"
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              />
+            </div>
+            <div className="w-full sm:w-auto">
+              <Select
+                placeholder="Graduation Year"
+                className="w-full sm:w-40"
+                onChange={(value) => setFilters({ ...filters, year: String(value) })}
+                allowClear
+              >
+                <Select.Option value="2023">2023</Select.Option>
+                <Select.Option value="2022">2022</Select.Option>
+                <Select.Option value="2021">2021</Select.Option>
+              </Select>
+            </div>
+            <Button className="w-full sm:w-auto" icon={<ExportOutlined />}>Export</Button>
+          </div>
         }
       >
-        <Table columns={columns as any} dataSource={Array.isArray(mockData) ? mockData : []} loading={!!alumni.loading} rowKey="id" pagination={{ pageSize: 10 }} />
+        <div className="overflow-x-auto">
+          <Table
+            columns={columns as any}
+            dataSource={Array.isArray(mockData) ? mockData : []}
+            loading={!!alumni.loading}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+          />
+        </div>
       </Card>
     </div>
   )

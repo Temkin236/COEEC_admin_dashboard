@@ -17,7 +17,7 @@ const DownloadsPage = () => {
   const [form] = Form.useForm()
 
   useEffect(() => {
-    dispatch(fetchDownloads({ page: 1, limit: 10 }) as any)
+    dispatch(fetchDownloads() as any)
   }, [dispatch])
 
   const handleUpload = async (values: any) => {
