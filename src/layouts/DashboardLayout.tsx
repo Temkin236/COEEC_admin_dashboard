@@ -27,6 +27,8 @@ import DashboardPage from "@/pages/dashboard/DashboardPage"
 import HomePage from "@/pages/content/HomePage"
 import AboutPage from "@/pages/content/AboutPage"
 import DepartmentsPage from "@/pages/content/DepartmentsPage"
+import HomeAdminPage from "@/pages/content/HomeAdminPage"
+import AboutAdminPage from "@/pages/content/AboutAdminPage"
 import StaffListPage from "@/pages/staff/StaffListPage"
 import StaffFormPage from "@/pages/staff/StaffFormPage"
 import ResearchPage from "@/pages/research/ResearchPage"
@@ -100,9 +102,9 @@ const DashboardLayout = () => {
       key: "content",
       icon: <FileTextOutlined />,
       label: SIDEBAR_TEXT[currentLanguage].content,
-      children: [
-        { key: "/content/homepage", label: <Link to="/content/homepage">{SIDEBAR_TEXT[currentLanguage].homepage}</Link> },
-        { key: "/content/about", label: <Link to="/content/about">{SIDEBAR_TEXT[currentLanguage].about}</Link> },
+        children: [
+        { key: "/content/homepage", label: <Link to="/content/homepage-admin">{SIDEBAR_TEXT[currentLanguage].homepage}</Link> },
+        { key: "/content/about-admin", label: <Link to="/content/about-admin">{SIDEBAR_TEXT[currentLanguage].about}</Link> },
         { key: "/content/departments", label: <Link to="/content/departments">{SIDEBAR_TEXT[currentLanguage].departments}</Link> },
       ],
     },
@@ -279,6 +281,8 @@ const DashboardLayout = () => {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/content/homepage" element={<HomePage />} />
+            <Route path="/content/homepage-admin" element={<HomeAdminPage />} />
+            <Route path="/content/about-admin" element={<AboutAdminPage />} />
             <Route path="/content/about" element={<AboutPage />} />
             <Route path="/content/departments" element={<DepartmentsPage />} />
             <Route path="/staff" element={<StaffListPage />} />

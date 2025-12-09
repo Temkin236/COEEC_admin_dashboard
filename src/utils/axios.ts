@@ -12,7 +12,9 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     const token = localStorage.getItem("token")
-    if (token) {
+    // Skip auth for public homepage content fetches
+    const isPublicHomepage = config.url === '/content' && config.data && typeof config.data === 'object' && (config.data as any).type === 'homepage'
+    if (token && !isPublicHomepage) {
       ;(config.headers as any).Authorization = `Bearer ${token}`
     }
 
@@ -41,14 +43,22 @@ axiosInstance.interceptors.response.use(
           originalRequest.headers = { ...(originalRequest.headers || {}), Authorization: `Bearer ${token}` }
           return axiosInstance(originalRequest)
         } catch (refreshError) {
-          localStorage.removeItem("token")
-          localStorage.removeItem("refreshToken")
-          window.location.href = "/login"
+          // Check if it's a public homepage request, don't redirect
+          const isPublicHomepage = originalRequest.url === '/content' && originalRequest.data && typeof originalRequest.data === 'object' && (originalRequest.data as any).type === 'homepage'
+          if (!isPublicHomepage) {
+            localStorage.removeItem("token")
+            localStorage.removeItem("refreshToken")
+            window.location.href = "/login"
+          }
           return Promise.reject(refreshError)
         }
       } else {
-        localStorage.removeItem("token")
-        window.location.href = "/login"
+        // Check if it's a public homepage request, don't redirect
+        const isPublicHomepage = originalRequest.url === '/content' && originalRequest.data && typeof originalRequest.data === 'object' && (originalRequest.data as any).type === 'homepage'
+        if (!isPublicHomepage) {
+          localStorage.removeItem("token")
+          window.location.href = "/login"
+        }
       }
     }
 

@@ -8,7 +8,7 @@ const DEMO_CONTENT: Record<string, any[]> = {
     { id: "h1", type: "hero", title: "Welcome to COEEC", subtitle: "Driving innovation in Engineering & Computing", description: "Explore programs, research, and community at ASTU.", language: "en", status: "draft", order: 1, image: "" },
   ],
   about: [
-    { id: "a1", history: "Founded to lead excellence in engineering education.", mission: "Educate, Innovate, Serve.", vision: "Global impact through research and teaching.", deanName: "Dr. Abebe Kebede", deanMessage: "Welcome to our vibrant academic community.", deanImage: "", values: "Integrity\nExcellence\nService", goals: "Quality Education\nResearch Leadership", language: "en" },
+    { id: "a1", history: "Founded to lead excellence in engineering education.", mission: "To produce competent, innovative, and ethical professionals in electrical engineering and computing through quality education, problem-solving research, and community-oriented services that contribute to the sustainable development of the nation.", vision: "To be a premier center of excellence in applied engineering and computing in East Africa by 2030, recognized for high-quality graduates and impactful innovations.", deanName: "Dr. Berhanu Bulcha", deanMessage: "\"We are not just teaching engineering; we are cultivating the mindset of innovation that will drive Ethiopia's digital transformation. Our students are the architects of tomorrow.\"", deanImage: "", values: "Excellence: Striving for the highest standards in teaching and research. Inclusivity: Fostering a diverse and welcoming academic environment. Integrity: Upholding honesty, ethics, and accountability in all actions.", goals: "Quality Education\nResearch Leadership", historyItems: [{ year: "1993", title: "Foundation", description: "Established as the Department of Electrical Engineering under Nazareth Technical College.", image: "https://picsum.photos/400/300?random=35" }, { year: "2006", title: "University Status", description: "Upgraded to Adama University, expanding programs to include Computer Science.", image: "https://picsum.photos/400/300?random=36" }, { year: "2011", title: "Center of Excellence", description: "Designated as a Science and Technology University (ASTU) by the Ministry of Education.", image: "https://picsum.photos/400/300?random=37" }, { year: "2018", title: "New Complex", description: "Inauguration of the dedicated COEEC building with state-of-the-art laboratories.", image: "https://picsum.photos/400/300?random=38" }, { year: "2023", title: "PhD Programs", description: "Launched PhD programs in Power Engineering and Software Engineering.", image: "https://picsum.photos/400/300?random=39" }], adminItems: [{ name: "Dr. Berhanu Bulcha", role: "DEAN", image: "https://picsum.photos/300/300?random=30" }, { name: "Dr. Sarah Ahmed", role: "VICE DEAN, ACADEMICS", image: "https://picsum.photos/300/300?random=7" }, { name: "Mr. Dawit Tadesse", role: "VICE DEAN, RESEARCH", image: "https://picsum.photos/300/300?random=8" }, { name: "Ms. Tigist Alemu", role: "HEAD, ADMINISTRATION", image: "https://picsum.photos/300/300?random=9" }] },
   ],
   departments: [
     { id: "d1", name: "Computer Science and Engineering", code: "CSE", head: "Dr. Abebe Kebede", description: "Leading CS education and research.", programs: ["BSc", "MSc", "PhD"], researchAreas: ["AI", "Systems"], staffCount: 45, email: "cse@astu.edu.et", phone: "+251-11-0000000" },
@@ -90,11 +90,21 @@ const contentSlice = createSlice({
           state[type].error = null
         }
       })
-      .addCase(fetchContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; data: any[] }>) => {
+      .addCase(fetchContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; data: any }>) => {
         const { type, data } = action.payload
         if (state[type]) {
           state[type].loading = false
-          state[type].items = data
+          // normalize data into an array of items
+          if (Array.isArray(data)) {
+            state[type].items = data
+          } else if (data && Array.isArray((data as any).items)) {
+            state[type].items = (data as any).items
+          } else if (data && typeof data === 'object') {
+            // single item returned — wrap into array
+            state[type].items = [data]
+          } else {
+            state[type].items = []
+          }
         }
       })
       .addCase(fetchContent.rejected, (state, action) => {
@@ -106,13 +116,22 @@ const contentSlice = createSlice({
       })
       .addCase(createContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; data: any }>) => {
         const { type, data } = action.payload
-        if (state[type]) state[type].items.unshift(data)
+        if (state[type]) {
+          if (!Array.isArray(state[type].items)) state[type].items = []
+          state[type].items.unshift(data)
+        }
       })
       .addCase(updateContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; data: any }>) => {
         const { type, data } = action.payload
         if (state[type]) {
-          const index = state[type].items.findIndex((item: any) => item.id === data.id)
-          if (index !== -1) state[type].items[index] = data
+          if (!Array.isArray(state[type].items)) {
+            // replace with single-item array
+            state[type].items = [data]
+          } else {
+            const index = state[type].items.findIndex((item: any) => item.id === data.id)
+            if (index !== -1) state[type].items[index] = data
+            else state[type].items.unshift(data)
+          }
         }
       })
       .addCase(deleteContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; id: string }>) => {
