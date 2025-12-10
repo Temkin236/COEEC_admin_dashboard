@@ -278,7 +278,7 @@ const StaffFormPage = () => {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default StaffFormPage
