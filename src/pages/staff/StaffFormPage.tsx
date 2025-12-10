@@ -117,16 +117,25 @@ const StaffFormPage = () => {
                 <Divider />
 
                 <div className="grid grid-cols-2 gap-4">
-                  <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please select title" }]}>
+                  <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please select title" }]}> 
                     <Select placeholder="Select title">
                       <Select.Option value="Professor">Professor</Select.Option>
                       <Select.Option value="Associate Professor">Associate Professor</Select.Option>
                       <Select.Option value="Assistant Professor">Assistant Professor</Select.Option>
                       <Select.Option value="Lecturer">Lecturer</Select.Option>
-                      <Select.Option value="Assistant Lecturer">Assistant Lecturer</Select.Option>
+                      <Select.Option value="Administrator">Administrator</Select.Option>
                     </Select>
                   </Form.Item>
-                  <Form.Item name="department" label="Department" rules={[{ required: true, message: "Please select department" }]}>
+                  <Form.Item name="academicRank" label="Academic Rank" rules={[{ required: true, message: "Please select academic rank" }]}> 
+                    <Select placeholder="Select academic rank">
+                      <Select.Option value="Professor">Professor</Select.Option>
+                      <Select.Option value="Associate Professor">Associate Professor</Select.Option>
+                      <Select.Option value="Assistant Professor">Assistant Professor</Select.Option>
+                      <Select.Option value="Lecturer">Lecturer</Select.Option>
+                      <Select.Option value="Administrator">Administrator</Select.Option>
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="department" label="Department" rules={[{ required: true, message: "Please select department" }]}> 
                     <Select placeholder="Select department">
                       {DEPARTMENTS.map((dept) => (
                         <Select.Option key={dept.code} value={dept.code}>
@@ -134,6 +143,9 @@ const StaffFormPage = () => {
                         </Select.Option>
                       ))}
                     </Select>
+                  </Form.Item>
+                  <Form.Item name="expertise" label="Expertise">
+                    <Select mode="tags" placeholder="Add expertise (e.g., Machine Learning, Cybersecurity)" tokenSeparators={[","]} />
                   </Form.Item>
                   <Form.Item name="office" label="Office Location">
                     <Input placeholder="Building, Room number" />
@@ -148,7 +160,7 @@ const StaffFormPage = () => {
                 </div>
 
                 <Form.Item name="bio" label="Biography">
-                  <TextArea rows={4} placeholder="Brief professional biography..." />
+                  <TextArea rows={4} placeholder="Brief professional biography, e.g. Dean of COEEC, Computer Science & Engineering" />
                 </Form.Item>
               </div>
             </TabPane>
@@ -214,7 +226,57 @@ const StaffFormPage = () => {
             </TabPane>
           </Tabs>
         </Form>
-      </Card>
+
+      {/* Live Preview Section */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
+        <div className="flex flex-wrap gap-8">
+          <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/4 flex flex-col items-center border border-gray-100">
+            <div
+              style={{
+                width: 160,
+                height: 160,
+                borderRadius: "50%",
+                background: "#f3f4f6",
+                overflow: "hidden",
+                marginBottom: 16,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
+              }}
+            >
+              {photoPreview ? (
+                <img src={photoPreview} alt="Staff" style={{ width: 160, height: 160, objectFit: "cover" }} />
+              ) : (
+                <UserOutlined style={{ fontSize: 64, color: "#bbb" }} />
+              )}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#2b4362', textTransform: 'uppercase', marginBottom: 4 }}>
+              {form.getFieldValue('title') || 'TITLE'}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+              {form.getFieldValue('firstName') || ''} {form.getFieldValue('lastName') || ''}
+            </div>
+            <div style={{ fontSize: 16, color: '#3b5b8c', marginBottom: 4 }}>
+              {form.getFieldValue('academicRank') || ''}
+            </div>
+            <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+              {form.getFieldValue('bio') || ''}
+            </div>
+            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+              {form.getFieldValue('department') ? DEPARTMENTS.find(d => d.code === form.getFieldValue('department'))?.name : ''}
+            </div>
+            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+              {form.getFieldValue('expertise') && form.getFieldValue('expertise').length > 0 && (
+                <span>
+                  <b>Expertise:</b> {form.getFieldValue('expertise').join(', ')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

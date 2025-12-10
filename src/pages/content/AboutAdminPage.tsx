@@ -1,21 +1,20 @@
-"use client"
 
-import { useEffect, useState } from "react"
-import { Card, Button, Tabs, Form, Input, Select, message, Space, Upload, List, Avatar, Modal, Descriptions } from "antd"
-import { SaveOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons"
-import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchContent, updateContent, createContent } from "@/store/slices/contentSlice"
-
+import React, { useEffect, useState } from "react";
+import { Card, Button, Tabs, Form, Input, Select, message, Space, Upload, List, Avatar, Modal, Descriptions } from "antd";
+import { SaveOutlined, PlusOutlined, DeleteOutlined, TrophyOutlined, TeamOutlined, CheckCircleOutlined, StarOutlined, SafetyCertificateOutlined, SmileOutlined, HeartOutlined, AimOutlined, EyeOutlined, BulbOutlined, ThunderboltOutlined, CodeOutlined, LaptopOutlined, RocketOutlined } from "@ant-design/icons";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchContent, updateContent, createContent } from "@/store/slices/contentSlice";
 import AboutHistorySection from "@/components/AboutHistorySection";
 import MissionVisionSection from "@/components/MissionVisionSection";
 import DeanMessageSection from "@/components/DeanMessageSection";
-import { AimOutlined, EyeOutlined, BulbOutlined, HeartOutlined, ThunderboltOutlined, CodeOutlined, LaptopOutlined, RocketOutlined } from "@ant-design/icons";
-import { LANGUAGE_LABELS } from "@/utils/constants"
+import { LANGUAGE_LABELS } from "@/utils/constants";
 
-const { TextArea } = Input
-const { TabPane } = Tabs as any
+const { TextArea } = Input;
+const { TabPane } = Tabs as any;
 
 const AboutAdminPage = () => {
+  // Dummy state to force re-render for live preview
+  const [previewKey, setPreviewKey] = useState(0);
   const dispatch = useAppDispatch();
   const { about } = useAppSelector((state) => state.content);
   const [currentLanguage, setCurrentLanguage] = useState("en");
@@ -24,6 +23,45 @@ const AboutAdminPage = () => {
   const [fileList, setFileList] = useState<any[]>([]);
   // Fix: Add activeHistoryIndex for timeline circle border
   const [activeHistoryIndex, setActiveHistoryIndex] = useState(-1);
+  const [coreValues, setCoreValues] = useState<any[]>([
+    { icon: 'TrophyOutlined', title: 'Excellence', description: 'Striving for the highest standards in teaching and research.' },
+    { icon: 'TeamOutlined', title: 'Inclusivity', description: 'Fostering a diverse and welcoming academic environment.' },
+    { icon: 'CheckCircleOutlined', title: 'Integrity', description: 'Upholding honesty, ethics, and accountability in all actions.' }
+  ]);
+
+  // Administration section state and handlers
+  const [admins, setAdmins] = useState<any[]>([
+    { image: '', name: '', title: '', subtitle: '' }
+  ]);
+
+  const addAdmin = () => {
+    setAdmins([...admins, { image: '', name: '', title: '', subtitle: '' }]);
+  };
+
+  const removeAdmin = (idx: number) => {
+    if (admins.length > 1) {
+      setAdmins(admins.filter((_, i) => i !== idx));
+    }
+  };
+
+  const handleAdminChange = (idx: number, field: string, value: any) => {
+    const updated = [...admins];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setAdmins(updated);
+  };
+
+  const handleAdminImage = async (idx: number, file: any) => {
+    if (file && file.originFileObj) {
+      const base64 = await getBase64(file.originFileObj);
+      setAdmins(prevAdmins => {
+        const updated = [...prevAdmins];
+        updated[idx] = { ...updated[idx], image: base64 };
+        return updated;
+      });
+      setPreviewKey(prev => prev + 1); // Force re-render
+    }
+    return false;
+  };
   // Extract preview data for AboutHistorySection
   const aboutData = about.items[0] || {};
   const historySectionTitle = form.getFieldValue('historySectionTitle') || aboutData.historySectionTitle || "Three Decades of Growth";
@@ -113,31 +151,11 @@ const AboutAdminPage = () => {
       <div className="space-y-4">
         <Card
           title="About the College - Admin Editor"
-          extra={
-            <Space>
-              <Select value={currentLanguage} onChange={setCurrentLanguage} style={{ width: 150 }}>
-                {Object.entries(LANGUAGE_LABELS).map(([key, label]) => (
-                  <Select.Option key={key} value={key}>
-                    {label}
-                  </Select.Option>
-                ))}
-              </Select>
-              <Button
-                type="primary"
-                icon={saveSuccess ? <span style={{color:'#52c41a'}}>&#10003;</span> : <SaveOutlined />}
-                onClick={handleSubmit}
-                loading={saving}
-                style={{ minWidth: 160, fontWeight: 600, fontSize: 16, background: saveSuccess ? '#f6ffed' : undefined, borderColor: saveSuccess ? '#b7eb8f' : undefined, color: saveSuccess ? '#389e0d' : undefined }}
-              >
-                {saveSuccess ? 'Saved!' : 'Save Changes'}
-              </Button>
-            </Space>
-          }
         >
           <Form form={form} layout="vertical" onFinish={handleSubmit}>
             <Tabs defaultActiveKey="1" activeKey={activeTab} onChange={setActiveTab}>
               <TabPane tab="History Section (Photo)" key="1">
-                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="flex flex-col md:flex-row gap-8">
                   {/* Left: Section Info */}
                   <div className="md:w-1/2">
                     <Form.Item name="historySectionLabel" label="Section Label (e.g. Our Journey)" rules={[{ required: true, message: "Please enter section label" }]}> 
@@ -361,29 +379,230 @@ const AboutAdminPage = () => {
               </TabPane>
               
               <TabPane tab="Values & Goals" key="4">
-                <Form.Item name="values" label="Core Values">
-                  <TextArea rows={6} placeholder="Enter core values (one per line)..." />
-                </Form.Item>
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-6">
+                    {coreValues.map((value, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow p-6 w-full md:w-1/3 flex flex-col items-start relative border border-gray-100">
+                        <Select
+                          value={value.icon}
+                          style={{
+                            width: 72,
+                            height: 72,
+                            marginBottom: 16,
+                            border: '1.5px solid #e5e7eb',
+                            borderRadius: 16,
+                            background: '#fafbfc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 40,
+                            boxShadow: '0 2px 8px 0 rgba(60,60,60,0.07)',
+                            padding: 8
+                          }}
+                          dropdownStyle={{ borderRadius: 16, padding: 8 }}
+                          onChange={icon => {
+                            const updated = [...coreValues];
+                            updated[idx].icon = icon;
+                            setCoreValues(updated);
+                          }}
+                        >
+                          <Select.Option value="TrophyOutlined"><TrophyOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Excellence</Select.Option>
+                          <Select.Option value="TeamOutlined"><TeamOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Inclusivity</Select.Option>
+                          <Select.Option value="CheckCircleOutlined"><CheckCircleOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Integrity</Select.Option>
+                          <Select.Option value="StarOutlined"><StarOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Achievement</Select.Option>
+                          <Select.Option value="SafetyCertificateOutlined"><SafetyCertificateOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Safety</Select.Option>
+                          <Select.Option value="SmileOutlined"><SmileOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Positivity</Select.Option>
+                          <Select.Option value="HeartOutlined"><HeartOutlined style={{ color: '#FF4B2B', fontSize: 40, verticalAlign: 'middle' }} /> Compassion</Select.Option>
+                        </Select>
+                        <Input
+                          value={value.title}
+                          onChange={e => {
+                            const updated = [...coreValues];
+                            updated[idx].title = e.target.value;
+                            setCoreValues(updated);
+                          }}
+                          placeholder="Value Title"
+                          className="font-bold text-xl mb-2"
+                        />
+                        <TextArea
+                          value={value.description}
+                          onChange={e => {
+                            const updated = [...coreValues];
+                            updated[idx].description = e.target.value;
+                            setCoreValues(updated);
+                          }}
+                          placeholder="Value Description"
+                          autoSize={{ minRows: 2, maxRows: 4 }}
+                        />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          danger
+                          style={{ position: 'absolute', top: 8, right: 8 }}
+                          onClick={() => setCoreValues(coreValues.filter((_, i) => i !== idx))}
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="dashed"
+                      icon={<PlusOutlined />}
+                      style={{ height: 120, minWidth: 180, alignSelf: 'center' }}
+                      onClick={() => setCoreValues([...coreValues, { icon: 'TrophyOutlined', title: '', description: '' }])}
+                    >
+                      Add Value
+                    </Button>
+                  </div>
+                </div>
                 <Form.Item name="goals" label="Strategic Goals">
                   <TextArea rows={6} placeholder="Enter strategic goals..." />
                 </Form.Item>
               </TabPane>
+              <TabPane tab="Administration" key="5">
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-6">
+                    {admins.map((admin, idx) => (
+                      <div key={idx} className="bg-white rounded-2xl shadow p-6 w-full md:w-1/4 flex flex-col items-center relative border border-gray-100">
+                        <Upload
+                          showUploadList={false}
+                          accept="image/*"
+                          beforeUpload={file => {
+                            const reader = new FileReader();
+                            reader.onload = e => {
+                              const base64 = e.target?.result as string;
+                              setAdmins(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], image: base64 };
+                                return updated;
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                            return false;
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 120,
+                              height: 120,
+                              borderRadius: "50%",
+                              background: "#f3f4f6",
+                              overflow: "hidden",
+                              marginBottom: 16,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
+                            }}
+                          >
+                            {admin.image ? (
+                              <img src={admin.image} alt={admin.name} style={{ width: 120, height: 120, objectFit: "cover" }} />
+                            ) : (
+                              <PlusOutlined style={{ fontSize: 32, color: "#bbb" }} />
+                            )}
+                          </div>
+                        </Upload>
+                        <Input
+                          value={admin.name}
+                          onChange={e => handleAdminChange(idx, "name", e.target.value)}
+                          placeholder="Full Name"
+                          className="text-center text-lg font-bold mb-2"
+                          style={{ fontWeight: 700, fontSize: 20, textAlign: "center" }}
+                        />
+                        <Select
+                          showSearch
+                          value={admin.title}
+                          onChange={value => handleAdminChange(idx, "title", value)}
+                          placeholder="Select or type role (e.g., DEAN)"
+                          className="text-center text-base mb-1"
+                          style={{ fontWeight: 600, color: "#1e293b", textAlign: "center", width: '100%' }}
+                          optionFilterProp="children"
+                          filterOption={(input, option) =>
+                            (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                          }
+                          dropdownStyle={{ minWidth: 200 }}
+                          allowClear
+                          onInputKeyDown={e => {
+                            // Allow typing custom value and pressing Enter
+                            if (e.key === 'Enter') {
+                              handleAdminChange(idx, "title", e.target.value);
+                            }
+                          }}
+                        >
+                          <Select.Option value="DEAN">DEAN</Select.Option>
+                          <Select.Option value="VICE DEAN, ACADEMICS">VICE DEAN, ACADEMICS</Select.Option>
+                          <Select.Option value="VICE DEAN, RESEARCH">VICE DEAN, RESEARCH</Select.Option>
+                          <Select.Option value="HEAD, ADMINISTRATION">HEAD, ADMINISTRATION</Select.Option>
+                          <Select.Option value="HEAD, DEPARTMENT">HEAD, DEPARTMENT</Select.Option>
+                          <Select.Option value="COORDINATOR">COORDINATOR</Select.Option>
+                        </Select>
+                        <Input
+                          value={admin.subtitle}
+                          onChange={e => handleAdminChange(idx, "subtitle", e.target.value)}
+                          placeholder="Subtitle (optional)"
+                          className="text-center text-xs mb-2"
+                          style={{ color: "#64748b", textAlign: "center" }}
+                        />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          danger
+                          style={{ position: "absolute", top: 8, right: 8 }}
+                          onClick={() => removeAdmin(idx)}
+                          disabled={admins.length <= 1}
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="dashed"
+                      icon={<PlusOutlined />}
+                      style={{ height: 120, minWidth: 180, alignSelf: "center" }}
+                      onClick={addAdmin}
+                    >
+                      Add Admin
+                    </Button>
+                  </div>
+                </div>
+              </TabPane>
             </Tabs>
           </Form>
         </Card>
-      </div>
-      {/* Live Preview Section */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
-        {activeTab === "1" && (
-          <AboutHistorySection
-            sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
-            sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
-            sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
-            sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
-            timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
-          />
-        )}
+        <React.Fragment>
+          {activeTab === "1" && (
+            <AboutHistorySection
+              sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
+              sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
+              sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
+              sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
+              timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
+            />
+          )}
+          {activeTab === "2" && (
+            <MissionVisionSection
+              mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}
+              vision={form.getFieldValue('vision') || about.items[0]?.vision || ''}
+              missionIcon={form.getFieldValue('missionIcon') || about.items[0]?.missionIcon || 'AimOutlined'}
+              visionIcon={form.getFieldValue('visionIcon') || about.items[0]?.visionIcon || 'EyeOutlined'}
+              missionTitle={form.getFieldValue('missionTitle') || about.items[0]?.missionTitle || 'Our Mission'}
+              visionTitle={form.getFieldValue('visionTitle') || about.items[0]?.visionTitle || 'Our Vision'}
+            />
+          )}
+          {activeTab === "3" && (
+            <DeanMessageSection
+              leadershipLabel={form.getFieldValue('deanLeadershipLabel') || about.items[0]?.deanLeadershipLabel || 'LEADERSHIP'}
+              sectionTitle={form.getFieldValue('deanSectionTitle') || about.items[0]?.deanSectionTitle || 'Building the Future of Engineering'}
+              quote={form.getFieldValue('deanQuote') || about.items[0]?.deanQuote || 'We are not just teaching engineering; we are cultivating the mindset of innovation that will drive Ethiopia\'s digital transformation. Our students are the architects of tomorrow.'}
+              detail={form.getFieldValue('deanDetail') || about.items[0]?.deanDetail || 'Welcome to the College of Electrical Engineering and Computing (COEEC). For over three decades, we have been at the forefront of technological advancement in the region. Our curriculum balances rigorous theoretical foundations with hands-on practical experience, ensuring our graduates are industry-ready from day one.\nI invite you to explore our vibrant community, where cutting-edge research meets social impact.'}
+              deanName={form.getFieldValue('deanName') || about.items[0]?.deanName || ''}
+              deanTitle={form.getFieldValue('deanTitle') || about.items[0]?.deanTitle || ''}
+              deanMessage={form.getFieldValue('deanMessage') || about.items[0]?.deanMessage || ''}
+              deanImage={form.getFieldValue('deanImage') || about.items[0]?.deanImage || ''}
+              signature={form.getFieldValue('deanSignature') || about.items[0]?.deanSignature || ''}
+            />
+          )}
+          {/* ...existing code for Core Values and Administration tabs... */}
+        </React.Fragment>
+      </div>
         {activeTab === "2" && (
           <MissionVisionSection
             mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}
@@ -407,7 +626,76 @@ const AboutAdminPage = () => {
             signature={form.getFieldValue('deanSignature') || about.items[0]?.deanSignature || ''}
           />
         )}
-        {/* Add similar preview for other tabs if needed */}
+        {activeTab === "4" && (
+          <>{/* Core Values Preview */}
+            <div className="flex flex-wrap gap-8 mt-8">
+              {coreValues.map((value, idx) => {
+                const iconMap = {
+                  TrophyOutlined: <TrophyOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  TeamOutlined: <TeamOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  CheckCircleOutlined: <CheckCircleOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  StarOutlined: <StarOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  SafetyCertificateOutlined: <SafetyCertificateOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  SmileOutlined: <SmileOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                  HeartOutlined: <HeartOutlined style={{ color: '#FF4B2B', fontSize: 40 }} />,
+                };
+                return (
+                  <div key={idx} className="bg-white rounded-2xl shadow p-8 w-full md:w-1/3 flex flex-col items-start border border-gray-100">
+                    <div className="mb-4">{iconMap[value.icon]}</div>
+                    <div className="text-2xl font-bold mb-2 text-gray-900">{value.title}</div>
+                    <div className="text-lg text-gray-500">{value.description}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {activeTab === "5" && (
+          <div className="flex flex-wrap justify-center gap-8 mt-8" key={previewKey}>
+            {admins.map((admin, idx) => (
+              <div key={idx} className="bg-white rounded-2xl shadow p-8 w-full md:w-1/4 flex flex-col items-center border border-gray-100">
+                <div
+                  style={{
+                    width: 120,
+                    height: 120,
+                    borderRadius: "50%",
+                    background: "#f3f4f6",
+                    overflow: "hidden",
+                    marginBottom: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
+                  }}
+                >
+                  {admin.image ? (
+                    <img src={admin.image} alt={admin.name} style={{ width: 120, height: 120, objectFit: "cover" }} />
+                  ) : (
+                    <PlusOutlined style={{ fontSize: 32, color: "#bbb" }} />
+                  )}
+                </div>
+                <div
+                  className="mb-1 text-center"
+                  style={{ fontSize: 24, fontWeight: 700, color: '#1e293b' }}
+                >
+                  {admin.name}
+                </div>
+                <div
+                  className="mb-1 text-center"
+                  style={{ fontSize: 18, fontWeight: 600, color: '#2b4362', letterSpacing: 0.5 }}
+                >
+                  {admin.title}
+                </div>
+                <div
+                  className="text-center"
+                  style={{ fontSize: 16, fontWeight: 500, color: '#3b5b8c', letterSpacing: 0.5 }}
+                >
+                  {admin.subtitle}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <Modal
         open={showSummary}
