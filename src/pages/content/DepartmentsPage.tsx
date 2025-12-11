@@ -8,6 +8,33 @@ import { fetchContent, createContent, updateContent, deleteContent } from "@/sto
 
 const { TextArea } = Input
 
+const DEPARTMENTS = [
+  {
+    code: "cs",
+    name: "Computer Science & Engineering",
+    description: "Focusing on software systems, AI, and cybersecurity to drive digital transformation.",
+    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
+    programs: ["B.Sc. Computer Science", "M.Sc. Software Engineering", "PhD AI"],
+    head: "Dr. Sarah Ahmed"
+  },
+  {
+    code: "ece",
+    name: "Electrical & Computer Engineering",
+    description: "Bridging hardware and software with a focus on embedded systems and telecommunications.",
+    image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
+    programs: ["B.Sc. Electrical Engineering", "M.Sc. Communication Engineering"],
+    head: "Mr. Dawit Tadesse"
+  },
+  {
+    code: "ep",
+    name: "Electronics & Power Engineering",
+    description: "Dedicated to power generation, distribution, and sustainable energy solutions.",
+    image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
+    programs: ["B.Sc. Power Engineering", "M.Sc. Power Systems"],
+    head: "Dr. Solomon Bekele"
+  }
+];
+
 const DepartmentsPage = () => {
   const dispatch = useAppDispatch()
   const { departments } = useAppSelector((state) => state.content)
@@ -127,6 +154,13 @@ const DepartmentsPage = () => {
           loading={departments.loading as any}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          onRow={record => ({
+            onClick: () => {
+              // Navigate to department details or edit page
+              window.location.href = `/departments/${record.code || record.id}`;
+            },
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
 
@@ -139,8 +173,16 @@ const DepartmentsPage = () => {
         okText={editingItem ? "Update" : "Create"}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
-          <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please enter department name" }]}>
-            <Input placeholder="e.g., Computer Science and Engineering" />
+          <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please select department name" }]}> 
+            <Select
+              placeholder="Select department"
+              options={[
+                { value: "Software Engineering", label: "Software Engineering" },
+                { value: "Computer Science Engineering", label: "Computer Science Engineering" },
+                { value: "Electronics and Communication Engineering", label: "Electronics and Communication Engineering" },
+                { value: "Electrical Power Department", label: "Electrical Power Department" }
+              ]}
+            />
           </Form.Item>
           <Form.Item name="code" label="Department Code" rules={[{ required: true, message: "Please enter department code" }]}>
             <Input placeholder="e.g., CSE" />

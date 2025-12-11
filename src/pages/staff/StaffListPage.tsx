@@ -47,7 +47,11 @@ const StaffListPage = () => {
       key: "name",
       render: (name: string, record: any) => (
         <Space>
-          <Avatar src={record.photo} style={{ backgroundColor: "#1e3a5f" }}>{getInitials(name)}</Avatar>
+          {record.photo ? (
+            <Avatar src={record.photo.startsWith('data:image') ? record.photo : `data:image/*;base64,${record.photo}`} style={{ backgroundColor: "#1e3a5f" }} />
+          ) : (
+            <Avatar style={{ backgroundColor: "#1e3a5f" }}>{getInitials(name)}</Avatar>
+          )}
           <div>
             <div className="font-medium">{name}</div>
             <div className="text-xs text-gray-500">{record.email}</div>
