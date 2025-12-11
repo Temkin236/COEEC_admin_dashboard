@@ -370,9 +370,10 @@ const StaffFormPage = () => {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+
+      </div> {/* End Live Preview Section */}
+    </div> {/* End main container */}
   );
 }
 
-export default StaffFormPage
+export default StaffFormPage;
