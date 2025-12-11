@@ -112,8 +112,6 @@ const StaffFormPage = () => {
                       <Input placeholder="+251-XXX-XXXXXX" />
                     </Form.Item>
                   </div>
-                );
-              }
                   <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please select title" }]}> 
                     <Select placeholder="Select title">
                       <Select.Option value="Professor">Professor</Select.Option>
@@ -276,10 +274,6 @@ const StaffFormPage = () => {
         </div>
       </Card>
     </div>
-    </div>
-  );
-}
-// Add missing closing divs if any were left open
   );
 }
 
