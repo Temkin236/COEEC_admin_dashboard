@@ -515,15 +515,17 @@ const AboutAdminPage = () => {
                           className="text-center text-base mb-1"
                           style={{ fontWeight: 600, color: "#1e293b", textAlign: "center", width: '100%' }}
                           optionFilterProp="children"
-                          filterOption={(input, option) =>
-                            (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
-                          }
+                          filterOption={(input, option) => {
+                            const label = typeof option?.children === 'string' ? option.children : Array.isArray(option?.children) ? option.children.join(' ') : '';
+                            return label.toLowerCase().includes(input.toLowerCase());
+                          }}
                           dropdownStyle={{ minWidth: 200 }}
                           allowClear
                           onInputKeyDown={e => {
                             // Allow typing custom value and pressing Enter
                             if (e.key === 'Enter') {
-                              handleAdminChange(idx, "title", e.target.value);
+                              const target = e.target as HTMLInputElement;
+                              handleAdminChange(idx, "title", target.value);
                             }
                           }}
                         >

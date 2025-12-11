@@ -99,13 +99,13 @@ const StaffFormPage = () => {
                   </div>
 
                   <div className="flex-1 grid grid-cols-2 gap-4">
-                    <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Please enter first name" }]}>
+                    <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Please enter first name" }]}> 
                       <Input placeholder="First name" />
                     </Form.Item>
-                    <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Please enter last name" }]}>
+                    <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Please enter last name" }]}> 
                       <Input placeholder="Last name" />
                     </Form.Item>
-                    <Form.Item name="email" label="Email" rules={[{ required: true, message: "Please enter email" }, { type: "email", message: "Please enter valid email" }]}>
+                    <Form.Item name="email" label="Email" rules={[{ required: true, message: "Please enter email" }, { type: "email", message: "Please enter valid email" }]}> 
                       <Input placeholder="email@astu.edu.et" />
                     </Form.Item>
                     <Form.Item name="phone" label="Phone">
@@ -227,56 +227,57 @@ const StaffFormPage = () => {
           </Tabs>
         </Form>
 
-      {/* Live Preview Section */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
-        <div className="flex flex-wrap gap-8">
-          <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/4 flex flex-col items-center border border-gray-100">
-            <div
-              style={{
-                width: 160,
-                height: 160,
-                borderRadius: "50%",
-                background: "#f3f4f6",
-                overflow: "hidden",
-                marginBottom: 16,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
-              }}
-            >
-              {photoPreview ? (
-                <img src={photoPreview} alt="Staff" style={{ width: 160, height: 160, objectFit: "cover" }} />
-              ) : (
-                <UserOutlined style={{ fontSize: 64, color: "#bbb" }} />
-              )}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#2b4362', textTransform: 'uppercase', marginBottom: 4 }}>
-              {form.getFieldValue('title') || 'TITLE'}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-              {form.getFieldValue('firstName') || ''} {form.getFieldValue('lastName') || ''}
-            </div>
-            <div style={{ fontSize: 16, color: '#3b5b8c', marginBottom: 4 }}>
-              {form.getFieldValue('academicRank') || ''}
-            </div>
-            <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-              {form.getFieldValue('bio') || ''}
-            </div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
-              {form.getFieldValue('department') ? DEPARTMENTS.find(d => d.code === form.getFieldValue('department'))?.name : ''}
-            </div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
-              {form.getFieldValue('expertise') && form.getFieldValue('expertise').length > 0 && (
-                <span>
-                  <b>Expertise:</b> {form.getFieldValue('expertise').join(', ')}
-                </span>
-              )}
+        {/* Live Preview Section */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
+          <div className="flex flex-wrap gap-8">
+            <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/4 flex flex-col items-center border border-gray-100">
+              <div
+                style={{
+                  width: 160,
+                  height: 160,
+                  borderRadius: "50%",
+                  background: "#f3f4f6",
+                  overflow: "hidden",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
+                }}
+              >
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Staff" style={{ width: 160, height: 160, objectFit: "cover" }} />
+                ) : (
+                  <UserOutlined style={{ fontSize: 64, color: "#bbb" }} />
+                )}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#2b4362', textTransform: 'uppercase', marginBottom: 4 }}>
+                {form.getFieldValue('title') || 'TITLE'}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                {form.getFieldValue('firstName') || ''} {form.getFieldValue('lastName') || ''}
+              </div>
+              <div style={{ fontSize: 16, color: '#3b5b8c', marginBottom: 4 }}>
+                {form.getFieldValue('academicRank') || ''}
+              </div>
+              <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                {form.getFieldValue('bio') || ''}
+              </div>
+              <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+                {form.getFieldValue('department') ? DEPARTMENTS.find(d => d.code === form.getFieldValue('department'))?.name : ''}
+              </div>
+              <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+                {form.getFieldValue('expertise') && form.getFieldValue('expertise').length > 0 && (
+                  <span>
+                    <b>Expertise:</b> {form.getFieldValue('expertise').join(', ')}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
