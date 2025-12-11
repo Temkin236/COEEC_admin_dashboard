@@ -99,7 +99,7 @@ const StaffFormPage = () => {
       console.log("FileReader result:", result);
       setPhotoPreview(result);
       form.setFieldsValue({ photo: result });
-    };
+    }
     reader.onerror = (e) => {
       message.error("Failed to read image file");
       console.error("FileReader error:", e);
@@ -372,7 +372,7 @@ const StaffFormPage = () => {
         </div>
 
       </div> {/* End Live Preview Section */}
-    </div> {/* End main container */}
+    </div>
   );
 }
 
