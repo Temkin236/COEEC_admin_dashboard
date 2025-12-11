@@ -112,11 +112,8 @@ const StaffFormPage = () => {
                       <Input placeholder="+251-XXX-XXXXXX" />
                     </Form.Item>
                   </div>
-                </div>
-
-                <Divider />
-
-                <div className="grid grid-cols-2 gap-4">
+                );
+              }
                   <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please select title" }]}> 
                     <Select placeholder="Select title">
                       <Select.Option value="Professor">Professor</Select.Option>
