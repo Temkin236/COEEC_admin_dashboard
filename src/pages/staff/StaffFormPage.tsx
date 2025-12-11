@@ -279,6 +279,10 @@ const StaffFormPage = () => {
         </div>
       </Card>
     </div>
+    </div>
+  );
+}
+// Add missing closing divs if any were left open
   );
 }
 
