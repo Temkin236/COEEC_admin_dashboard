@@ -119,61 +119,40 @@ const StaffFormPage = () => {
         >
           <Tabs
             defaultActiveKey="1"
+            type="card"
             items={[
               {
                 key: "1",
-                label: "Basic Information",
+                label: "Basic Info",
                 children: (
                   <>
-                    <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Please enter first name" }]}> 
-                      <Input placeholder="First name" />
+                    <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please enter a title" }]}>
+                      <Input placeholder="e.g., Dr., Prof., Mr., Ms." />
                     </Form.Item>
-                    <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Please enter last name" }]}> 
-                      <Input placeholder="Last name" />
+                    <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Please enter first name" }]}>
+                      <Input placeholder="First Name" />
                     </Form.Item>
-                    <Form.Item name="email" label="Email" rules={[{ required: true, message: "Please enter email" }, { type: "email", message: "Please enter valid email" }]}> 
-                      <Input placeholder="email@astu.edu.et" />
+                    <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Please enter last name" }]}>
+                      <Input placeholder="Last Name" />
                     </Form.Item>
-                    <Form.Item name="phone" label="Phone">
-                      <Input placeholder="+251-XXX-XXXXXX" />
+                    <Form.Item name="academicRank" label="Academic Rank">
+                      <Input placeholder="e.g., Assistant Professor, Lecturer" />
                     </Form.Item>
-                    <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please select title" }]}> 
-                      <Select placeholder="Select title">
-                        <Select.Option value="Professor">Professor</Select.Option>
-                        <Select.Option value="Associate Professor">Associate Professor</Select.Option>
-                        <Select.Option value="Assistant Professor">Assistant Professor</Select.Option>
-                        <Select.Option value="Lecturer">Lecturer</Select.Option>
-                        <Select.Option value="Administrator">Administrator</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Form.Item name="academicRank" label="Academic Rank" rules={[{ required: true, message: "Please select academic rank" }]}> 
-                      <Select placeholder="Select academic rank">
-                        <Select.Option value="Professor">Professor</Select.Option>
-                        <Select.Option value="Associate Professor">Associate Professor</Select.Option>
-                        <Select.Option value="Assistant Professor">Assistant Professor</Select.Option>
-                        <Select.Option value="Lecturer">Lecturer</Select.Option>
-                        <Select.Option value="Administrator">Administrator</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Form.Item name="department" label="Department" rules={[{ required: true, message: "Please select department" }]}> 
+                    <Form.Item name="department" label="Department" rules={[{ required: true, message: "Please select department" }]}>
                       <Select placeholder="Select department">
-                        {DEPARTMENTS.map((dept) => (
-                          <Select.Option key={dept.code} value={dept.code}>
-                            {dept.name}
+                        {DEPARTMENTS.map((d) => (
+                          <Select.Option key={d.code} value={d.code}>
+                            {d.name}
                           </Select.Option>
                         ))}
                       </Select>
                     </Form.Item>
                     <Form.Item name="expertise" label="Expertise">
-                      <Select mode="tags" placeholder="Add expertise (e.g., Machine Learning, Cybersecurity)" tokenSeparators={[","]} />
+                      <Select mode="tags" placeholder="Add expertise areas" tokenSeparators={[","]} />
                     </Form.Item>
-                    <Form.Item name="office" label="Office Location">
-                      <Input placeholder="Building, Room number" />
-                    </Form.Item>
-                    <Form.Item name="status" label="Status" initialValue="active">
+                    <Form.Item name="status" label="Status">
                       <Select>
                         <Select.Option value="active">Active</Select.Option>
-                        <Select.Option value="on_leave">On Leave</Select.Option>
                         <Select.Option value="inactive">Inactive</Select.Option>
                       </Select>
                     </Form.Item>
