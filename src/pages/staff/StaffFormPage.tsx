@@ -267,4 +267,4 @@ const StaffFormPage = () => {
   );
 }
 
-export default StaffFormPage;
+export default StaffFormPage
