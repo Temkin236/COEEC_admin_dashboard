@@ -204,6 +204,7 @@ const StaffFormPage = () => {
                 <Input placeholder="https://..." />
               </Form.Item>
             </TabPane>
+
           </Tabs>
         </Form>
       </Card>
@@ -256,7 +257,7 @@ const StaffFormPage = () => {
             </div>
           </div>
         </div>
-	  </div> {/* End Live Preview Section */}
+      </div> {/* End Live Preview Section */}
     </div>
   );
 }
