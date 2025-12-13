@@ -205,12 +205,6 @@ const StaffFormPage = () => {
               </Form.Item>
             </TabPane>
           </Tabs>
-          <div className="flex justify-end mt-8">
-            <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>
-              {isEdit ? "Update Staff" : "Create Staff"}
-            </Button>
-            <Button className="ml-4" icon={<ArrowLeftOutlined />} onClick={() => navigate("/staff")}>Cancel</Button>
-          </div>
         </Form>
       </Card>
       {/* Live Preview Section - visually separated and always visible */}
