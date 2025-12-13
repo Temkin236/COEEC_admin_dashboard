@@ -265,6 +265,6 @@ const StaffFormPage = () => {
       </div> {/* End Live Preview Section */}
     </div>
   );
-}
 
-export default StaffFormPage
+export default StaffFormPage;
+
