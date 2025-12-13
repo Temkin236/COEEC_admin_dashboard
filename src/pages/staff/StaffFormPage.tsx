@@ -207,57 +207,57 @@ const StaffFormPage = () => {
 
           </Tabs>
         </Form>
-      </Card>
-      {/* Live Preview Section - visually separated and always visible */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
-        <div className="flex flex-wrap gap-8">
-          <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/3 flex flex-col items-center border border-gray-100">
-            <div
-              style={{
-                width: 160,
-                height: 160,
-                borderRadius: "50%",
-                background: "#fff",
-                overflow: "hidden",
-                marginBottom: 16,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
-              }}
-            >
-              {photoPreview ? (
-                <img src={photoPreview} alt="Staff" style={{ width: 160, height: 160, objectFit: "cover" }} />
-              ) : (
-                <UserOutlined style={{ fontSize: 64, color: "#bbb" }} />
-              )}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#2b4362', textTransform: 'uppercase', marginBottom: 4 }}>
-              {previewValues.title || 'TITLE'}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-              {previewValues.firstName || ''} {previewValues.lastName || ''}
-            </div>
-            <div style={{ fontSize: 16, color: '#3b5b8c', marginBottom: 4 }}>
-              {previewValues.academicRank || ''}
-            </div>
-            <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
-              {previewValues.bio || ''}
-            </div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
-              {previewValues.department ? DEPARTMENTS.find(d => d.code === previewValues.department)?.name : ''}
-            </div>
-            <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
-              {previewValues.expertise && previewValues.expertise.length > 0 && (
-                <span>
-                  <b>Expertise:</b> {Array.isArray(previewValues.expertise) ? previewValues.expertise.join(', ') : previewValues.expertise}
-                </span>
-              )}
+        {/* Live Preview Section - visually separated and always visible */}
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
+          <div className="flex flex-wrap gap-8">
+            <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/3 flex flex-col items-center border border-gray-100">
+              <div
+                style={{
+                  width: 160,
+                  height: 160,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  overflow: "hidden",
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
+                }}
+              >
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Staff" style={{ width: 160, height: 160, objectFit: "cover" }} />
+                ) : (
+                  <UserOutlined style={{ fontSize: 64, color: "#bbb" }} />
+                )}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#2b4362', textTransform: 'uppercase', marginBottom: 4 }}>
+                {previewValues.title || 'TITLE'}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                {previewValues.firstName || ''} {previewValues.lastName || ''}
+              </div>
+              <div style={{ fontSize: 16, color: '#3b5b8c', marginBottom: 4 }}>
+                {previewValues.academicRank || ''}
+              </div>
+              <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>
+                {previewValues.bio || ''}
+              </div>
+              <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+                {previewValues.department ? DEPARTMENTS.find(d => d.code === previewValues.department)?.name : ''}
+              </div>
+              <div style={{ fontSize: 14, color: '#555', marginBottom: 4 }}>
+                {previewValues.expertise && previewValues.expertise.length > 0 && (
+                  <span>
+                    <b>Expertise:</b> {Array.isArray(previewValues.expertise) ? previewValues.expertise.join(', ') : previewValues.expertise}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div> {/* End Live Preview Section */}
+        </div> {/* End Live Preview Section */}
+      </Card>
     </div>
   );
 }
