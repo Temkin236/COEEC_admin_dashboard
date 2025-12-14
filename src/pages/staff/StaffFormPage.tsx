@@ -17,7 +17,9 @@ const { TextArea } = Input
 const { TabPane } = Tabs as any
 const { Title } = Typography
 
-const StaffFormPage = () => {
+import React from "react";
+
+const StaffFormPage: React.FC = () => {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const { id } = useParams()
   const dispatch = useAppDispatch()
@@ -257,7 +259,7 @@ const StaffFormPage = () => {
             </div>
           </div>
         </div> {/* End Live Preview Section */}
-      </Card>
+	  </Card>
     </div>
   );
 }
