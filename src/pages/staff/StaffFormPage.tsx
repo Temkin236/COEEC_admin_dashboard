@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react";
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Card, Form, Input, Select, Button, Upload, message, Tabs, Typography, Divider, Avatar } from "antd"
@@ -16,8 +17,6 @@ const DEPARTMENTS = [
 const { TextArea } = Input
 const { TabPane } = Tabs as any
 const { Title } = Typography
-
-import React from "react";
 
 const StaffFormPage: React.FC = () => {
   const photoInputRef = useRef<HTMLInputElement>(null);
