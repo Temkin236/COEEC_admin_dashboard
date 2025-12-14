@@ -259,7 +259,7 @@ const StaffFormPage: React.FC = () => {
             </div>
           </div>
         </div> {/* End Live Preview Section */}
-	  </Card>
+      </Card>
     </div>
   );
 }
