@@ -4,7 +4,7 @@ import React from "react";
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Card, Form, Input, Select, Button, Upload, message, Tabs, Typography, Divider, Avatar } from "antd"
-import { SaveOutlined, UploadOutlined, UserOutlined, ArrowLeftOutlined } from "@ant-design/icons"
+import { SaveOutlined, UploadOutlined, UserOutlined, ArrowLeftOutlined, IdcardOutlined, BankOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaffById, createStaff, updateStaff, uploadCV } from "@/store/slices/staffSlice"
 const DEPARTMENTS = [
@@ -109,13 +109,47 @@ const { Title } = Typography
     return false;
   };
 
+  // Loose URL validator: allows empty values or URLs without protocol (adds https:// for validation)
+  const validateOptionalUrl = (_: any, value: any) => {
+    if (!value) return Promise.resolve()
+    try {
+      const test = typeof value === 'string' && value.trim().length > 0 ? (value.startsWith('http') ? value : `https://${value}`) : ''
+      // If still empty, treat as valid
+      if (!test) return Promise.resolve()
+      // Use URL constructor to validate
+      // eslint-disable-next-line no-new
+      new URL(test)
+      return Promise.resolve()
+    } catch (e) {
+      return Promise.reject(new Error('Please enter a valid URL'))
+    }
+  }
+
+  // Update preview values when form fields change
+  const handleFormChange = (changedValues: any, allValues: any) => {
+    setPreviewValues((prev: any) => ({ ...prev, ...allValues }))
+  }
+
+  // Keep previewValues.photo in sync with photoPreview (from Upload)
+  useEffect(() => {
+    if (photoPreview) {
+      setPreviewValues((prev: any) => ({ ...prev, photo: photoPreview }))
+    }
+  }, [photoPreview])
+
+  // Initialize preview values from form on mount
+  useEffect(() => {
+    setPreviewValues(form.getFieldsValue())
+  }, [])
+
   return (
     <div>
-      <Card variant="outlined" className="max-w-5xl mx-auto mt-8 shadow-lg">
+      <Card variant="outlined" className="w-full mt-4 shadow-sm p-4">
         <Form
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
+          onValuesChange={handleFormChange}
           initialValues={{ status: "active" }}
         >
           <Tabs
@@ -131,12 +165,20 @@ const { Title } = Typography
                     <Form.Item name="title" label="Title" rules={[{ required: true, message: "Please enter a title" }]}> 
                       <Input placeholder="e.g., Dr., Prof., Mr., Ms." />
                     </Form.Item>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "Enter first name" }]}>
+                        <Input placeholder="First name" />
+                      </Form.Item>
+                      <Form.Item name="lastName" label="Last Name">
+                        <Input placeholder="Last name" />
+                      </Form.Item>
+                    </div>
                     <Form.Item
                       name="googleScholar"
                       label="Google Scholar URL"
-                      rules={[{ type: "url", message: "Please enter a valid URL" }]}
+                      rules={[{ validator: validateOptionalUrl }]}
                     >
-                      <Input placeholder="https://scholar.google.com/..." />
+                      <Input placeholder="example or example.com or https://scholar.google.com/..." />
                     </Form.Item>
                     <Form.Item name="academicRank" label="Academic Rank">
                       <Select
@@ -152,12 +194,22 @@ const { Title } = Typography
                         <Select.Option value="Instructor">Instructor</Select.Option>
                       </Select>
                     </Form.Item>
+                    <Form.Item name="department" label="Department">
+                      <Select placeholder="Select department" allowClear>
+                        {DEPARTMENTS.map(d => (
+                          <Select.Option key={d.code} value={d.code}>{d.name}</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Form.Item name="expertise" label="Expertise">
+                      <Select mode="tags" placeholder="Add expertise (e.g., Machine Learning)" tokenSeparators={[',']} />
+                    </Form.Item>
                     <Form.Item
                       name="researchGate"
                       label="ResearchGate URL"
-                      rules={[{ type: "url", message: "Please enter a valid URL" }]}
+                      rules={[{ validator: validateOptionalUrl }]}
                     >
-                      <Input placeholder="https://www.researchgate.net/..." />
+                      <Input placeholder="example or example.com or https://www.researchgate.net/..." />
                     </Form.Item>
                     <Form.Item
                       name="orcid"
@@ -166,11 +218,13 @@ const { Title } = Typography
                     >
                       <Input placeholder="0000-0000-0000-0000" />
                     </Form.Item>
-                    <Form.Item name="photo" label="Photo" valuePropName="fileList" getValueFromEvent={e => Array.isArray(e) ? e : e && e.fileList}>
+                    <Form.Item name="photo" label="Photo">
                       <Upload
                         accept="image/*"
                         showUploadList={false}
-                        beforeUpload={handlePhotoChange}
+                        // prevent automatic upload; handle file reading in onChange
+                        beforeUpload={() => false}
+                        onChange={handlePhotoChange}
                       >
                         <Button icon={<UploadOutlined />}>Upload Photo</Button>
                       </Upload>
@@ -245,11 +299,11 @@ const { Title } = Typography
                     <Form.Item name="researchProjects" label="Research Projects">
                       <TextArea rows={6} placeholder="List current and past research projects..." />
                     </Form.Item>
-                    <Form.Item name="googleScholarUrl" label="Google Scholar URL">
-                      <Input placeholder="https://scholar.google.com/..." />
+                    <Form.Item name="googleScholarUrl" label="Google Scholar URL" rules={[{ validator: validateOptionalUrl }]}>
+                      <Input placeholder="example or example.com or https://scholar.google.com/..." />
                     </Form.Item>
-                    <Form.Item name="researchGateUrl" label="ResearchGate URL">
-                      <Input placeholder="https://www.researchgate.net/..." />
+                    <Form.Item name="researchGateUrl" label="ResearchGate URL" rules={[{ validator: validateOptionalUrl }]}>
+                      <Input placeholder="example or example.com or https://www.researchgate.net/..." />
                     </Form.Item>
                     <Form.Item name="orcidId" label="ORCID ID">
                       <Input placeholder="0000-0000-0000-0000" />
@@ -274,11 +328,11 @@ const { Title } = Typography
                         </div>
                       )}
                     </Form.Item>
-                    <Form.Item name="linkedinUrl" label="LinkedIn Profile">
-                      <Input placeholder="https://www.linkedin.com/in/..." />
+                    <Form.Item name="linkedinUrl" label="LinkedIn Profile" rules={[{ validator: validateOptionalUrl }]}>
+                      <Input placeholder="example or linkedin.com/in/username or https://www.linkedin.com/in/..." />
                     </Form.Item>
-                    <Form.Item name="websiteUrl" label="Personal Website">
-                      <Input placeholder="https://..." />
+                    <Form.Item name="websiteUrl" label="Personal Website" rules={[{ validator: validateOptionalUrl }]}>
+                      <Input placeholder="example.com or https://..." />
                     </Form.Item>
                   </>
                 ),
@@ -286,77 +340,44 @@ const { Title } = Typography
             ]}
           />
         {/* Live Preview Section - visually separated and always visible */}
-        <div className="mt-8">
+          <div className="mt-6">
           <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
           <div className="flex flex-wrap gap-8">
-            <div className="bg-white rounded-2xl shadow p-8 w-full md:w-1/3 flex flex-col items-center border border-gray-100">
+            <div className="bg-white rounded-2xl shadow p-0 w-full md:w-1/3 border border-gray-100 overflow-hidden">
               {activeTab === "1" && (
                 <>
-                  {/* Photo */}
-                  <div
-                    style={{
-                      width: 220,
-                      height: 180,
-                      borderRadius: 18,
-                      background: "#f3f4f6",
-                      overflow: "hidden",
-                      marginBottom: 18,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 2px 8px 0 rgba(60,60,60,0.07)"
-                    }}
-                  >
+                  {/* Top image */}
+                  <div style={{ width: '100%', height: 220, overflow: 'hidden' }}>
                     {photoPreview ? (
-                      <img src={photoPreview} alt="Staff" style={{ width: 220, height: 180, objectFit: "cover" }} />
+                      <img src={photoPreview} alt="Staff" style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }} />
                     ) : (
-                      <UserOutlined style={{ fontSize: 80, color: "#bbb" }} />
+                      <div style={{ width: '100%', height: 220, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <UserOutlined style={{ fontSize: 72, color: '#bbb' }} />
+                      </div>
                     )}
                   </div>
-                  {/* Academic Rank */}
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 1 }}>
-                    {Array.isArray(previewValues.academicRank) ? previewValues.academicRank[0] : (previewValues.academicRank || 'PROFESSIONAL TITLE')}
-                  </div>
-                  {/* Name */}
-                  <div style={{ fontSize: 24, fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>
-                    {previewValues.title ? `${previewValues.title} ` : ''}
-                    {previewValues.firstName || 'Full Name'} {previewValues.lastName || ''}
-                  </div>
-                  {/* Highest Degree */}
-                  <div style={{ fontSize: 17, color: '#888', marginBottom: 10 }}>
-                    {previewValues.education && previewValues.education.length > 0
-                      ? (Array.isArray(previewValues.education) ? previewValues.education[0] : previewValues.education)
-                      : 'Highest Degree'}
-                  </div>
-                  {/* Position/Role */}
-                  <div style={{ fontSize: 15, color: '#64748b', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 17, marginRight: 4 }}><i className="anticon anticon-idcard" /></span>
-                      {previewValues.bio || 'Position/Role'}
-                    </span>
-                  </div>
-                  {/* Department */}
-                  <div style={{ fontSize: 15, color: '#64748b', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: 17, marginRight: 4 }}><i className="anticon anticon-bank" /></span>
-                      {previewValues.department ? DEPARTMENTS.find(d => d.code === previewValues.department)?.name : 'Department'}
-                    </span>
-                  </div>
-                  {/* Expertise */}
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 10, marginBottom: 4, fontWeight: 600, letterSpacing: 1 }}>EXPERTISE</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 2 }}>
-                    {previewValues.expertise && Array.isArray(previewValues.expertise) && previewValues.expertise.length > 0 ? (
-                      <>
-                        {previewValues.expertise.slice(0, 2).map((exp: string, idx: number) => (
-                          <span key={idx} style={{ background: '#e0e7ff', color: '#2563eb', borderRadius: 8, padding: '3px 12px', fontSize: 13, fontWeight: 500 }}>{exp}</span>
-                        ))}
-                        {previewValues.expertise.length > 2 && (
-                          <span style={{ color: '#2563eb', fontSize: 13, fontWeight: 500 }}>+ {previewValues.expertise.length - 2} more</span>
-                        )}
-                      </>
-                    ) : (
-                      <span style={{ color: '#bbb', fontSize: 13 }}>No expertise listed</span>
-                    )}
+                  <div className="p-6 w-full">
+                    <div className="text-xs font-semibold text-primary-600 uppercase mb-2">{Array.isArray(previewValues.academicRank) ? previewValues.academicRank[0] : (previewValues.academicRank || 'PROFESSOR')}</div>
+                    <div className="text-2xl font-extrabold text-gray-900 mb-1">{previewValues.title ? `${previewValues.title} ` : ''}{previewValues.firstName || 'Full Name'} {previewValues.lastName || ''}</div>
+                    <div className="text-sm text-gray-500 mb-4">{previewValues.education && previewValues.education.length > 0 ? (Array.isArray(previewValues.education) ? previewValues.education[0] : previewValues.education) : 'PhD in Computer Engineering'}</div>
+
+                    <div className="flex flex-col gap-3 text-gray-600 mb-4">
+                      <div className="flex items-center gap-3"><IdcardOutlined className="text-gray-400" /> <span>{previewValues.bio || 'Position/Role'}</span></div>
+                      <div className="flex items-center gap-3"><BankOutlined className="text-gray-400" /> <span>{previewValues.department ? DEPARTMENTS.find(d => d.code === previewValues.department)?.name : 'Department'}</span></div>
+                    </div>
+
+                    <Divider className="my-2" />
+
+                    <div className="text-xs font-semibold text-gray-500 mt-3 mb-2">EXPERTISE</div>
+                    <div className="flex flex-wrap gap-2">
+                      {previewValues.expertise && Array.isArray(previewValues.expertise) && previewValues.expertise.length > 0 ? (
+                        previewValues.expertise.map((exp: string, idx: number) => (
+                          <span key={idx} className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">{exp}</span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-400">No expertise listed</span>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
@@ -438,6 +459,26 @@ const { Title } = Typography
             </div>
           </div>
         </div> {/* End Live Preview Section */}
+        <div className="mt-4 flex justify-end gap-3">
+          <Button onClick={() => navigate(-1)}>
+            Cancel
+          </Button>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            loading={loading}
+            onClick={async () => {
+              try {
+                await form.validateFields()
+                form.submit()
+              } catch (err) {
+                // validation failed; AntD will show errors
+              }
+            }}
+          >
+            Save
+          </Button>
+        </div>
         </Form>
       </Card>
     </div>

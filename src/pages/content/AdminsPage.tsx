@@ -70,7 +70,7 @@ const AdminsPage: React.FC = () => {
                   {admin.image ? (
                     <img src={admin.image} alt={admin.name} style={{ width: 120, height: 120, objectFit: "cover" }} />
                   ) : (
-                    <PlusOutlined style={{ fontSize: 32, color: "#bbb" }} />
+                    <div style={{ fontSize: 14, color: '#9ca3af' }}>Upload</div>
                   )}
                 </div>
               </Upload>

@@ -185,9 +185,8 @@ const AboutAdminPage = () => {
                         accept="image/*"
                       >
                         {form.getFieldValue('historySectionImage') ? null : (
-                          <div>
-                            <PlusOutlined />
-                            <div style={{ marginTop: 8 }}>Upload Image</div>
+                          <div style={{ width: 220, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                            <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Image</div>
                           </div>
                         )}
                       </Upload>
@@ -344,9 +343,8 @@ const AboutAdminPage = () => {
                     accept="image/*"
                   >
                     {form.getFieldValue('deanImage') ? null : (
-                      <div>
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload Photo</div>
+                      <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                        <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Photo</div>
                       </div>
                     )}
                   </Upload>
@@ -369,9 +367,8 @@ const AboutAdminPage = () => {
                     accept="image/*"
                   >
                     {form.getFieldValue('deanSignature') ? null : (
-                      <div>
-                        <PlusOutlined />
-                        <div style={{ marginTop: 8 }}>Upload Signature</div>
+                      <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                        <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Signature</div>
                       </div>
                     )}
                   </Upload>
@@ -496,7 +493,7 @@ const AboutAdminPage = () => {
                             {admin.image ? (
                               <img src={admin.image} alt={admin.name} style={{ width: 120, height: 120, objectFit: "cover" }} />
                             ) : (
-                              <PlusOutlined style={{ fontSize: 32, color: "#bbb" }} />
+                              <div style={{ fontSize: 14, color: '#9ca3af' }}>Upload</div>
                             )}
                           </div>
                         </Upload>
@@ -673,7 +670,7 @@ const AboutAdminPage = () => {
                   {admin.image ? (
                     <img src={admin.image} alt={admin.name} style={{ width: 120, height: 120, objectFit: "cover" }} />
                   ) : (
-                    <PlusOutlined style={{ fontSize: 32, color: "#bbb" }} />
+                    <div style={{ fontSize: 14, color: '#9ca3af' }}>Upload</div>
                   )}
                 </div>
                 <div

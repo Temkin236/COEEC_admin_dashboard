@@ -235,7 +235,7 @@ const DashboardLayout = () => {
           </Space>
         </Header>
         {/* Notifications Drawer */}
-        <Content className="m-3 md:m-6" style={{ overflow: "auto", height: "calc(100vh - 64px)" }}>
+        <Content className="m-0 md:m-2" style={{ overflow: "auto", height: "calc(100vh - 64px)" }}>
           <Drawer
             title="Notifications"
             placement="right"
