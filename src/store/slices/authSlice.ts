@@ -2,40 +2,29 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
 import axiosInstance from "@/utils/axios"
 
 type Role = string
-export interface AuthUser { email: string; role: Role; name: string }
+export interface AuthUser { id: string; email: string; role: Role; name?: string }
 
 const DEMO_USERS: AuthUser[] & Array<{ password?: string }> = [
-  { email: "admin@astu.edu.et", password: "Admin@2025", role: "admin", name: "Admin User" },
-  { email: "editor@astu.edu.et", password: "Editor@2025", role: "editor", name: "Editor User" },
+  { id: "1", email: "admin@astu.edu.et", password: "Admin@2025", role: "admin", name: "Admin User" },
+  { id: "2", email: "editor@astu.edu.et", password: "Editor@2025", role: "editor", name: "Editor User" },
 ] as any
 
 const DEMO_TOKEN = "demo-token"
 const DEMO_REFRESH = "demo-refresh"
 
 interface LoginCredentials { email: string; password: string }
-interface LoginResponse { token: string; refreshToken: string; user: AuthUser }
+interface LoginResponse { accessToken: string; refreshToken: string; user: AuthUser }
 
 export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectValue: string }>(
   "auth/login",
   async (credentials, { rejectWithValue }) => {
-    const match = (DEMO_USERS as any).find(
-      (u: any) => u.email.toLowerCase() === String(credentials.email).toLowerCase() && u.password === credentials.password,
-    )
-    if (match) {
-      const user: AuthUser = { email: match.email, role: match.role, name: match.name }
-      localStorage.setItem("token", DEMO_TOKEN)
-      localStorage.setItem("refreshToken", DEMO_REFRESH)
-      localStorage.setItem("auth_user", JSON.stringify(user))
-      return { token: DEMO_TOKEN, refreshToken: DEMO_REFRESH, user }
-    }
-
     try {
       const response = await axiosInstance.post("/auth/login", credentials)
-      const { token, refreshToken, user } = response.data as LoginResponse
-      localStorage.setItem("token", token)
+      const { accessToken, refreshToken, user } = response.data as LoginResponse
+      localStorage.setItem("token", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
       localStorage.setItem("auth_user", JSON.stringify(user))
-      return { token, refreshToken, user }
+      return { accessToken, refreshToken, user }
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || "Login failed")
     }
@@ -45,15 +34,6 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
 export const validateToken = createAsyncThunk<AuthUser, void, { rejectValue: string }>(
   "auth/validateToken",
   async (_, { rejectWithValue }) => {
-    const token = localStorage.getItem("token")
-    if (token === DEMO_TOKEN) {
-      const demoUserRaw = localStorage.getItem("auth_user")
-      if (demoUserRaw) {
-        try {
-          return JSON.parse(demoUserRaw) as AuthUser
-        } catch {}
-      }
-    }
     try {
       const response = await axiosInstance.get("/auth/me")
       return response.data as AuthUser
@@ -110,7 +90,7 @@ const authSlice = createSlice({
         state.loading = false
         state.isAuthenticated = true
         state.user = action.payload.user
-        state.token = action.payload.token
+        state.token = action.payload.accessToken
         state.refreshToken = action.payload.refreshToken
       })
       .addCase(login.rejected, (state, action) => {

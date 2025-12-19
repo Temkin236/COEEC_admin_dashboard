@@ -38,9 +38,12 @@ axiosInstance.interceptors.response.use(
       if (refreshToken) {
         try {
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken })
-          const { token } = response.data
-          localStorage.setItem("token", token)
-          originalRequest.headers = { ...(originalRequest.headers || {}), Authorization: `Bearer ${token}` }
+          const { accessToken, refreshToken: newRefreshToken } = response.data
+          localStorage.setItem("token", accessToken)
+          if (newRefreshToken) {
+            localStorage.setItem("refreshToken", newRefreshToken)
+          }
+          originalRequest.headers = { ...(originalRequest.headers || {}), Authorization: `Bearer ${accessToken}` }
           return axiosInstance(originalRequest)
         } catch (refreshError) {
           // Check if it's a public homepage request, don't redirect

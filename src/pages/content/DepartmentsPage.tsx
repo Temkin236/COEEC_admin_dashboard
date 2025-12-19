@@ -4,40 +4,15 @@ import { useEffect, useState } from "react"
 import { Card, Button, Table, Space, Tag, Modal, Form, Input, Select, message, Descriptions } from "antd"
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchContent, createContent, updateContent, deleteContent } from "@/store/slices/contentSlice"
+import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from "@/store/slices/departmentSlice"
+import { fetchStaff } from "@/store/slices/staffSlice"
 
 const { TextArea } = Input
 
-const DEPARTMENTS = [
-  {
-    code: "cs",
-    name: "Computer Science & Engineering",
-    description: "Focusing on software systems, AI, and cybersecurity to drive digital transformation.",
-    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80",
-    programs: ["B.Sc. Computer Science", "M.Sc. Software Engineering", "PhD AI"],
-    head: "Dr. Sarah Ahmed"
-  },
-  {
-    code: "ece",
-    name: "Electrical & Computer Engineering",
-    description: "Bridging hardware and software with a focus on embedded systems and telecommunications.",
-    image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80",
-    programs: ["B.Sc. Electrical Engineering", "M.Sc. Communication Engineering"],
-    head: "Mr. Dawit Tadesse"
-  },
-  {
-    code: "ep",
-    name: "Electronics & Power Engineering",
-    description: "Dedicated to power generation, distribution, and sustainable energy solutions.",
-    image: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=600&q=80",
-    programs: ["B.Sc. Power Engineering", "M.Sc. Power Systems"],
-    head: "Dr. Solomon Bekele"
-  }
-];
-
 const DepartmentsPage = () => {
   const dispatch = useAppDispatch()
-  const { departments } = useAppSelector((state) => state.content)
+  const { items, loading } = useAppSelector((state) => state.departments)
+  const { items: staffItems } = useAppSelector((state) => state.staff)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -45,7 +20,8 @@ const DepartmentsPage = () => {
   const [form] = Form.useForm()
 
   useEffect(() => {
-    dispatch(fetchContent({ type: "departments" }) as any)
+    dispatch(fetchDepartments())
+    dispatch(fetchStaff({ limit: 100 }))
   }, [dispatch])
 
   const handleCreate = () => {
@@ -65,33 +41,69 @@ const DepartmentsPage = () => {
     setViewModalOpen(true)
   }
 
-  const handleDelete = async (id: string | number) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
       title: "Delete Department",
-      content: "Are you sure you want to delete this department information?",
+      content: "Are you sure you want to delete this department?",
       okText: "Delete",
       okType: "danger",
       onOk: async () => {
-        await dispatch(deleteContent({ type: "departments", id }) as any)
-        message.success("Department deleted successfully")
+        try {
+          await dispatch(deleteDepartment(id)).unwrap()
+          message.success("Department deleted successfully")
+        } catch (error: any) {
+          console.error("Delete failed:", error)
+          const errorMsg = typeof error === 'string' ? error : (error?.message || "Failed to delete department");
+          message.error(errorMsg)
+        }
       },
     })
   }
 
   const handleSubmit = async (values: any) => {
     try {
+      // Clean up values: remove fields that are not valid CUIDs
+      const cleanedValues = { ...values };
+      
+      const cuidRegex = /^[cC][^\s-]{8,}$/;
+      
+      if (!cleanedValues.headId || !cuidRegex.test(cleanedValues.headId)) {
+        delete cleanedValues.headId;
+      }
+      
+      if (!cleanedValues.pageId || !cuidRegex.test(cleanedValues.pageId)) {
+        delete cleanedValues.pageId;
+      }
+
       if (editingItem) {
-        await dispatch(updateContent({ type: "departments", id: editingItem.id, data: values }) as any).unwrap()
+        await dispatch(updateDepartment({ id: editingItem.id, data: cleanedValues })).unwrap()
         message.success("Department updated successfully")
       } else {
-        await dispatch(createContent({ type: "departments", data: values }) as any).unwrap()
+        await dispatch(createDepartment(cleanedValues)).unwrap()
         message.success("Department created successfully")
       }
 
       setIsModalOpen(false)
       form.resetFields()
-    } catch (error) {
-      message.error("Operation failed")
+    } catch (error: any) {
+      console.error("Operation failed:", error)
+      let errorMsg = "Operation failed";
+      if (typeof error === 'string') {
+        errorMsg = error;
+      } else if (error?.message) {
+        try {
+          // Try to parse Zod error messages if they are stringified JSON
+          const parsed = JSON.parse(error.message);
+          if (Array.isArray(parsed)) {
+            errorMsg = parsed.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+          } else {
+            errorMsg = error.message;
+          }
+        } catch {
+          errorMsg = error.message;
+        }
+      }
+      message.error(errorMsg)
     }
   }
 
@@ -103,27 +115,25 @@ const DepartmentsPage = () => {
       render: (name: string, record: any) => (
         <div>
           <div className="font-medium">{name}</div>
-          <div className="text-xs text-gray-500">{record.code}</div>
+          <div className="text-xs text-gray-500">{record.slug}</div>
         </div>
       ),
     },
-    { title: "Head", dataIndex: "head", key: "head" },
+    { 
+      title: "Head", 
+      dataIndex: "headId", 
+      key: "headId",
+      render: (headId: string) => {
+        const staff = staffItems.find(s => s.id === headId)
+        return staff ? `${staff.firstName} ${staff.lastName}` : headId || "N/A"
+      }
+    },
     {
-      title: "Programs",
-      dataIndex: "programs",
-      key: "programs",
-      render: (programs: string[]) => (
-        <div className="space-x-1">
-          {programs?.slice(0, 2).map((program, idx) => (
-            <Tag key={idx} color="blue">
-              {program}
-            </Tag>
-          ))}
-          {programs?.length > 2 && <Tag>+{programs.length - 2} more</Tag>}
-        </div>
-      ),
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
     },
-    { title: "Staff Count", dataIndex: "staffCount", key: "staffCount", width: 120 },
     {
       title: "Actions",
       key: "actions",
@@ -150,17 +160,10 @@ const DepartmentsPage = () => {
       >
         <Table
           columns={columns as any}
-          dataSource={Array.isArray(departments.items) ? departments.items : []}
-          loading={departments.loading as any}
+          dataSource={items}
+          loading={loading}
           rowKey="id"
           pagination={{ pageSize: 10 }}
-          onRow={record => ({
-            onClick: () => {
-              // Navigate to department details or edit page
-              window.location.href = `/departments/${record.code || record.id}`;
-            },
-            style: { cursor: 'pointer' }
-          })}
         />
       </Card>
 
@@ -169,44 +172,30 @@ const DepartmentsPage = () => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
-        width={800}
+        width={600}
         okText={editingItem ? "Update" : "Create"}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
-          <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please select department name" }]}> 
+          <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please enter department name" }]}> 
+            <Input placeholder="e.g., Computer Science" />
+          </Form.Item>
+          <Form.Item name="slug" label="Slug" rules={[{ required: true, message: "Please enter slug" }]}>
+            <Input placeholder="e.g., computer-science" />
+          </Form.Item>
+          <Form.Item name="headId" label="Department Head">
             <Select
-              placeholder="Select department"
-              options={[
-                { value: "Software Engineering", label: "Software Engineering" },
-                { value: "Computer Science Engineering", label: "Computer Science Engineering" },
-                { value: "Electronics and Communication Engineering", label: "Electronics and Communication Engineering" },
-                { value: "Electrical Power Department", label: "Electrical Power Department" }
-              ]}
+              placeholder="Select department head"
+              showSearch
+              allowClear
+              optionFilterProp="children"
+              options={staffItems.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
             />
           </Form.Item>
-          <Form.Item name="code" label="Department Code" rules={[{ required: true, message: "Please enter department code" }]}>
-            <Input placeholder="e.g., CSE" />
-          </Form.Item>
-          <Form.Item name="head" label="Department Head">
-            <Input placeholder="Enter department head name" />
+          <Form.Item name="pageId" label="Page ID">
+            <Input placeholder="Enter page UUID" />
           </Form.Item>
           <Form.Item name="description" label="Description" rules={[{ required: true, message: "Please enter description" }]}>
             <TextArea rows={4} placeholder="Enter department description" />
-          </Form.Item>
-          <Form.Item name="programs" label="Programs" tooltip="Enter programs separated by commas">
-            <Select mode="tags" placeholder="e.g., BSc, MSc, PhD" />
-          </Form.Item>
-          <Form.Item name="researchAreas" label="Research Areas">
-            <Select mode="tags" placeholder="Enter research areas" />
-          </Form.Item>
-          <Form.Item name="staffCount" label="Staff Count">
-            <Input type="number" placeholder="0" />
-          </Form.Item>
-          <Form.Item name="email" label="Contact Email">
-            <Input placeholder="department@astu.edu.et" />
-          </Form.Item>
-          <Form.Item name="phone" label="Contact Phone">
-            <Input placeholder="+251-XXX-XXXXXX" />
           </Form.Item>
         </Form>
       </Modal>
@@ -220,31 +209,17 @@ const DepartmentsPage = () => {
             Close
           </Button>,
         ]}
-        width={800}
+        width={600}
       >
         {viewingItem && (
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Name">{viewingItem.name}</Descriptions.Item>
-            <Descriptions.Item label="Code">{viewingItem.code}</Descriptions.Item>
-            <Descriptions.Item label="Head">{viewingItem.head}</Descriptions.Item>
+            <Descriptions.Item label="Slug">{viewingItem.slug}</Descriptions.Item>
+            <Descriptions.Item label="Head">
+              {staffItems.find(s => s.id === viewingItem.headId)?.firstName} {staffItems.find(s => s.id === viewingItem.headId)?.lastName || viewingItem.headId}
+            </Descriptions.Item>
+            <Descriptions.Item label="Page ID">{viewingItem.pageId}</Descriptions.Item>
             <Descriptions.Item label="Description">{viewingItem.description}</Descriptions.Item>
-            <Descriptions.Item label="Programs">
-              {viewingItem.programs?.map((p: string, i: number) => (
-                <Tag key={i} color="blue">
-                  {p}
-                </Tag>
-              ))}
-            </Descriptions.Item>
-            <Descriptions.Item label="Research Areas">
-              {viewingItem.researchAreas?.map((r: string, i: number) => (
-                <Tag key={i} color="green">
-                  {r}
-                </Tag>
-              ))}
-            </Descriptions.Item>
-            <Descriptions.Item label="Staff Count">{viewingItem.staffCount}</Descriptions.Item>
-            <Descriptions.Item label="Email">{viewingItem.email}</Descriptions.Item>
-            <Descriptions.Item label="Phone">{viewingItem.phone}</Descriptions.Item>
           </Descriptions>
         )}
       </Modal>
