@@ -1,18 +1,47 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Button, Table, Space, Tag, Modal, Form, Input, Select, message, Descriptions } from "antd"
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"
+import {
+  Card,
+  Button,
+  Table,
+  Space,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Select,
+  message,
+  Descriptions,
+} from "antd"
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+} from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchDepartments, createDepartment, updateDepartment, deleteDepartment } from "@/store/slices/departmentSlice"
+import {
+  fetchDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} from "@/store/slices/departmentSlice"
 import { fetchStaff } from "@/store/slices/staffSlice"
 
 const { TextArea } = Input
 
 const DepartmentsPage = () => {
   const dispatch = useAppDispatch()
-  const { items, loading } = useAppSelector((state) => state.departments)
-  const { items: staffItems } = useAppSelector((state) => state.staff)
+
+  // ✅ SAFE DEFAULTS — THIS IS THE KEY FIX
+  const { items = [], loading } = useAppSelector(
+    (state) => state.departments
+  )
+  const { items: staffItems = [] } = useAppSelector(
+    (state) => state.staff
+  )
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -24,6 +53,8 @@ const DepartmentsPage = () => {
     dispatch(fetchStaff({ limit: 100 }))
   }, [dispatch])
 
+  const cuidRegex = /^[cC][^\s-]{8,}$/
+
   const handleCreate = () => {
     setEditingItem(null)
     form.resetFields()
@@ -32,7 +63,18 @@ const DepartmentsPage = () => {
 
   const handleEdit = (record: any) => {
     setEditingItem(record)
-    form.setFieldsValue(record)
+
+    const initialValues = { ...record }
+
+    if (initialValues.headId && !cuidRegex.test(initialValues.headId)) {
+      initialValues.headId = undefined
+    }
+
+    if (initialValues.pageId && !cuidRegex.test(initialValues.pageId)) {
+      initialValues.pageId = undefined
+    }
+
+    form.setFieldsValue(initialValues)
     setIsModalOpen(true)
   }
 
@@ -41,7 +83,7 @@ const DepartmentsPage = () => {
     setViewModalOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     Modal.confirm({
       title: "Delete Department",
       content: "Are you sure you want to delete this department?",
@@ -51,10 +93,9 @@ const DepartmentsPage = () => {
         try {
           await dispatch(deleteDepartment(id)).unwrap()
           message.success("Department deleted successfully")
+          dispatch(fetchDepartments())
         } catch (error: any) {
-          console.error("Delete failed:", error)
-          const errorMsg = typeof error === 'string' ? error : (error?.message || "Failed to delete department");
-          message.error(errorMsg)
+          message.error(error?.message || "Failed to delete department")
         }
       },
     })
@@ -62,48 +103,31 @@ const DepartmentsPage = () => {
 
   const handleSubmit = async (values: any) => {
     try {
-      // Clean up values: remove fields that are not valid CUIDs
-      const cleanedValues = { ...values };
-      
-      const cuidRegex = /^[cC][^\s-]{8,}$/;
-      
+      const cleanedValues = { ...values }
+
       if (!cleanedValues.headId || !cuidRegex.test(cleanedValues.headId)) {
-        delete cleanedValues.headId;
+        delete cleanedValues.headId
       }
-      
+
       if (!cleanedValues.pageId || !cuidRegex.test(cleanedValues.pageId)) {
-        delete cleanedValues.pageId;
+        delete cleanedValues.pageId
       }
 
       if (editingItem) {
-        await dispatch(updateDepartment({ id: editingItem.id, data: cleanedValues })).unwrap()
+        await dispatch(
+          updateDepartment({ id: editingItem.id, data: cleanedValues })
+        ).unwrap()
         message.success("Department updated successfully")
       } else {
         await dispatch(createDepartment(cleanedValues)).unwrap()
         message.success("Department created successfully")
       }
 
+      dispatch(fetchDepartments())
       setIsModalOpen(false)
       form.resetFields()
     } catch (error: any) {
-      console.error("Operation failed:", error)
-      let errorMsg = "Operation failed";
-      if (typeof error === 'string') {
-        errorMsg = error;
-      } else if (error?.message) {
-        try {
-          // Try to parse Zod error messages if they are stringified JSON
-          const parsed = JSON.parse(error.message);
-          if (Array.isArray(parsed)) {
-            errorMsg = parsed.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-          } else {
-            errorMsg = error.message;
-          }
-        } catch {
-          errorMsg = error.message;
-        }
-      }
-      message.error(errorMsg)
+      message.error(error?.message || "Operation failed")
     }
   }
 
@@ -119,14 +143,22 @@ const DepartmentsPage = () => {
         </div>
       ),
     },
-    { 
-      title: "Head", 
-      dataIndex: "headId", 
+    {
+      title: "Head",
+      dataIndex: "headId",
       key: "headId",
       render: (headId: string) => {
-        const staff = staffItems.find(s => s.id === headId)
-        return staff ? `${staff.firstName} ${staff.lastName}` : headId || "N/A"
-      }
+        if (!headId) return <Tag>No Head Assigned</Tag>
+
+        const staff = staffItems.find((s) => s.id === headId)
+        if (staff) return `${staff.firstName} ${staff.lastName}`
+
+        if (!cuidRegex.test(headId)) {
+          return <Tag color="warning">Demo: {headId}</Tag>
+        }
+
+        return headId
+      },
     },
     {
       title: "Description",
@@ -137,12 +169,24 @@ const DepartmentsPage = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 150,
       render: (_: any, record: any) => (
         <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
+          <Button
+            type="text"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+          />
+          <Button
+            type="text"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          />
+          <Button
+            type="text"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDelete(record.id)}
+          />
         </Space>
       ),
     },
@@ -153,7 +197,11 @@ const DepartmentsPage = () => {
       <Card
         title="Departments"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreate}
+          >
             Add Department
           </Button>
         }
@@ -173,29 +221,49 @@ const DepartmentsPage = () => {
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
         width={600}
-        okText={editingItem ? "Update" : "Create"}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
-          <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please enter department name" }]}> 
-            <Input placeholder="e.g., Computer Science" />
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item
+            name="name"
+            label="Department Name"
+            rules={[{ required: true }]}
+          >
+            <Input />
           </Form.Item>
-          <Form.Item name="slug" label="Slug" rules={[{ required: true, message: "Please enter slug" }]}>
-            <Input placeholder="e.g., computer-science" />
+
+          <Form.Item
+            name="slug"
+            label="Slug"
+            rules={[{ required: true }]}
+          >
+            <Input />
           </Form.Item>
+
           <Form.Item name="headId" label="Department Head">
             <Select
-              placeholder="Select department head"
-              showSearch
               allowClear
-              optionFilterProp="children"
-              options={staffItems.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
+              showSearch
+              placeholder="Select department head"
+              options={[
+                { value: "", label: "--- None ---" },
+                ...staffItems.map((s) => ({
+                  value: s.id,
+                  label: `${s.firstName} ${s.lastName}`,
+                })),
+              ]}
             />
           </Form.Item>
+
           <Form.Item name="pageId" label="Page ID">
-            <Input placeholder="Enter page UUID" />
+            <Input />
           </Form.Item>
-          <Form.Item name="description" label="Description" rules={[{ required: true, message: "Please enter description" }]}>
-            <TextArea rows={4} placeholder="Enter department description" />
+
+          <Form.Item
+            name="description"
+            label="Description"
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={4} />
           </Form.Item>
         </Form>
       </Modal>
@@ -204,22 +272,31 @@ const DepartmentsPage = () => {
         title="Department Details"
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setViewModalOpen(false)}>
-            Close
-          </Button>,
-        ]}
-        width={600}
+        footer={<Button onClick={() => setViewModalOpen(false)}>Close</Button>}
       >
         {viewingItem && (
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Name">{viewingItem.name}</Descriptions.Item>
-            <Descriptions.Item label="Slug">{viewingItem.slug}</Descriptions.Item>
-            <Descriptions.Item label="Head">
-              {staffItems.find(s => s.id === viewingItem.headId)?.firstName} {staffItems.find(s => s.id === viewingItem.headId)?.lastName || viewingItem.headId}
+            <Descriptions.Item label="Name">
+              {viewingItem.name}
             </Descriptions.Item>
-            <Descriptions.Item label="Page ID">{viewingItem.pageId}</Descriptions.Item>
-            <Descriptions.Item label="Description">{viewingItem.description}</Descriptions.Item>
+            <Descriptions.Item label="Slug">
+              {viewingItem.slug}
+            </Descriptions.Item>
+            <Descriptions.Item label="Head">
+              {staffItems.find((s) => s.id === viewingItem.headId)
+                ? `${staffItems.find((s) => s.id === viewingItem.headId)
+                    ?.firstName} ${
+                    staffItems.find((s) => s.id === viewingItem.headId)
+                      ?.lastName
+                  }`
+                : viewingItem.headId || "None"}
+            </Descriptions.Item>
+            <Descriptions.Item label="Page ID">
+              {viewingItem.pageId}
+            </Descriptions.Item>
+            <Descriptions.Item label="Description">
+              {viewingItem.description}
+            </Descriptions.Item>
           </Descriptions>
         )}
       </Modal>
