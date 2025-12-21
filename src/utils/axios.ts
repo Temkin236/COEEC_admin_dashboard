@@ -51,6 +51,7 @@ axiosInstance.interceptors.response.use(
           if (!isPublicHomepage) {
             localStorage.removeItem("token")
             localStorage.removeItem("refreshToken")
+            localStorage.removeItem("auth_user")
             window.location.href = "/login"
           }
           return Promise.reject(refreshError)
@@ -60,6 +61,8 @@ axiosInstance.interceptors.response.use(
         const isPublicHomepage = originalRequest.url === '/content' && originalRequest.data && typeof originalRequest.data === 'object' && (originalRequest.data as any).type === 'homepage'
         if (!isPublicHomepage) {
           localStorage.removeItem("token")
+          localStorage.removeItem("refreshToken")
+          localStorage.removeItem("auth_user")
           window.location.href = "/login"
         }
       }

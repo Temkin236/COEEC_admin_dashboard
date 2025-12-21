@@ -47,7 +47,6 @@ const LoginPage = () => {
             onFinish={onFinish}
             layout="vertical"
             size="large"
-            initialValues={{ email: "admin@astu.edu.et", password: "Admin@2025" }}
           >
             <Form.Item
               name="email"

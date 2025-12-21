@@ -246,11 +246,14 @@ const DepartmentsPage = () => {
               placeholder="Select department head"
               options={[
                 { value: "", label: "--- None ---" },
-                ...staffItems.map((s) => ({
+                ...(staffItems || []).map((s) => ({
                   value: s.id,
                   label: `${s.firstName} ${s.lastName}`,
                 })),
               ]}
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
             />
           </Form.Item>
 

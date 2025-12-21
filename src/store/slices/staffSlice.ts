@@ -113,12 +113,20 @@ const staffSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchStaff.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(fetchStaff.fulfilled, (state, action: PayloadAction<{ items: StaffItem[]; total: number; page: number; limit: number }>) => {
+      .addCase(fetchStaff.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false
-        state.items = action.payload.items
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        if (Array.isArray(action.payload)) {
+          state.items = action.payload
+          state.total = action.payload.length
+        } else if (action.payload && Array.isArray(action.payload.items)) {
+          state.items = action.payload.items
+          state.total = action.payload.total || action.payload.items.length
+          state.page = action.payload.page || state.page
+          state.limit = action.payload.limit || state.limit
+        } else {
+          state.items = []
+          state.total = 0
+        }
       })
       .addCase(fetchStaff.rejected, (state, action) => { state.loading = false; state.error = action.error.message || null })
       .addCase(fetchStaffById.fulfilled, (state, action: PayloadAction<StaffItem | null>) => { state.currentStaff = action.payload })

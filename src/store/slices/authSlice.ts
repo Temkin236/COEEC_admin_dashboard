@@ -5,7 +5,7 @@ type Role = string
 export interface AuthUser { id: string; email: string; role: Role; name?: string }
 
 const DEMO_USERS: AuthUser[] & Array<{ password?: string }> = [
-  { id: "1", email: "admin@astu.edu.et", password: "Admin@2025", role: "admin", name: "Admin User" },
+  { id: "1", email: "superAdmin@gmail.com", password: "superAdmin@gmail.com", role: "admin", name: "Admin User" },
   { id: "2", email: "editor@astu.edu.et", password: "Editor@2025", role: "editor", name: "Editor User" },
 ] as any
 
@@ -23,7 +23,9 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
       const { accessToken, refreshToken, user } = response.data as LoginResponse
       localStorage.setItem("token", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
-      localStorage.setItem("auth_user", JSON.stringify(user))
+      if (user) {
+        localStorage.setItem("auth_user", JSON.stringify(user))
+      }
       return { accessToken, refreshToken, user }
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || "Login failed")
@@ -36,12 +38,13 @@ export const validateToken = createAsyncThunk<AuthUser, void, { rejectValue: str
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get("/auth/me")
-      return response.data as AuthUser
-    } catch {
-      localStorage.removeItem("token")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("auth_user")
-      return rejectWithValue("Invalid token") as any
+      const user = response.data as AuthUser
+      localStorage.setItem("auth_user", JSON.stringify(user))
+      return user
+    } catch (error: any) {
+      // Don't remove tokens here - let axios interceptor handle token refresh
+      // Only reject to update Redux state
+      return rejectWithValue(error?.response?.data?.message || "Invalid token") as any
     }
   },
 )
@@ -55,11 +58,21 @@ interface AuthState {
   error: string | null
 }
 
+const getUserFromStorage = () => {
+  try {
+    const stored = localStorage.getItem("auth_user")
+    if (!stored || stored === "undefined") return null
+    return JSON.parse(stored)
+  } catch {
+    return null
+  }
+}
+
 const initialState: AuthState = {
-  user: null,
+  user: getUserFromStorage(),
   token: localStorage.getItem("token"),
   refreshToken: localStorage.getItem("refreshToken"),
-  isAuthenticated: false,
+  isAuthenticated: !!localStorage.getItem("token"),
   loading: false,
   error: null,
 }
@@ -75,6 +88,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       localStorage.removeItem("token")
       localStorage.removeItem("refreshToken")
+      localStorage.removeItem("auth_user")
     },
     clearError: (state) => {
       state.error = null
