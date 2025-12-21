@@ -1,14 +1,17 @@
 import { configureStore } from "@reduxjs/toolkit"
-import authReducer from "./slices/authSlice"
-import contentReducer from "./slices/contentSlice"
-import staffReducer from "./slices/staffSlice"
-import researchReducer from "./slices/researchSlice"
-import studentReducer from "./slices/studentSlice"
-import downloadReducer from "./slices/downloadSlice"
-import contactReducer from "./slices/contactSlice"
-import approvalReducer from "./slices/approvalSlice"
+import academicReducer from "./slices/academicSlice"
 import analyticsReducer from "./slices/analyticsSlice"
+import approvalReducer from "./slices/approvalSlice"
+import authReducer from "./slices/authSlice"
+import calendarReducer from "./slices/calendarSlice"
+import contactReducer from "./slices/contactSlice"
+import contentReducer from "./slices/contentSlice"
 import departmentReducer from "./slices/departmentSlice"
+import downloadReducer from "./slices/downloadSlice"
+import programsReducer from "./slices/programsSlice"
+import researchReducer from "./slices/researchSlice"
+import staffReducer from "./slices/staffSlice"
+import studentReducer from "./slices/studentSlice"
 
 export const store = configureStore({
   reducer: {
@@ -21,7 +24,10 @@ export const store = configureStore({
     contact: contactReducer,
     approval: approvalReducer,
     analytics: analyticsReducer,
+    academic: academicReducer,
+    programs: programsReducer,
     departments: departmentReducer,
+    calendar: calendarReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

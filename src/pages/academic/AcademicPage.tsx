@@ -1,7 +1,13 @@
-import { useState } from "react"
-import { Card, Tabs, Table, Button, Space, Tag, Modal, Form, Input, Select, message, AutoComplete, DatePicker, Row, Col, Divider } from "antd"
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons"
+import { Button, Card, Col, DatePicker, Divider, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, message } from "antd"
 import dayjs from 'dayjs'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons"
+import { useEffect, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import type { AppDispatch, RootState } from "../../store"
+import { createCourse, deleteCourse, fetchCoursesByProgram, updateCourse, publishCourse } from "../../store/slices/academicSlice"
+import { fetchDepartments } from "../../store/slices/departmentSlice"
+import { createProgram, deleteProgram, fetchPrograms, updateProgram, publishProgram } from "../../store/slices/programsSlice"
+import { fetchCalendars, createCalendar, updateCalendar, deleteCalendar, publishCalendar, addEventToCalendar, updateCalendarEvent, deleteCalendarEvent } from "../../store/slices/calendarSlice"
 
 const { TabPane } = Tabs
 
@@ -13,12 +19,16 @@ const DEPARTMENTS = [
 ]
 
 const AcademicPage = () => {
-  const [programs, setPrograms] = useState<any[]>([
-    { id: 1, name: "BSc in Computer Science", level: "Undergraduate", duration: "4 years", credits: 120, department: "Computer Science Engineering" },
-    { id: 2, name: "MSc in Computer Science", level: "Graduate", duration: "2 years", credits: 60, department: "Computer Science Engineering" },
-  ])
-  const [departments, setDepartments] = useState<string[]>(DEPARTMENTS)
-  const [programNameOptions, setProgramNameOptions] = useState<string[]>(programs.map(p => p.name))
+  const dispatch = useDispatch<AppDispatch>()
+  const programsState = useSelector((s: RootState) => s.programs)
+  const academic = useSelector((s: RootState) => s.academic)
+  const departmentsState = useSelector((s: RootState) => s.departments)
+  const calendarState = useSelector((s: RootState) => s.calendar)
+  
+  const programs = programsState.items
+  const departments = departmentsState.items
+  const calendars = calendarState.calendars
+  const [programNameOptions, setProgramNameOptions] = useState<string[]>([])
   const [newDeptInput, setNewDeptInput] = useState<string>('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
@@ -26,48 +36,131 @@ const AcademicPage = () => {
   const [viewProgram, setViewProgram] = useState<any | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
-  // Calendar state
-  const [calendarEntries, setCalendarEntries] = useState<any[]>([
-    { id: 1, dateRange: [dayjs('2025-09-15'), dayjs('2025-09-16')], title: 'Registration for 2nd Year & Above', status: 'Completed' },
-    { id: 2, dateRange: [dayjs('2025-09-20'), dayjs('2025-09-20')], title: 'Classes Begin', status: 'Completed' },
-    { id: 3, dateRange: [dayjs('2025-11-10'), dayjs('2025-11-15')], title: 'Mid-Semester Examinations', status: 'Upcoming' },
-  ])
   const [calendarModalOpen, setCalendarModalOpen] = useState(false)
   const [calendarEditing, setCalendarEditing] = useState<any | null>(null)
   const [calendarForm] = Form.useForm()
   const [calendarView, setCalendarView] = useState<any | null>(null)
   const [calendarViewModalOpen, setCalendarViewModalOpen] = useState(false)
 
+  // Use first calendar as active, or show all events from all calendars
+  const activeCalendar = calendars.length > 0 ? calendars[0] : null
+  const calendarEvents = activeCalendar?.events || []
+
   const calendarColumns = [
-    { title: 'Date', dataIndex: 'dateRange', key: 'dateRange', render: (range: any[]) => `${range && range[0] ? range[0].format('MMM D') : ''}${range && range[1] ? ' - ' + range[1].format('MMM D') : ''}` },
+    { 
+      title: 'Start Date', 
+      dataIndex: 'startDate', 
+      key: 'startDate', 
+      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : 'N/A' 
+    },
+    { 
+      title: 'End Date', 
+      dataIndex: 'endDate', 
+      key: 'endDate', 
+      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : 'N/A' 
+    },
     { title: 'Event', dataIndex: 'title', key: 'title' },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: (s: string) => <Tag color={s === 'Completed' ? 'green' : 'gold'}>{s}</Tag> },
-    { title: 'Actions', key: 'actions', render: (_: any, record: any) => (
-      <Space>
-        <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCalendar(record) }} />
-        <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCalendar(record.id) }} />
-      </Space>
-    ) }
+    { 
+      title: 'Status', 
+      dataIndex: 'state', 
+      key: 'state', 
+      render: (state: string, record: any) => {
+        const currentState = state || record.status || 'DRAFT'
+        return <Tag color={currentState === 'PUBLISHED' ? 'green' : 'orange'}>{currentState}</Tag>
+      } 
+    },
+    { 
+      title: 'Actions', 
+      key: 'actions', 
+      render: (_: any, record: any) => (
+        <Space>
+          <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCalendar(record) }} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCalendarEvent(record.id) }} />
+        </Space>
+      ) 
+    }
   ]
 
-  const openAddCalendar = () => { setCalendarEditing(null); calendarForm.resetFields(); setCalendarModalOpen(true) }
-  const openEditCalendar = (record: any) => { setCalendarEditing(record); calendarForm.setFieldsValue({ ...record, dateRange: record.dateRange }); setCalendarModalOpen(true) }
-  const handleDeleteCalendar = (id: number) => { Modal.confirm({ title: 'Delete Event', content: 'Delete this calendar event?', onOk() { setCalendarEntries(prev => prev.filter(c => c.id !== id)); message.success('Event deleted') } }) }
-  const handleCalendarSubmit = (values: any) => {
-    if (calendarEditing) {
-      setCalendarEntries(prev => prev.map(c => c.id === calendarEditing.id ? { ...c, ...values } : c))
-      message.success('Event updated')
-    } else {
-      const id = calendarEntries.length ? Math.max(...calendarEntries.map(c => c.id)) + 1 : 1
-      setCalendarEntries(prev => [...prev, { id, ...values }])
-      message.success('Event added')
+  const openAddCalendar = () => { 
+    setCalendarEditing(null); 
+    calendarForm.resetFields(); 
+    setCalendarModalOpen(true) 
+  }
+
+  const openEditCalendar = (record: any) => { 
+    setCalendarEditing(record); 
+    calendarForm.setFieldsValue({
+      title: record.title,
+      description: record.description,
+      startDate: record.startDate ? dayjs(record.startDate) : null,
+      endDate: record.endDate ? dayjs(record.endDate) : null,
+    }); 
+    setCalendarModalOpen(true) 
+  }
+
+  const handleDeleteCalendarEvent = (id: number | string) => { 
+    Modal.confirm({ 
+      title: 'Delete Event', 
+      content: 'Delete this calendar event?', 
+      async onOk() { 
+        try {
+          await dispatch(deleteCalendarEvent(id)).unwrap()
+          message.success('Event deleted')
+          // Refresh calendars to get updated events
+          dispatch(fetchCalendars())
+        } catch (err: any) {
+          message.error(err?.message || 'Failed to delete event')
+        }
+      } 
+    }) 
+  }
+
+  const handleCalendarSubmit = async (values: any) => {
+    if (!activeCalendar) {
+      message.error('No active calendar found. Please create a calendar first.')
+      return
     }
-    setCalendarModalOpen(false)
-    calendarForm.resetFields()
+
+    const eventPayload = {
+      title: values.title,
+      description: values.description || '',
+      startDate: values.startDate ? values.startDate.toISOString() : new Date().toISOString(),
+      endDate: values.endDate ? values.endDate.toISOString() : new Date().toISOString(),
+    }
+
+    try {
+      if (calendarEditing) {
+        await dispatch(updateCalendarEvent({ eventId: calendarEditing.id, data: eventPayload })).unwrap()
+        message.success('Event updated')
+      } else {
+        await dispatch(addEventToCalendar({ calendarId: activeCalendar.id, event: eventPayload })).unwrap()
+        message.success('Event added')
+      }
+      setCalendarModalOpen(false)
+      calendarForm.resetFields()
+      // Refresh calendars to get updated events
+      dispatch(fetchCalendars())
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to save event')
+    }
+  }
+
+  const handlePublishCalendar = async () => {
+    if (!activeCalendar) {
+      message.error('No active calendar to publish')
+      return
+    }
+
+    try {
+      await dispatch(publishCalendar(activeCalendar.id)).unwrap()
+      message.success('Calendar published successfully!')
+      dispatch(fetchCalendars())
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to publish calendar')
+    }
   }
 
   const handleDownloadPdf = () => {
-    // simple print for now
     window.print()
   }
 
@@ -136,75 +229,197 @@ const AcademicPage = () => {
     setViewModalOpen(true)
   }
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number | string) => {
     Modal.confirm({
       title: "Delete Program",
       content: "Are you sure you want to delete this program?",
-      onOk() {
-        setPrograms(prev => prev.filter(p => p.id !== id))
-        message.success("Program deleted")
+      async onOk() {
+        try {
+          await dispatch(deleteProgram(id)).unwrap()
+          message.success("Program deleted")
+        } catch (err: any) {
+          message.error(err?.message || "Failed to delete program")
+        }
       }
     })
   }
 
-  const handleSubmit = (values: any) => {
-    // if program name is new, add to programNameOptions
+  const handleSubmit = async (values: any) => {
     if (values.name && !programNameOptions.includes(values.name)) {
       setProgramNameOptions(prev => [...prev, values.name])
     }
-    if (editing) {
-      setPrograms(prev => prev.map(p => p.id === editing.id ? { ...p, ...values } : p))
-      message.success("Program updated")
-    } else {
-      const id = programs.length ? Math.max(...programs.map(p => p.id)) + 1 : 1
-      setPrograms(prev => [...prev, { id, ...values }])
-      message.success("Program added")
+    
+    // Validate departmentId is selected
+    if (!values.departmentId) {
+      message.error('Please select a department')
+      return
     }
-    setIsModalOpen(false)
-    form.resetFields()
+    
+    // Map frontend fields to backend requirements
+    const payload = {
+      departmentId: values.departmentId, // Required by backend - must be valid ID
+      code: values.code, // User must provide
+      slug: values.slug || values.name?.toLowerCase().replace(/\s+/g, '-'), // Generate slug from name if not provided
+      title: values.title || values.name, // Backend expects 'title'
+      level: values.level, // BSC/MSC/PHD
+      duration: values.duration,
+      credits: Number(values.credits) || 0,
+      description: values.description || '',
+    }
+
+    try {
+      if (editing) {
+        await dispatch(updateProgram({ id: editing.id, data: payload })).unwrap()
+        message.success("Program updated")
+      } else {
+        await dispatch(createProgram(payload)).unwrap()
+        message.success("Program added")
+      }
+      setIsModalOpen(false)
+      form.resetFields()
+      // Refresh programs list
+      dispatch(fetchPrograms())
+    } catch (err: any) {
+      message.error(err?.message || "Failed to save program")
+    }
+  }
+
+  const handlePublishProgram = async (id: string | number) => {
+    try {
+      await dispatch(publishProgram(id)).unwrap()
+      message.success("Program published successfully!")
+      // Refresh programs to get updated status
+      dispatch(fetchPrograms())
+    } catch (err: any) {
+      message.error(err?.message || "Failed to publish program")
+    }
   }
 
   const programColumns = [
-    { title: "Program Name", dataIndex: "name", key: "name", render: (name: string, record: any) => (
-      <a onClick={(e) => { e.stopPropagation(); openView(record) }} style={{ cursor: 'pointer' }}>{name}</a>
-    ) },
-    { title: "Department", dataIndex: "department", key: "department" },
+    { 
+      title: "Program Name", 
+      dataIndex: "title", 
+      key: "title", 
+      render: (title: string, record: any) => (
+        <a onClick={(e) => { e.stopPropagation(); openView(record) }} style={{ cursor: 'pointer' }}>
+          {title || record.name || 'Untitled Program'}
+        </a>
+      ) 
+    },
+    { 
+      title: "Code", 
+      dataIndex: "code", 
+      key: "code" 
+    },
     { title: "Level", dataIndex: "level", key: "level", render: (level: string) => <Tag color="blue">{level}</Tag> },
-    { title: "Duration", dataIndex: "duration", key: "duration" },
+    { 
+      title: "Duration", 
+      dataIndex: "durationMonths", 
+      key: "durationMonths",
+      render: (months: number | null, record: any) => months ? `${months} months` : (record.duration || 'N/A')
+    },
     { title: "Credits", dataIndex: "credits", key: "credits" },
+    { 
+      title: "Status", 
+      dataIndex: "state", 
+      key: "state", 
+      render: (state: string, record: any) => {
+        const currentState = state || record.status || 'DRAFT'
+        return (
+          <Tag color={currentState === 'PUBLISHED' ? 'green' : 'orange'}>
+            {currentState}
+          </Tag>
+        )
+      }
+    },
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: any) => (
-        <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEdit(record); }} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} />
-        </Space>
-      ),
+      render: (_: any, record: any) => {
+        const currentState = record.state || record.status || 'DRAFT'
+        return (
+          <Space>
+            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEdit(record); }} />
+            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} />
+            {currentState !== 'PUBLISHED' && (
+              <Button 
+                type="primary" 
+                size="small"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handlePublishProgram(record.id); 
+                }}
+              >
+                Publish
+              </Button>
+            )}
+          </Space>
+        )
+      },
     },
   ]
+
+  // Removed Level from columns
+  const handlePublishCourse = async (id: string | number) => {
+    try {
+      await dispatch(publishCourse(id)).unwrap()
+      message.success("Course published successfully!")
+      // Refresh courses for current program
+      if (selectedProgramId) {
+        dispatch(fetchCoursesByProgram(selectedProgramId))
+      }
+    } catch (err: any) {
+      message.error(err?.message || "Failed to publish course")
+    }
+  }
 
   const courseColumns = [
     { title: "Course Code", dataIndex: "code", key: "code" },
-    { title: "Course Name", dataIndex: "name", key: "name" },
+    { title: "Course Name", dataIndex: "name", key: "name", render: (name: string, record: any) => name || record.title },
     { title: "Credits", dataIndex: "credits", key: "credits" },
-    { title: "Level", dataIndex: "level", key: "level" },
+    { 
+      title: "Status", 
+      dataIndex: "state", 
+      key: "state", 
+      render: (state: string, record: any) => {
+        const currentState = state || record.status || 'DRAFT'
+        return (
+          <Tag color={currentState === 'PUBLISHED' ? 'green' : 'orange'}>
+            {currentState}
+          </Tag>
+        )
+      }
+    },
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: any) => (
-        <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCourse(record); }} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCourse(record.id); }} />
-        </Space>
-      ),
+      render: (_: any, record: any) => {
+        const currentState = record.state || record.status || 'DRAFT'
+        return (
+          <Space>
+            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCourse(record); }} />
+            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCourse(record.id); }} />
+            {currentState !== 'PUBLISHED' && (
+              <Button 
+                type="primary" 
+                size="small"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handlePublishCourse(record.id); 
+                }}
+              >
+                Publish
+              </Button>
+            )}
+          </Space>
+        )
+      },
     },
   ]
 
-  const [courses, setCourses] = useState<any[]>([
-    { id: 1, code: "CS101", name: "Introduction to Programming", credits: 3, level: "1st Year" },
-    { id: 2, code: "CS202", name: "Data Structures", credits: 4, level: "2nd Year" },
-  ])
+  // Courses come from academic slice (per program)
+  const selectedProgramId = programs.length ? programs[0].id : null
+  const courses = selectedProgramId ? (academic.coursesByProgram[String(selectedProgramId)] || []) : []
   const [courseModalOpen, setCourseModalOpen] = useState(false)
   const [courseEditing, setCourseEditing] = useState<any | null>(null)
   const [courseForm] = Form.useForm()
@@ -232,25 +447,71 @@ const AcademicPage = () => {
     Modal.confirm({
       title: 'Delete Course',
       content: 'Are you sure you want to delete this course?',
-      onOk() {
-        setCourses(prev => prev.filter(c => c.id !== id))
-        message.success('Course deleted')
+      async onOk() {
+        try {
+          await dispatch(deleteCourse(id)).unwrap()
+          message.success('Course deleted')
+        } catch (err: any) {
+          message.error(err?.message || 'Failed to delete course')
+        }
       }
     })
   }
 
   const handleCourseSubmit = (values: any) => {
-    if (courseEditing) {
-      setCourses(prev => prev.map(c => c.id === courseEditing.id ? { ...c, ...values } : c))
-      message.success('Course updated')
-    } else {
-      const id = courses.length ? Math.max(...courses.map(c => c.id)) + 1 : 1
-      setCourses(prev => [...prev, { id, ...values }])
-      message.success('Course added')
+    // Normalize payload to match backend expectations: some endpoints expect `title`
+    // while our form uses `name`. Map `name` -> `title` to avoid validation errors.
+    const payloadValues = { ...values, title: values.title ?? values.name }
+    // determine program id: prefer form programId (string|number), fall back to selectedProgramId
+    const programIdToUse = payloadValues.programId ?? selectedProgramId
+    if (!programIdToUse) {
+      message.error('Please select a program for this course')
+      return
     }
-    setCourseModalOpen(false)
-    courseForm.resetFields()
+    // remove programId from payload body if present; the endpoint accepts programId in the URL
+    const bodyPayload = { ...payloadValues }
+    delete (bodyPayload as any).programId
+    const payload = { payload: bodyPayload }
+    const perform = async () => {
+      try {
+        if (courseEditing) {
+          console.debug('Updating course payload:', { id: courseEditing.id, payload: payloadValues })
+          await dispatch(updateCourse({ id: courseEditing.id, payload: payloadValues })).unwrap()
+          message.success('Course updated')
+        } else if (selectedProgramId) {
+          console.debug('Creating course payload:', { programId: programIdToUse, payload: bodyPayload })
+          await dispatch(createCourse({ programId: programIdToUse, payload: bodyPayload })).unwrap()
+          message.success('Course added')
+        } else {
+          message.error('No program selected')
+        }
+      } catch (err: any) {
+        message.error(err?.message || 'Failed to save course')
+      } finally {
+        setCourseModalOpen(false)
+        courseForm.resetFields()
+      }
+    }
+    perform()
   }
+
+  useEffect(() => {
+    if (selectedProgramId) {
+      dispatch(fetchCoursesByProgram(selectedProgramId))
+    }
+  }, [dispatch, selectedProgramId])
+
+  // Fetch programs on mount
+  useEffect(() => {
+    dispatch(fetchPrograms())
+    dispatch(fetchDepartments())
+    dispatch(fetchCalendars())
+  }, [dispatch])
+
+  // Update program name options when programs change
+  useEffect(() => {
+    setProgramNameOptions(programs.map(p => p.name || p.title || ''))
+  }, [programs])
 
   return (
     <div className="space-y-4">
@@ -303,9 +564,10 @@ const AcademicPage = () => {
                 <Card>
                   <Table
                     columns={calendarColumns as any}
-                    dataSource={calendarEntries}
+                    dataSource={calendarEvents}
                     rowKey="id"
                     pagination={false}
+                    loading={calendarState.loading}
                     rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
                     onRow={(record) => ({ onClick: () => openViewCalendar(record) })}
                   />
@@ -340,7 +602,6 @@ const AcademicPage = () => {
               </Col>
             </Row>
           </TabPane>
-
         </Tabs>
       </Card>
 
@@ -368,68 +629,63 @@ const AcademicPage = () => {
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ level: 'Undergraduate', duration: '4 years', credits: 0, department: DEPARTMENTS[1] }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ level: 'BSC', duration: '4 years', credits: 0 }}>
           <Form.Item name="name" label="Program Name" rules={[{ required: true, message: 'Please enter program name' }]}>
-            <AutoComplete
-              options={programNameOptions.map(n => ({ value: n }))}
-              placeholder="Type or select program name (press Enter to add)"
-              filterOption={(inputValue, option) => (option?.value as string).toLowerCase().includes(inputValue.toLowerCase())}
-            />
+            <Input placeholder="e.g., BSc in Computer Science" />
           </Form.Item>
-          <Form.Item name="department" label="Department" rules={[{ required: true, message: 'Select department' }]}>
+          
+          <Form.Item name="code" label="Program Code" rules={[{ required: true, message: 'Enter program code' }]}>
+            <Input placeholder="e.g., CS_BSC" />
+          </Form.Item>
+          
+          <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: 'Select department' }]}>
             <Select
-              options={departments.map(d => ({ value: d, label: d }))}
-              dropdownRender={menu => (
-                <div>
-                  {menu}
-                  <div style={{ display: 'flex', padding: 8, gap: 8 }}>
-                    <Input
-                      value={newDeptInput}
-                      onChange={e => setNewDeptInput(e.target.value)}
-                      placeholder="Add new department"
-                    />
-                              <Button
-                                type="text"
-                                onClick={() => {
-                                  const v = newDeptInput && newDeptInput.trim()
-                                  if (!v) {
-                                    message.error('Department name required')
-                                    return
-                                  }
-                                  if (departments.includes(v)) {
-                                    message.info('Department already exists')
-                                    form.setFieldsValue({ department: v })
-                                    setNewDeptInput('')
-                                    return
-                                  }
-                                  setDepartments(prev => [...prev, v])
-                                  form.setFieldsValue({ department: v })
-                                  setNewDeptInput('')
-                                  message.success('Department added')
-                                }}
-                              >
-                                Add
-                              </Button>
-                  </div>
-                </div>
-              )}
+              placeholder="Select department"
+              loading={departmentsState.loading}
+              options={departments.map(d => ({ 
+                value: d.id, 
+                label: d.name 
+              }))}
             />
           </Form.Item>
-          <Form.Item name="duration" label="Duration">
-            <Input />
+          
+          <Form.Item name="level" label="Level" rules={[{ required: true, message: 'Select level' }]}>
+            <Select
+              options={[
+                { value: 'BSC', label: 'BSC (Bachelor)' },
+                { value: 'MSC', label: 'MSC (Master)' },
+                { value: 'PHD', label: 'PHD (Doctorate)' },
+              ]}
+            />
           </Form.Item>
-          <Form.Item name="credits" label="Credits">
-            <Input type="number" />
+          
+          <Form.Item name="duration" label="Duration" rules={[{ required: true, message: 'Enter duration' }]}>
+            <Input placeholder="e.g., 4 years" />
+          </Form.Item>
+          
+          <Form.Item name="credits" label="Credits" rules={[{ required: true, message: 'Enter credits' }]}>
+            <Input type="number" placeholder="e.g., 120" />
+          </Form.Item>
+          
+          <Form.Item name="description" label="Description">
+            <Input.TextArea rows={3} placeholder="Optional description" />
           </Form.Item>
         </Form>
       </Modal>
+
       <Modal
         title={courseEditing ? 'Edit Course' : 'Add Course'}
         open={courseModalOpen}
         onCancel={() => setCourseModalOpen(false)}
         onOk={() => courseForm.submit()}
       >
-        <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, level: '1st Year', department: departments[0] }}>
+        <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, department: departments[0] }}>
+            <Form.Item name="programId" label="Program" rules={[{ required: true, message: 'Select program' }]}> 
+              <Select
+                options={programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))}
+                placeholder="Select program"
+              />
+            </Form.Item>
           <Form.Item name="code" label="Course Code" rules={[{ required: true, message: 'Enter course code' }]}>
             <Input />
           </Form.Item>
@@ -439,50 +695,15 @@ const AcademicPage = () => {
           <Form.Item name="department" label="Department" rules={[{ required: true, message: 'Select department' }]}> 
             <Select
               options={departments.map(d => ({ value: d, label: d }))}
-              dropdownRender={menu => (
-                <div>
-                  {menu}
-                  <div style={{ display: 'flex', padding: 8, gap: 8 }}>
-                    <Input
-                      value={newDeptInput}
-                      onChange={e => setNewDeptInput(e.target.value)}
-                      placeholder="Add new department"
-                    />
-                    <Button
-                      type="text"
-                      onClick={() => {
-                        const v = newDeptInput && newDeptInput.trim()
-                        if (!v) {
-                          message.error('Department name required')
-                          return
-                        }
-                        if (departments.includes(v)) {
-                          message.info('Department already exists')
-                          courseForm.setFieldsValue({ department: v })
-                          setNewDeptInput('')
-                          return
-                        }
-                        setDepartments(prev => [...prev, v])
-                        courseForm.setFieldsValue({ department: v })
-                        setNewDeptInput('')
-                        message.success('Department added')
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </div>
-              )}
             />
           </Form.Item>
           <Form.Item name="credits" label="Credits" rules={[{ required: true, message: 'Enter credits' }]}>
             <Input type="number" />
           </Form.Item>
-          <Form.Item name="level" label="Level">
-            <Input />
-          </Form.Item>
+          {/* Level Field Removed From Here */}
         </Form>
       </Modal>
+
       <Modal
         title="Course Details"
         open={courseViewModalOpen}
@@ -496,10 +717,12 @@ const AcademicPage = () => {
             <div style={{ color: '#555', marginBottom: 6 }}><b>Course Code:</b> {courseView.code}</div>
             <div style={{ color: '#555', marginBottom: 6 }}><b>Department:</b> {courseView.department}</div>
             <div style={{ color: '#555', marginBottom: 6 }}><b>Credits:</b> {courseView.credits}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Level:</b> {courseView.level}</div>
+            {/* Level Removed From Details */}
           </div>
         )}
       </Modal>
+
+      {/* Calendar Modal */}
       <Modal
         title={calendarEditing ? 'Edit Event' : 'Add Event'}
         open={calendarModalOpen}
@@ -507,18 +730,22 @@ const AcademicPage = () => {
         onOk={() => calendarForm.submit()}
         width={600}
       >
-        <Form form={calendarForm} layout="vertical" onFinish={handleCalendarSubmit} initialValues={{ status: 'Upcoming' }}>
-          <Form.Item name="dateRange" label="Date Range" rules={[{ required: true, message: 'Select date range' }]}>
-            <DatePicker.RangePicker style={{ width: '100%' }} />
+        <Form form={calendarForm} layout="vertical" onFinish={handleCalendarSubmit}>
+          <Form.Item name="title" label="Event Title" rules={[{ required: true, message: 'Enter event title' }]}>
+            <Input placeholder="e.g., Mid-Semester Examinations" />
           </Form.Item>
-          <Form.Item name="title" label="Event Name" rules={[{ required: true, message: 'Enter title' }]}>
-            <Input />
+          <Form.Item name="description" label="Description">
+            <Input.TextArea rows={3} placeholder="Event description (optional)" />
           </Form.Item>
-          <Form.Item name="status" label="Status">
-            <Select options={[{ value: 'Upcoming', label: 'Upcoming' }, { value: 'Completed', label: 'Completed' }]} />
+          <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Select start date' }]}>
+            <DatePicker style={{ width: '100%' }} showTime />
+          </Form.Item>
+          <Form.Item name="endDate" label="End Date" rules={[{ required: true, message: 'Select end date' }]}>
+            <DatePicker style={{ width: '100%' }} showTime />
           </Form.Item>
         </Form>
       </Modal>
+
       <Modal
         title="Calendar Event Details"
         open={calendarViewModalOpen}
@@ -534,6 +761,7 @@ const AcademicPage = () => {
           </div>
         )}
       </Modal>
+
       <Modal
         title="Add Announcement"
         open={annModalOpen}
@@ -551,6 +779,7 @@ const AcademicPage = () => {
           </Form.Item>
         </Form>
       </Modal>
+
       <Modal
         title="Announcements Archive"
         open={annArchiveOpen}

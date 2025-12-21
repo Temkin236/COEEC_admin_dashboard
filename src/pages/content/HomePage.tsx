@@ -1,8 +1,8 @@
 "use client"
 
-import React, { useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchContent } from "@/store/slices/contentSlice"
+import React, { useEffect } from "react"
 
 const HomePage: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -13,13 +13,6 @@ const HomePage: React.FC = () => {
     dispatch(fetchContent({ type: "departments" }) as any)
     dispatch(fetchContent({ type: "news" }) as any)
   }, [dispatch])
-
-  useEffect(() => {
-    console.log('HomePage homepageItems:', homepageItems)
-    console.log('campusLifeItem:', campusLifeItem)
-    console.log('eventsItems:', eventsItems)
-    console.log('partnersItem:', partnersItem)
-  }, [homepageItems, campusLifeItem, eventsItems, partnersItem])
 
   // Normalize content: backend may return arrays in different shapes, guard against that
   const homepageItems = Array.isArray(homepage?.items) ? homepage.items : Array.isArray(homepage) ? homepage : []
@@ -35,6 +28,13 @@ const HomePage: React.FC = () => {
   const campusLifeItem = (homepageItems || []).find((i: any) => i && i.type === "campuslife")
   const eventsItems = (homepageItems || []).filter((i: any) => i && i.type === "events")
   const partnersItem = (homepageItems || []).find((i: any) => i && i.type === "partners")
+
+  useEffect(() => {
+    console.log('HomePage homepageItems:', homepageItems)
+    console.log('campusLifeItem:', campusLifeItem)
+    console.log('eventsItems:', eventsItems)
+    console.log('partnersItem:', partnersItem)
+  }, [homepageItems, campusLifeItem, eventsItems, partnersItem])
 
   return (
     <div className="relative min-h-screen bg-gradient-to-r from-blue-900 to-blue-700 flex flex-col">

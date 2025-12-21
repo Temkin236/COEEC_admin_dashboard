@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Card, Form, Input, Button, Select, Typography, Upload, message } from "antd";
+import { Button, Card, Col, Divider, Form, Input, message, Row, Select, Typography, Upload } from "antd";
+import { useState } from "react";
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -92,8 +92,7 @@ const DepartmentForm = ({ initialValues, onSubmit }) => {
       </div>
       {/* Main form card */}
       <Card style={{ maxWidth: 1100, margin: '0 auto', marginTop: -80, borderRadius: 16, boxShadow: '0 4px 24px rgba(32,74,116,0.08)' }}>
-        <Form form={form} layout="vertical" initialValues={initialValues} onFinish={values => onSubmit({ ...values, news, photo: photoPreview })}>
-            <Form form={form} layout="vertical" initialValues={initialValues} onFinish={values => onSubmit({ ...values, news, programs, photo: photoPreview })}>
+    <Form form={form} layout="vertical" initialValues={initialValues} onFinish={values => onSubmit({ ...values, news, programs, photo: photoPreview })}>
           <Row gutter={32}>
             <Col xs={24} md={16}>
               <Form.Item name="name" label="Department Name" rules={[{ required: true, message: "Please select department name" }]}> 
@@ -101,7 +100,7 @@ const DepartmentForm = ({ initialValues, onSubmit }) => {
               </Form.Item>
               <Form.Item name="description" label="Overview" rules={[{ required: true, message: "Please enter department overview" }]}> <TextArea rows={4} /> </Form.Item>
               <Form.Item name="programs" label="Academic Programs" rules={[{ required: true, message: "Please select programs" }]}> <Select mode="tags" options={PROGRAM_OPTIONS.map(p => ({ value: p, label: p }))} /> </Form.Item>
-                            <Divider orientation="left">Academic Programs</Divider>
+                            <Divider>Academic Programs</Divider>
                             <Row gutter={8} align="middle">
                               <Col xs={24} md={6}><Input placeholder="Program Name" value={programInput.name} onChange={e => setProgramInput(p => ({ ...p, name: e.target.value }))} style={{ marginBottom: 8 }} /></Col>
                               <Col xs={24} md={10}><Input placeholder="Description" value={programInput.desc} onChange={e => setProgramInput(p => ({ ...p, desc: e.target.value }))} style={{ marginBottom: 8 }} /></Col>
@@ -122,7 +121,7 @@ const DepartmentForm = ({ initialValues, onSubmit }) => {
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Divider orientation="left">Quick Facts</Divider>
+              <Divider>Quick Facts</Divider>
               <Form.Item name="head" label="Department Head" rules={[{ required: true, message: "Please enter head name" }]}> <Input /> </Form.Item>
               <Form.Item name="established" label="Established">
                 <Input placeholder="e.g., 1995" />
@@ -135,7 +134,7 @@ const DepartmentForm = ({ initialValues, onSubmit }) => {
               </Form.Item>
             </Col>
           </Row>
-          <Divider orientation="left">Latest News</Divider>
+          <Divider>Latest News</Divider>
           <Row gutter={8} align="middle">
             <Col xs={24} md={4}><Input placeholder="News Title" value={newsInput.title} onChange={e => setNewsInput(n => ({ ...n, title: e.target.value }))} style={{ marginBottom: 8 }} /></Col>
             <Col xs={24} md={3}><Input placeholder="Date (YYYY-MM-DD)" value={newsInput.date} onChange={e => setNewsInput(n => ({ ...n, date: e.target.value }))} style={{ marginBottom: 8 }} /></Col>
