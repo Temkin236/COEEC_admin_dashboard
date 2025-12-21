@@ -4,10 +4,11 @@ import dayjs from 'dayjs'
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "../../store"
-import { createCourse, deleteCourse, fetchCoursesByProgram, updateCourse, publishCourse } from "../../store/slices/academicSlice"
+import { createCourse, deleteCourse, fetchCoursesByProgram, publishCourse, updateCourse } from "../../store/slices/academicSlice"
+import { fetchCalendars, publishCalendar } from "../../store/slices/calendarSlice"
 import { fetchDepartments } from "../../store/slices/departmentSlice"
-import { createProgram, deleteProgram, fetchPrograms, updateProgram, publishProgram } from "../../store/slices/programsSlice"
-import { fetchCalendars, createCalendar, updateCalendar, deleteCalendar, publishCalendar, addEventToCalendar, updateCalendarEvent, deleteCalendarEvent } from "../../store/slices/calendarSlice"
+import { createEvent, deleteEvent, fetchEvents, publishEvent, updateEvent } from "../../store/slices/eventsSlice"
+import { createProgram, deleteProgram, fetchPrograms, publishProgram, updateProgram } from "../../store/slices/programsSlice"
 
 const { TabPane } = Tabs
 
@@ -24,10 +25,12 @@ const AcademicPage = () => {
   const academic = useSelector((s: RootState) => s.academic)
   const departmentsState = useSelector((s: RootState) => s.departments)
   const calendarState = useSelector((s: RootState) => s.calendar)
+  const eventsState = useSelector((s: RootState) => s.events)
   
-  const programs = programsState.items
-  const departments = departmentsState.items
-  const calendars = calendarState.calendars
+  const programs = programsState.items || []  // Ensure it's always an array
+  const departments = departmentsState.items || []  // Ensure it's always an array
+  const calendars = calendarState.calendars || []  // Ensure it's always an array
+  const events = eventsState.items || []  // Ensure it's always an array
   const [programNameOptions, setProgramNameOptions] = useState<string[]>([])
   const [newDeptInput, setNewDeptInput] = useState<string>('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -44,20 +47,14 @@ const AcademicPage = () => {
 
   // Use first calendar as active, or show all events from all calendars
   const activeCalendar = calendars.length > 0 ? calendars[0] : null
-  const calendarEvents = activeCalendar?.events || []
+  const calendarEvents = Array.isArray(events) ? events : []  // Ensure it's always an array
 
   const calendarColumns = [
     { 
-      title: 'Start Date', 
-      dataIndex: 'startDate', 
-      key: 'startDate', 
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : 'N/A' 
-    },
-    { 
-      title: 'End Date', 
-      dataIndex: 'endDate', 
-      key: 'endDate', 
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY') : 'N/A' 
+      title: 'Date', 
+      dataIndex: 'date', 
+      key: 'date', 
+      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'N/A' 
     },
     { title: 'Event', dataIndex: 'title', key: 'title' },
     { 
@@ -72,14 +69,39 @@ const AcademicPage = () => {
     { 
       title: 'Actions', 
       key: 'actions', 
-      render: (_: any, record: any) => (
-        <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCalendar(record) }} />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCalendarEvent(record.id) }} />
-        </Space>
-      ) 
+      render: (_: any, record: any) => {
+        const currentState = record.state || record.status || 'DRAFT'
+        return (
+          <Space>
+            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCalendar(record) }} />
+            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCalendarEvent(record.id) }} />
+            {currentState !== 'PUBLISHED' && (
+              <Button 
+                type="primary" 
+                size="small"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handlePublishEvent(record.id); 
+                }}
+              >
+                Publish
+              </Button>
+            )}
+          </Space>
+        )
+      } 
     }
   ]
+
+  const handlePublishEvent = async (id: string | number) => {
+    try {
+      await dispatch(publishEvent(id)).unwrap()
+      message.success("Event published successfully!")
+      dispatch(fetchEvents())
+    } catch (err: any) {
+      message.error(err?.message || "Failed to publish event")
+    }
+  }
 
   const openAddCalendar = () => { 
     setCalendarEditing(null); 
@@ -92,8 +114,7 @@ const AcademicPage = () => {
     calendarForm.setFieldsValue({
       title: record.title,
       description: record.description,
-      startDate: record.startDate ? dayjs(record.startDate) : null,
-      endDate: record.endDate ? dayjs(record.endDate) : null,
+      date: record.date ? dayjs(record.date) : (record.startDate ? dayjs(record.startDate) : null),
     }); 
     setCalendarModalOpen(true) 
   }
@@ -101,13 +122,13 @@ const AcademicPage = () => {
   const handleDeleteCalendarEvent = (id: number | string) => { 
     Modal.confirm({ 
       title: 'Delete Event', 
-      content: 'Delete this calendar event?', 
+      content: 'Delete this event?', 
       async onOk() { 
         try {
-          await dispatch(deleteCalendarEvent(id)).unwrap()
+          await dispatch(deleteEvent(id)).unwrap()
           message.success('Event deleted')
-          // Refresh calendars to get updated events
-          dispatch(fetchCalendars())
+          // Refresh events list
+          dispatch(fetchEvents())
         } catch (err: any) {
           message.error(err?.message || 'Failed to delete event')
         }
@@ -116,30 +137,25 @@ const AcademicPage = () => {
   }
 
   const handleCalendarSubmit = async (values: any) => {
-    if (!activeCalendar) {
-      message.error('No active calendar found. Please create a calendar first.')
-      return
-    }
-
+    // Backend expects: { "title": "string", "date": "2025-12-21T17:57:59.88.877Z", "description": "string" }
     const eventPayload = {
       title: values.title,
+      date: values.date ? values.date.toISOString() : new Date().toISOString(),
       description: values.description || '',
-      startDate: values.startDate ? values.startDate.toISOString() : new Date().toISOString(),
-      endDate: values.endDate ? values.endDate.toISOString() : new Date().toISOString(),
     }
 
     try {
       if (calendarEditing) {
-        await dispatch(updateCalendarEvent({ eventId: calendarEditing.id, data: eventPayload })).unwrap()
+        await dispatch(updateEvent({ id: calendarEditing.id, data: eventPayload })).unwrap()
         message.success('Event updated')
       } else {
-        await dispatch(addEventToCalendar({ calendarId: activeCalendar.id, event: eventPayload })).unwrap()
+        await dispatch(createEvent(eventPayload)).unwrap()
         message.success('Event added')
       }
       setCalendarModalOpen(false)
       calendarForm.resetFields()
-      // Refresh calendars to get updated events
-      dispatch(fetchCalendars())
+      // Refresh events list
+      dispatch(fetchEvents())
     } catch (err: any) {
       message.error(err?.message || 'Failed to save event')
     }
@@ -255,10 +271,19 @@ const AcademicPage = () => {
       return
     }
     
+    // Check for duplicate code when creating new program
+    if (!editing) {
+      const isDuplicateCode = programs.some(p => p.code?.toLowerCase() === values.code?.toLowerCase())
+      if (isDuplicateCode) {
+        message.error(`Program code "${values.code}" already exists. Please use a unique code.`)
+        return
+      }
+    }
+    
     // Map frontend fields to backend requirements
     const payload = {
       departmentId: values.departmentId, // Required by backend - must be valid ID
-      code: values.code, // User must provide
+      code: values.code.trim(), // User must provide - must be unique
       slug: values.slug || values.name?.toLowerCase().replace(/\s+/g, '-'), // Generate slug from name if not provided
       title: values.title || values.name, // Backend expects 'title'
       level: values.level, // BSC/MSC/PHD
@@ -280,7 +305,15 @@ const AcademicPage = () => {
       // Refresh programs list
       dispatch(fetchPrograms())
     } catch (err: any) {
-      message.error(err?.message || "Failed to save program")
+      // Handle specific error messages
+      let errorMessage = err?.message || "Failed to save program"
+      
+      // Check for unique constraint violation
+      if (errorMessage.includes('Unique constraint') || errorMessage.includes('code')) {
+        errorMessage = `Program code "${values.code}" already exists. Please use a unique code.`
+      }
+      
+      message.error(errorMessage)
     }
   }
 
@@ -506,6 +539,7 @@ const AcademicPage = () => {
     dispatch(fetchPrograms())
     dispatch(fetchDepartments())
     dispatch(fetchCalendars())
+    dispatch(fetchEvents())
   }, [dispatch])
 
   // Update program name options when programs change
@@ -567,7 +601,7 @@ const AcademicPage = () => {
                     dataSource={calendarEvents}
                     rowKey="id"
                     pagination={false}
-                    loading={calendarState.loading}
+                    loading={eventsState.loading}
                     rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
                     onRow={(record) => ({ onClick: () => openViewCalendar(record) })}
                   />
@@ -634,7 +668,12 @@ const AcademicPage = () => {
             <Input placeholder="e.g., BSc in Computer Science" />
           </Form.Item>
           
-          <Form.Item name="code" label="Program Code" rules={[{ required: true, message: 'Enter program code' }]}>
+          <Form.Item 
+            name="code" 
+            label="Program Code" 
+            rules={[{ required: true, message: 'Enter program code' }]}
+            extra="Must be unique. Example: CS_BSC, SE_MSC, EP_PHD"
+          >
             <Input placeholder="e.g., CS_BSC" />
           </Form.Item>
           
@@ -737,11 +776,8 @@ const AcademicPage = () => {
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} placeholder="Event description (optional)" />
           </Form.Item>
-          <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Select start date' }]}>
-            <DatePicker style={{ width: '100%' }} showTime />
-          </Form.Item>
-          <Form.Item name="endDate" label="End Date" rules={[{ required: true, message: 'Select end date' }]}>
-            <DatePicker style={{ width: '100%' }} showTime />
+          <Form.Item name="date" label="Event Date" rules={[{ required: true, message: 'Select event date' }]}>
+            <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" />
           </Form.Item>
         </Form>
       </Modal>
@@ -756,8 +792,9 @@ const AcademicPage = () => {
         {calendarView && (
           <div>
             <h3 style={{ marginBottom: 8 }}>{calendarView.title}</h3>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Dates:</b> {calendarView.dateRange && calendarView.dateRange[0] ? `${calendarView.dateRange[0].format('MMM D')} - ${calendarView.dateRange[1] ? calendarView.dateRange[1].format('MMM D') : ''}` : ''}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Status:</b> {calendarView.status}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>Date:</b> {calendarView.date ? dayjs(calendarView.date).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>Description:</b> {calendarView.description || 'N/A'}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>Status:</b> {calendarView.state || 'DRAFT'}</div>
           </div>
         )}
       </Modal>

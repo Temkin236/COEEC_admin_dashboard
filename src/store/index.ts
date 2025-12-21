@@ -8,6 +8,7 @@ import contactReducer from "./slices/contactSlice"
 import contentReducer from "./slices/contentSlice"
 import departmentReducer from "./slices/departmentSlice"
 import downloadReducer from "./slices/downloadSlice"
+import eventsReducer from "./slices/eventsSlice"
 import programsReducer from "./slices/programsSlice"
 import researchReducer from "./slices/researchSlice"
 import staffReducer from "./slices/staffSlice"
@@ -28,6 +29,7 @@ export const store = configureStore({
     programs: programsReducer,
     departments: departmentReducer,
     calendar: calendarReducer,
+    events: eventsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
