@@ -30,7 +30,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-3 md:px-0">
       <Card className="w-full max-w-md shadow-2xl">
-        <Space direction="vertical" size="large" className="w-full">
+        <div className="space-y-6 w-full">
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <img src="/downloads/coeec-logo.png" alt="COEEC" className="h-12 w-12 rounded-full object-cover" />
@@ -78,7 +78,7 @@ const LoginPage = () => {
               Editor: editor / Editor@2025
             </Text>
           </div>
-        </Space>
+        </div>
       </Card>
     </div>
   )

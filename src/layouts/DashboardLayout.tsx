@@ -40,6 +40,8 @@ import DownloadsPage from "@/pages/downloads/DownloadsPage"
 import ContactPage from "@/pages/contact/ContactPage"
 import ApprovalPage from "@/pages/approval/ApprovalPage"
 import SettingsPage from "@/pages/settings/SettingsPage"
+import RolesPage from "@/pages/roles/RolesPage"
+import RoleFormPage from "@/pages/roles/RoleFormPage"
 
 const { Header, Sider, Content } = Layout
 
@@ -114,7 +116,17 @@ const DashboardLayout = () => {
       label: SIDEBAR_TEXT[currentLanguage].staff,
       children: [
         { key: "/staff", label: <Link to="/staff">{SIDEBAR_TEXT[currentLanguage].staffAll}</Link> },
-        { key: "/staff/new", label: <Link to="/staff/new">{SIDEBAR_TEXT[currentLanguage].staffAdd}</Link> },
+        { key: "/staff/new", label: <Link to="/staff/new">{SIDEBAR_TEXT[currentLanguage].staffAdd}</Link> }
+     
+      ],
+    },
+     {
+      key: "roles",
+      icon: <TeamOutlined />,
+      label: "Roles",
+      children: [
+        { key: "/roles", label: <Link to="/roles">View Roles</Link> },
+        { key: "/roles/create", label: <Link to="/roles/create">Create Role</Link> },
       ],
     },
     {
@@ -139,6 +151,7 @@ const DashboardLayout = () => {
     { key: "/downloads", icon: <DownloadOutlined />, label: <Link to="/downloads">{SIDEBAR_TEXT[currentLanguage].downloads}</Link> },
     { key: "/contact", icon: <MessageOutlined />, label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link> },
     { key: "/approval", icon: <FileTextOutlined />, label: <Link to="/approval">{SIDEBAR_TEXT[currentLanguage].approvals}</Link> },
+   
   ]
 
   const getSelectedKeys = () => {
@@ -296,6 +309,9 @@ const DashboardLayout = () => {
             <Route path="/downloads" element={<DownloadsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/approval" element={<ApprovalPage />} />
+            <Route path="/roles" element={<RolesPage />} />
+            <Route path="/roles/create" element={<RoleFormPage />} />
+            <Route path="/roles/:id/edit" element={<RoleFormPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
           </Routes>
         </Content>

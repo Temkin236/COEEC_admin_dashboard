@@ -9,6 +9,8 @@ import contactReducer from "./slices/contactSlice"
 import approvalReducer from "./slices/approvalSlice"
 import analyticsReducer from "./slices/analyticsSlice"
 import departmentReducer from "./slices/departmentSlice"
+import roleReducer from "./slices/roleSlice"
+import permissionReducer from "./slices/permissionSlice"
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +24,8 @@ export const store = configureStore({
     approval: approvalReducer,
     analytics: analyticsReducer,
     departments: departmentReducer,
+    role: roleReducer,
+    permission: permissionReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
