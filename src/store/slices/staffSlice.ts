@@ -3,91 +3,95 @@ import axiosInstance from "@/utils/axios"
 
 export interface StaffItem {
   id: string
-  firstName?: string
-  lastName?: string
-  name?: string
-  email?: string
-  title?: string
-  department?: string
+  userId?: string
+  displayName: string
+  title: string
+  departmentId?: string
+  photoId?: string | null
   researchAreas?: string[]
-  status?: string
+  biography?: any
+  email: string
+  phone?: string
+  officeLocation?: string
+  cvId?: string | null
+  createdAt?: string
+  updatedAt?: string
+  department?: {
+    id: string
+    name: string
+    slug: string
+    description: string
+    headId: string | null
+    pageId: string | null
+    createdAt: string
+    updatedAt: string
+    isDisabled: boolean
+  }
+  photo?: string | null
   cvUrl?: string
-  photo?: string
 }
-
-const DEMO_STAFF: StaffItem[] = [
-  { id: "1", firstName: "Abebe", lastName: "Kebede", name: "Abebe Kebede", email: "abebe@astu.edu.et", title: "Associate Professor", department: "CSE", researchAreas: ["AI", "ML"], status: "active", cvUrl: "#", photo: "" },
-  { id: "2", firstName: "Chaltu", lastName: "Gemechu", name: "Chaltu Gemechu", email: "chaltu@astu.edu.et", title: "Lecturer", department: "EE", researchAreas: ["Power Systems"], status: "active", cvUrl: "#", photo: "" },
-  { id: "3", firstName: "Dawit", lastName: "Tesfaye", name: "Dawit Tesfaye", email: "dawit@astu.edu.et", title: "Assistant Professor", department: "IT", researchAreas: ["Networks"], status: "on_leave", cvUrl: "#", photo: "" },
-]
 
 export const fetchStaff = createAsyncThunk<{ items: StaffItem[]; total: number; page: number; limit: number }, { page?: number; limit?: number; filters?: Record<string, any> }>(
   "staff/fetchStaff",
   async ({ page = 1, limit = 10, filters = {} }) => {
-    try {
-      const params = new URLSearchParams({ page: String(page), limit: String(limit), ...filters as any })
-      const response = await axiosInstance.get(`/staff?${params}`)
-      return response.data
-    } catch (e) {
-      const items = DEMO_STAFF.filter((s) => {
-        const byDept = !filters.department || s.department === filters.department
-        const q = String(filters.search || "").toLowerCase()
-        const bySearch = !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
-        return byDept && bySearch
-      })
-      return { items, total: items.length, page, limit }
-    }
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), ...filters as any })
+    const response = await axiosInstance.get(`/staff?${params}`)
+    return response.data
   },
 )
 
 export const fetchStaffById = createAsyncThunk<StaffItem | null, string>("staff/fetchStaffById", async (id) => {
-  try {
-    const response = await axiosInstance.get(`/staff/${id}`)
-    return response.data
-  } catch (e) {
-    return DEMO_STAFF.find((s) => String(s.id) === String(id)) || null
-  }
+  const response = await axiosInstance.get(`/staff/${id}`)
+  return response.data
 })
 
 export const createStaff = createAsyncThunk<StaffItem, any>("staff/createStaff", async (data) => {
-  try {
-    const response = await axiosInstance.post("/staff", data)
-    return response.data
-  } catch (e) {
-    const id = Date.now().toString()
-    const name = `${data.firstName || ""} ${data.lastName || ""}`.trim()
-    return { id, name, ...data }
+  // Prepare data according to API structure - userId will come from token
+  const payload = {
+    displayName: data.displayName,
+    title: data.title,
+    departmentId: data.departmentId,
+    email: data.email,
+    phone: data.phone,
+    officeLocation: data.officeLocation,
+    researchAreas: data.researchAreas || [],
+    biography: data.biography || {},
+    photoId: data.photoId,
+    cvId: data.cvId
   }
+  const response = await axiosInstance.post("/staff", payload)
+  return response.data
 })
 
 export const updateStaff = createAsyncThunk<StaffItem, { id: string; data: any }>("staff/updateStaff", async ({ id, data }) => {
-  try {
-    const response = await axiosInstance.put(`/staff/${id}`, data)
-    return response.data
-  } catch (e) {
-    const name = `${data.firstName || ""} ${data.lastName || ""}`.trim()
-    return { id, name, ...data }
+  // Prepare data for PUT request (excluding computed fields)
+  const payload = {
+    displayName: data.displayName,
+    title: data.title,
+    biography: data.biography || {},
+    researchAreas: data.researchAreas || [],
+    email: data.email,
+    phone: data.phone,
+    officeLocation: data.officeLocation
   }
+  const response = await axiosInstance.put(`/staff/${id}`, payload)
+  return response.data
 })
 
 export const deleteStaff = createAsyncThunk<string, string>("staff/deleteStaff", async (id) => {
-  try {
-    await axiosInstance.delete(`/staff/${id}`)
-  } catch (e) {}
+  await axiosInstance.delete(`/staff/${id}`)
   return id
 })
 
 export const uploadCV = createAsyncThunk<{ id: string; cvUrl: string }, { id: string; file: File }>(
   "staff/uploadCV",
   async ({ id, file }) => {
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-      const response = await axiosInstance.post(`/staff/${id}/cv`, formData, { headers: { "Content-Type": "multipart/form-data" } })
-      return response.data
-    } catch (e) {
-      return { id, cvUrl: URL.createObjectURL(file) }
-    }
+    const formData = new FormData()
+    formData.append("file", file)
+    const response = await axiosInstance.post(`/staff/${id}/cv`, formData, { 
+      headers: { "Content-Type": "multipart/form-data" } 
+    })
+    return response.data
   },
 )
 
