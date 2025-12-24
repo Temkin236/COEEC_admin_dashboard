@@ -49,6 +49,17 @@ export const validateToken = createAsyncThunk<AuthUser, void, { rejectValue: str
   },
 )
 
+export const activateAccount = createAsyncThunk<void, { token: string; password: string; confirmPassword: string }, { rejectValue: string }>(
+  "auth/activateAccount",
+  async ({ token, password, confirmPassword }, { rejectWithValue }) => {
+    try {
+      await axiosInstance.post("/auth/activate", { token, password, confirmPassword })
+    } catch (error: any) {
+      return rejectWithValue(error?.response?.data?.message || "Activation failed")
+    }
+  }
+)
+
 interface AuthState {
   user: AuthUser | null
   token: string | null

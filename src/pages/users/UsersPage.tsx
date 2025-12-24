@@ -114,8 +114,9 @@ const UsersPage = () => {
     if (lastInvite?.inviteUrl) {
       const token = lastInvite.inviteUrl.split("token=")[1]
       if (token) {
-        navigator.clipboard.writeText(token)
-        message.success("Token copied to clipboard!")
+        const fullUrl = `${window.location.origin}/login?token=${token}`
+        navigator.clipboard.writeText(fullUrl)
+        message.success("Activation link copied to clipboard!")
       } else {
         message.error("Could not extract token from URL")
       }
@@ -280,19 +281,18 @@ const UsersPage = () => {
           </div>
           
           <div>
-            <Text type="secondary" className="block mb-1">Activation Token</Text>
+            <Text type="secondary" className="block mb-1">Activation Link</Text>
             <div className="flex gap-2">
-              <Input.Password 
-                value={lastInvite?.inviteUrl?.split("token=")[1] || "No token found"} 
+              <Input 
+                value={lastInvite?.inviteUrl ? `${window.location.origin}/login?token=${lastInvite.inviteUrl.split("token=")[1]}` : "No token found"} 
                 readOnly 
-                visibilityToggle
               />
-              <Tooltip title="Copy Token">
+              <Tooltip title="Copy Link">
                 <Button icon={<CopyOutlined />} onClick={handleCopyToken} />
               </Tooltip>
             </div>
             <Text type="secondary" className="text-xs mt-1 block">
-              This token is required for the user to activate their account.
+              Share this link with the user to activate their account.
             </Text>
           </div>
         </div>
