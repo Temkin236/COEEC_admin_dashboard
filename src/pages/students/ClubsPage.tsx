@@ -19,51 +19,58 @@ const ClubsPage = () => {
 
   const columns = [
     {
-      title: "Name",
+      title: "Club Name",
       dataIndex: "name",
       key: "name",
+      width: 250,
       render: (name: string) => (
-        <span className="font-medium text-blue-600">{name}</span>
+        <div className="font-medium text-blue-600">{name}</div>
       ),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      ellipsis: {
+        showTitle: true,
+      },
       render: (description: string) => (
-        <span className="text-gray-600">{description?.substring(0, 100)}...</span>
+        <div className="max-w-xs text-gray-600">{description}</div>
       ),
     },
     {
       title: "Website",
       dataIndex: "websiteUrl",
       key: "websiteUrl",
+      width: 150,
       render: (url: string) => url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
           <LinkOutlined /> Visit
         </a>
       ) : (
-        <span className="text-gray-400">No website</span>
+        <span className="text-gray-400 text-xs">No website</span>
       ),
     },
     {
       title: "Order",
       dataIndex: "order",
       key: "order",
-      width: 80,
-      render: (order: number) => <Tag color="blue">{order}</Tag>,
+      width: 100,
+      render: (order: number) => <Tag color="blue" className="font-medium">{order}</Tag>,
     },
     {
       title: "Actions",
       key: "actions",
       width: 120,
+      fixed: 'right' as const,
       render: (_: any, record: Club) => (
-        <Space>
+        <Space size="small" className="flex-nowrap">
           <Button
             type="text"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
-            className="text-blue-600"
+            size="small"
+            title="Edit Club"
           />
           <Popconfirm
             title="Are you sure you want to delete this club?"
@@ -71,8 +78,10 @@ const ClubsPage = () => {
           >
             <Button
               type="text"
+              danger
               icon={<DeleteOutlined />}
-              className="text-red-600"
+              size="small"
+              title="Delete Club"
             />
           </Popconfirm>
         </Space>
@@ -133,37 +142,42 @@ const ClubsPage = () => {
   const clubsArray = clubs.data || []
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <TeamOutlined className="text-blue-600" />
-            Student Clubs Management
-          </h1>
-          <p className="text-gray-600 mt-1">Manage student clubs and organizations</p>
-        </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleAdd}
-          size="large"
-        >
-          Add Club
-        </Button>
-      </div>
-
-      <Card>
+    <div className="p-4 md:p-6 space-y-6">
+      <Card
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <TeamOutlined className="text-blue-600" />
+              <div>
+                <span className="text-lg font-semibold">Student Clubs Management</span>
+                <div className="text-sm text-gray-500">Manage student clubs and organizations</div>
+              </div>
+            </div>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={handleAdd}
+              className="min-w-fit"
+            >
+              <span className="hidden sm:inline">Add Club</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
+        }
+      >
         <Table
-          columns={columns}
+          columns={columns as any}
           dataSource={clubsArray}
           rowKey="id"
           loading={clubs.loading}
+          scroll={{ x: 800 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `Total ${total} clubs`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} clubs`,
           }}
+          className="border-0"
         />
       </Card>
 

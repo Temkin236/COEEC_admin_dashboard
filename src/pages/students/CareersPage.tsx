@@ -19,51 +19,58 @@ const CareersPage = () => {
 
   const columns = [
     {
-      title: "Title",
+      title: "Opportunity Title",
       dataIndex: "title",
       key: "title",
+      width: 250,
       render: (title: string) => (
-        <span className="font-medium text-green-600">{title}</span>
+        <div className="font-medium text-green-600">{title}</div>
       ),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
+      ellipsis: {
+        showTitle: true,
+      },
       render: (description: string) => (
-        <span className="text-gray-600">{description?.substring(0, 120)}...</span>
+        <div className="max-w-xs text-gray-600">{description}</div>
       ),
     },
     {
       title: "Link",
       dataIndex: "link",
       key: "link",
+      width: 150,
       render: (link: string) => link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500">
-          <LinkOutlined /> View Opportunity
+        <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+          <LinkOutlined /> View
         </a>
       ) : (
-        <span className="text-gray-400">No link</span>
+        <span className="text-gray-400 text-xs">No link</span>
       ),
     },
     {
       title: "Order",
       dataIndex: "order",
       key: "order",
-      width: 80,
-      render: (order: number) => <Tag color="green">{order}</Tag>,
+      width: 100,
+      render: (order: number) => <Tag color="green" className="font-medium">{order}</Tag>,
     },
     {
       title: "Actions",
       key: "actions",
       width: 120,
+      fixed: 'right' as const,
       render: (_: any, record: Career) => (
-        <Space>
+        <Space size="small" className="flex-nowrap">
           <Button
             type="text"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
-            className="text-blue-600"
+            size="small"
+            title="Edit Career"
           />
           <Popconfirm
             title="Are you sure you want to delete this career opportunity?"
@@ -71,8 +78,10 @@ const CareersPage = () => {
           >
             <Button
               type="text"
+              danger
               icon={<DeleteOutlined />}
-              className="text-red-600"
+              size="small"
+              title="Delete Career"
             />
           </Popconfirm>
         </Space>
@@ -132,37 +141,42 @@ const CareersPage = () => {
   const careersArray = careers.data || []
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <BankOutlined className="text-green-600" />
-            Career Opportunities Management
-          </h1>
-          <p className="text-gray-600 mt-1">Manage career opportunities and job postings for students</p>
-        </div>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          onClick={handleAdd}
-          size="large"
-        >
-          Add Career Opportunity
-        </Button>
-      </div>
-
-      <Card>
+    <div className="p-4 md:p-6 space-y-6">
+      <Card
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <BankOutlined className="text-green-600" />
+              <div>
+                <span className="text-lg font-semibold">Career Opportunities Management</span>
+                <div className="text-sm text-gray-500">Manage career opportunities and job postings for students</div>
+              </div>
+            </div>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={handleAdd}
+              className="min-w-fit"
+            >
+              <span className="hidden sm:inline">Add Career Opportunity</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
+        }
+      >
         <Table
-          columns={columns}
+          columns={columns as any}
           dataSource={careersArray}
           rowKey="id"
           loading={careers.loading}
+          scroll={{ x: 800 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `Total ${total} opportunities`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} opportunities`,
           }}
+          className="border-0"
         />
       </Card>
 
