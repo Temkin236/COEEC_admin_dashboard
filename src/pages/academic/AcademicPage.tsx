@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import type { AppDispatch, RootState } from "../../store"
 import { createCourse, deleteCourse, fetchCoursesByProgram, publishCourse, updateCourse } from "../../store/slices/academicSlice"
-import { fetchCalendars, publishCalendar } from "../../store/slices/calendarSlice"
+import { createCalendar, deleteCalendar, fetchCalendars, publishCalendar, updateCalendar } from "../../store/slices/calendarSlice"
 import { fetchDepartments } from "../../store/slices/departmentSlice"
 import { createEvent, deleteEvent, fetchEvents, publishEvent, updateEvent } from "../../store/slices/eventsSlice"
 import { createProgram, deleteProgram, fetchPrograms, publishProgram, updateProgram } from "../../store/slices/programsSlice"
@@ -44,17 +44,81 @@ const AcademicPage = () => {
   const [calendarForm] = Form.useForm()
   const [calendarView, setCalendarView] = useState<any | null>(null)
   const [calendarViewModalOpen, setCalendarViewModalOpen] = useState(false)
+  
+  // Academic Calendar creation modal (name + year)
+  const [academicCalendarModalOpen, setAcademicCalendarModalOpen] = useState(false)
+  const [academicCalendarForm] = Form.useForm()
+  const [editingAcademicCalendar, setEditingAcademicCalendar] = useState<any | null>(null)
+  
+  // Active calendar selection
+  const [activeCalendar, setActiveCalendar] = useState<any | null>(null)
 
-  // Use first calendar as active, or show all events from all calendars
-  const activeCalendar = calendars.length > 0 ? calendars[0] : null
   const calendarEvents = Array.isArray(events) ? events : []  // Ensure it's always an array
+
+  // Columns for academic calendars list
+  const academicCalendarColumns = [
+    { title: 'Title', dataIndex: 'title', key: 'title' },
+    { title: 'Academic Year', dataIndex: 'academicYear', key: 'academicYear' },
+    { title: 'Semester', dataIndex: 'semester', key: 'semester' },
+    { 
+      title: 'Status', 
+      dataIndex: 'state', 
+      key: 'state', 
+      render: (state: string) => (
+        <Tag color={state === 'PUBLISHED' ? 'green' : 'orange'}>{state || 'DRAFT'}</Tag>
+      )
+    },
+    { 
+      title: 'Actions', 
+      key: 'actions', 
+      render: (_: any, record: any) => {
+        const currentState = record.state || 'DRAFT'
+        return (
+          <Space>
+            <Button 
+              type="text" 
+              icon={<EditOutlined />} 
+              onClick={() => openEditAcademicCalendar(record)}
+            />
+            <Button 
+              type="text" 
+              danger 
+              icon={<DeleteOutlined />} 
+              onClick={() => handleDeleteAcademicCalendar(record.id)}
+            />
+            {currentState !== 'PUBLISHED' && (
+              <Button 
+                type="primary" 
+                size="small"
+                onClick={() => handlePublishCalendar()}
+              >
+                Publish
+              </Button>
+            )}
+          </Space>
+        )
+      }
+    }
+  ]
 
   const calendarColumns = [
     { 
-      title: 'Date', 
-      dataIndex: 'date', 
-      key: 'date', 
-      render: (date: string) => date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'N/A' 
+      title: 'Start Date', 
+      dataIndex: 'startAt', 
+      key: 'startAt', 
+      render: (date: string, record: any) => {
+        const dateValue = date || record.startDate
+        return dateValue ? dayjs(dateValue).format('MMM D, YYYY HH:mm') : 'N/A'
+      }
+    },
+    { 
+      title: 'End Date', 
+      dataIndex: 'endAt', 
+      key: 'endAt', 
+      render: (date: string, record: any) => {
+        const dateValue = date || record.endDate
+        return dateValue ? dayjs(dateValue).format('MMM D, YYYY HH:mm') : 'N/A'
+      }
     },
     { title: 'Event', dataIndex: 'title', key: 'title' },
     { 
@@ -113,8 +177,10 @@ const AcademicPage = () => {
     setCalendarEditing(record); 
     calendarForm.setFieldsValue({
       title: record.title,
+      slug: record.slug,
       description: record.description,
-      date: record.date ? dayjs(record.date) : (record.startDate ? dayjs(record.startDate) : null),
+      startDate: record.startAt ? dayjs(record.startAt) : (record.startDate ? dayjs(record.startDate) : null),
+      endDate: record.endAt ? dayjs(record.endAt) : (record.endDate ? dayjs(record.endDate) : null),
     }); 
     setCalendarModalOpen(true) 
   }
@@ -137,10 +203,12 @@ const AcademicPage = () => {
   }
 
   const handleCalendarSubmit = async (values: any) => {
-    // Backend expects: { "title": "string", "date": "2025-12-21T17:57:59.88.877Z", "description": "string" }
+    // Backend expects: { title, slug, startAt (Date), endAt (Date), description }
     const eventPayload = {
       title: values.title,
-      date: values.date ? values.date.toISOString() : new Date().toISOString(),
+      slug: values.slug,
+      startAt: values.startDate ? values.startDate.toDate() : new Date(),
+      endAt: values.endDate ? values.endDate.toDate() : new Date(),
       description: values.description || '',
     }
 
@@ -183,6 +251,69 @@ const AcademicPage = () => {
   const openViewCalendar = (record: any) => {
     setCalendarView(record)
     setCalendarViewModalOpen(true)
+  }
+
+  // Handler for academic calendar creation (name + year)
+  const openAddAcademicCalendar = () => {
+    setEditingAcademicCalendar(null)
+    academicCalendarForm.resetFields()
+    setAcademicCalendarModalOpen(true)
+  }
+
+  const openEditAcademicCalendar = (record: any) => {
+    setEditingAcademicCalendar(record)
+    academicCalendarForm.setFieldsValue({
+      title: record.title,
+      academicYear: record.academicYear,
+      semester: record.semester,
+    })
+    setAcademicCalendarModalOpen(true)
+  }
+
+  const handleAcademicCalendarSubmit = async (values: any) => {
+    // Backend expects: { title, academicYear, semester }
+    const payload = {
+      title: values.title,
+      academicYear: values.academicYear,
+      semester: values.semester,
+    }
+
+    try {
+      if (editingAcademicCalendar) {
+        await dispatch(updateCalendar({ id: editingAcademicCalendar.id, data: payload })).unwrap()
+        message.success('Academic calendar updated successfully!')
+      } else {
+        await dispatch(createCalendar(payload)).unwrap()
+        message.success('Academic calendar created successfully!')
+      }
+      setAcademicCalendarModalOpen(false)
+      academicCalendarForm.resetFields()
+      setEditingAcademicCalendar(null)
+      dispatch(fetchCalendars())
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to save academic calendar')
+    }
+  }
+
+  const handleDeleteAcademicCalendar = async (id: string | number) => {
+    Modal.confirm({
+      title: 'Delete Academic Calendar',
+      content: 'Are you sure you want to delete this academic calendar? This action cannot be undone.',
+      okText: 'Delete',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await dispatch(deleteCalendar(id)).unwrap()
+          message.success('Academic calendar deleted successfully!')
+          dispatch(fetchCalendars())
+          if (activeCalendar?.id === id) {
+            setActiveCalendar(null)
+          }
+        } catch (err: any) {
+          message.error(err?.message || 'Failed to delete academic calendar')
+        }
+      }
+    })
   }
 
   // Announcements state
@@ -547,6 +678,13 @@ const AcademicPage = () => {
     setProgramNameOptions(programs.map(p => p.name || p.title || ''))
   }, [programs])
 
+  // Set active calendar when calendars are loaded
+  useEffect(() => {
+    if (calendars.length > 0 && !activeCalendar) {
+      setActiveCalendar(calendars[0])
+    }
+  }, [calendars, activeCalendar])
+
   return (
     <div className="space-y-4">
       <Card title="Academic Information">
@@ -583,19 +721,52 @@ const AcademicPage = () => {
 
           <TabPane tab="Academic Calendar" key="3">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-2xl font-bold text-blue-900">Academic Calendar</div>
-                <div className="text-sm text-gray-500">Semester I, 2025/2026 Academic Year</div>
+              <div className="flex-1">
+                <div className="text-2xl font-bold text-blue-900 mb-2">Academic Calendar</div>
+                {calendars.length > 0 ? (
+                  <Select
+                    style={{ width: 300 }}
+                    placeholder="Select academic calendar"
+                    value={activeCalendar?.id}
+                    onChange={(id) => {
+                      const selected = calendars.find(c => c.id === id)
+                      setActiveCalendar(selected || null)
+                    }}
+                  >
+                    {calendars.map(cal => (
+                      <Select.Option key={cal.id} value={cal.id}>
+                        {cal.title} - {cal.academicYear} ({cal.semester})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <div className="text-sm text-gray-500">No academic calendars available. Create one to get started.</div>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <a className="text-blue-700 mr-4 cursor-pointer" onClick={() => handleDownloadPdf()}>Download PDF</a>
+                <Button type="primary" onClick={() => openAddAcademicCalendar()}>New Academic Calendar</Button>
+                <Button type="primary" onClick={() => openAddCalendar()}>Add Event</Button>
                 <Button type="primary" onClick={() => openAddAnnouncement()}>Add Announcement</Button>
-                <Button type="primary" onClick={() => openAddCalendar()}>Add Calendar</Button>
               </div>
             </div>
             <Row gutter={24}>
+              <Col xs={24}>
+                <Card title="Academic Calendars" className="mb-4">
+                  <Table
+                    columns={academicCalendarColumns as any}
+                    dataSource={calendars}
+                    rowKey="id"
+                    pagination={false}
+                    loading={calendarState.loading}
+                    size="small"
+                  />
+                </Card>
+              </Col>
+            </Row>
+            <Row gutter={24}>
               <Col xs={24} md={16}>
-                <Card>
+                <Card title="Events">
                   <Table
                     columns={calendarColumns as any}
                     dataSource={calendarEvents}
@@ -773,10 +944,20 @@ const AcademicPage = () => {
           <Form.Item name="title" label="Event Title" rules={[{ required: true, message: 'Enter event title' }]}>
             <Input placeholder="e.g., Mid-Semester Examinations" />
           </Form.Item>
+          <Form.Item 
+            name="slug" 
+            label="Event Slug" 
+            rules={[{ required: true, message: 'Enter event slug (URL-friendly identifier)' }]}
+          >
+            <Input placeholder="e.g., mid-semester-exam-2025" />
+          </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} placeholder="Event description (optional)" />
           </Form.Item>
-          <Form.Item name="date" label="Event Date" rules={[{ required: true, message: 'Select event date' }]}>
+          <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Select start date' }]}>
+            <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" />
+          </Form.Item>
+          <Form.Item name="endDate" label="End Date" rules={[{ required: true, message: 'Select end date' }]}>
             <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" />
           </Form.Item>
         </Form>
@@ -792,7 +973,9 @@ const AcademicPage = () => {
         {calendarView && (
           <div>
             <h3 style={{ marginBottom: 8 }}>{calendarView.title}</h3>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Date:</b> {calendarView.date ? dayjs(calendarView.date).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>Slug:</b> {calendarView.slug || 'N/A'}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>Start Date:</b> {(calendarView.startAt || calendarView.startDate) ? dayjs(calendarView.startAt || calendarView.startDate).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
+            <div style={{ color: '#555', marginBottom: 6 }}><b>End Date:</b> {(calendarView.endAt || calendarView.endDate) ? dayjs(calendarView.endAt || calendarView.endDate).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
             <div style={{ color: '#555', marginBottom: 6 }}><b>Description:</b> {calendarView.description || 'N/A'}</div>
             <div style={{ color: '#555', marginBottom: 6 }}><b>Status:</b> {calendarView.state || 'DRAFT'}</div>
           </div>
@@ -813,6 +996,43 @@ const AcademicPage = () => {
           </Form.Item>
           <Form.Item name="body" label="Message" rules={[{ required: true, message: 'Enter message' }]}>
             <Input.TextArea rows={4} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Academic Calendar Creation Modal */}
+      <Modal
+        title={editingAcademicCalendar ? 'Edit Academic Calendar' : 'Create Academic Calendar'}
+        open={academicCalendarModalOpen}
+        onCancel={() => {
+          setAcademicCalendarModalOpen(false)
+          setEditingAcademicCalendar(null)
+        }}
+        onOk={() => academicCalendarForm.submit()}
+        okButtonProps={{ type: 'primary' }}
+        width={500}
+      >
+        <Form form={academicCalendarForm} layout="vertical" onFinish={handleAcademicCalendarSubmit}>
+          <Form.Item 
+            name="title" 
+            label="Calendar Title" 
+            rules={[{ required: true, message: 'Enter calendar title' }]}
+          >
+            <Input placeholder="e.g., Semester I Calendar" />
+          </Form.Item>
+          <Form.Item 
+            name="academicYear" 
+            label="Academic Year" 
+            rules={[{ required: true, message: 'Enter academic year' }]}
+          >
+            <Input placeholder="e.g., 2025/2026" />
+          </Form.Item>
+          <Form.Item 
+            name="semester" 
+            label="Semester" 
+            rules={[{ required: true, message: 'Enter semester' }]}
+          >
+            <Input placeholder="e.g., Semester I or Semester II" />
           </Form.Item>
         </Form>
       </Modal>
