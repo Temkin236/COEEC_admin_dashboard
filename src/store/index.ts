@@ -2,7 +2,6 @@ import { configureStore } from "@reduxjs/toolkit"
 import authReducer from "./slices/authSlice"
 import contentReducer from "./slices/contentSlice"
 import staffReducer from "./slices/staffSlice"
-import researchReducer from "./slices/researchSlice"
 import studentReducer from "./slices/studentSlice"
 import downloadReducer from "./slices/downloadSlice"
 import contactReducer from "./slices/contactSlice"
@@ -11,13 +10,14 @@ import analyticsReducer from "./slices/analyticsSlice"
 import departmentReducer from "./slices/departmentSlice"
 import roleReducer from "./slices/roleSlice"
 import permissionReducer from "./slices/permissionSlice"
+import researchProjectsReducer from "./slices/researchProjectsSlice"
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     content: contentReducer,
     staff: staffReducer,
-    research: researchReducer,
+    researchProjects: researchProjectsReducer,
     students: studentReducer,
     downloads: downloadReducer,
     contact: contactReducer,
