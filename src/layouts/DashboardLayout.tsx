@@ -35,6 +35,9 @@ import ResearchPage from "@/pages/research/ResearchPage"
 import PublicationsPage from "@/pages/research/PublicationsPage"
 import StudentsPage from "@/pages/students/StudentsPage"
 import AlumniPage from "@/pages/students/AlumniPage"
+import StudentLifePage from "@/pages/students/StudentLifePage"
+import ClubsPage from "@/pages/students/ClubsPage"
+import CareersPage from "@/pages/students/CareersPage"
 import AcademicPage from "@/pages/academic/AcademicPage"
 import DownloadsPage from "@/pages/downloads/DownloadsPage"
 import ContactPage from "@/pages/contact/ContactPage"
@@ -145,6 +148,9 @@ const DashboardLayout = () => {
       children: [
         { key: "/students", label: <Link to="/students">{SIDEBAR_TEXT[currentLanguage].studentsAll}</Link> },
         { key: "/students/alumni", label: <Link to="/students/alumni">{SIDEBAR_TEXT[currentLanguage].studentsAlumni}</Link> },
+        { key: "/students/life", label: <Link to="/students/life">{SIDEBAR_TEXT[currentLanguage].studentsLife}</Link> },
+        { key: "/students/clubs", label: <Link to="/students/clubs">{SIDEBAR_TEXT[currentLanguage].studentsClubs}</Link> },
+        { key: "/students/careers", label: <Link to="/students/careers">{SIDEBAR_TEXT[currentLanguage].studentsCareers}</Link> },
       ],
     },
     { key: "/academic", icon: <BookOutlined />, label: <Link to="/academic">{SIDEBAR_TEXT[currentLanguage].academic}</Link> },
@@ -305,6 +311,9 @@ const DashboardLayout = () => {
             <Route path="/research/publications" element={<PublicationsPage />} />
             <Route path="/students" element={<StudentsPage />} />
             <Route path="/students/alumni" element={<AlumniPage />} />
+            <Route path="/students/life" element={<StudentLifePage />} />
+            <Route path="/students/clubs" element={<ClubsPage />} />
+            <Route path="/students/careers" element={<CareersPage />} />
             <Route path="/academic" element={<AcademicPage />} />
             <Route path="/downloads" element={<DownloadsPage />} />
             <Route path="/contact" element={<ContactPage />} />

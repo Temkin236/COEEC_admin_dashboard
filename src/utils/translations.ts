@@ -17,6 +17,9 @@ export const SIDEBAR_TEXT: Record<
     students: string
     studentsAll: string
     studentsAlumni: string
+    studentsLife: string
+    studentsClubs: string
+    studentsCareers: string
     academic: string
     downloads: string
     contact: string
@@ -38,6 +41,9 @@ export const SIDEBAR_TEXT: Record<
     students: "Students",
     studentsAll: "Students",
     studentsAlumni: "Alumni",
+    studentsLife: "Student Life",
+    studentsClubs: "Clubs",
+    studentsCareers: "Career Opportunities",
     academic: "Academic Info",
     downloads: "Downloads",
     contact: "Contact & Feedback",
@@ -58,6 +64,9 @@ export const SIDEBAR_TEXT: Record<
     students: "ተማሪዎች",
     studentsAll: "ተማሪዎች",
     studentsAlumni: "አለማማች",
+    studentsLife: "የተማሪዎች ኑሮ",
+    studentsClubs: "ክበቦች",
+    studentsCareers: "የስራ እድሎች",
     academic: "የትምህርት መረጃ",
     downloads: "ዳውንሎድ",
     contact: "እውቂያ & አስተያየት",
@@ -78,6 +87,9 @@ export const SIDEBAR_TEXT: Record<
     students: "Barattoota",
     studentsAll: "Barattoota",
     studentsAlumni: "Alamni",
+    studentsLife: "Jireenya Barattoota",
+    studentsClubs: "Garee",
+    studentsCareers: "Carraa Hojii",
     academic: "Odeeffannoo Barnootaa",
     downloads: "Buufannoowwan",
     contact: "Quunnamtii & Yaada",
