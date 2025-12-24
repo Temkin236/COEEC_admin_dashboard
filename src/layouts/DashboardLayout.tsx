@@ -46,6 +46,11 @@ import SettingsPage from "@/pages/settings/SettingsPage"
 import RolesPage from "@/pages/roles/RolesPage"
 import RoleFormPage from "@/pages/roles/RoleFormPage"
 import UsersPage from "@/pages/users/UsersPage"
+// Profile pages
+import EditProfile from "@/pages/profile/EditProfile"
+import ExpertisePage from "@/pages/profile/ExpertisePage"
+import ExperienceEducation from "@/pages/profile/Experiance_Education"
+import ConnectPage from "@/pages/profile/Connect"
 
 const { Header, Sider, Content } = Layout
 
@@ -139,6 +144,17 @@ const DashboardLayout = () => {
       label: "Users",
       children: [
         { key: "/users", label: <Link to="/users">All Users</Link> },
+      ],
+    },
+    {
+      key: "profile",
+      icon: <UserOutlined />,
+      label: "Profile",
+        children: [
+        { key: "/profile/edit", label: <Link to="/profile/edit">Edit Profile</Link> },
+        { key: "/profile/experience", label: <Link to="/profile/experience">Experience & Education</Link> },
+        { key: "/profile/expertise", label: <Link to="/profile/expertise">Expertise</Link> },
+        { key: "/profile/connect", label: <Link to="/profile/connect">Connect</Link> },
       ],
     },
     {
@@ -332,6 +348,11 @@ const DashboardLayout = () => {
             <Route path="/roles/:id/edit" element={<RoleFormPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
+            {/* Profile pages */}
+            <Route path="/profile/edit" element={<EditProfile />} />
+            <Route path="/profile/experience" element={<ExperienceEducation />} />
+            <Route path="/profile/expertise" element={<ExpertisePage />} />
+            <Route path="/profile/connect" element={<ConnectPage />} />
           </Routes>
         </Content>
       </Layout>
