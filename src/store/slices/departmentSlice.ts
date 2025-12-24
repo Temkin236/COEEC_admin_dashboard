@@ -1,5 +1,5 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
 import axiosInstance from "@/utils/axios"
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
 
 export interface Department {
   id: string

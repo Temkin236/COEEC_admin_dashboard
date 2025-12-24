@@ -47,7 +47,7 @@ export const fetchCalendars = createAsyncThunk<AcademicCalendar[], void, { rejec
   async (_, { rejectWithValue }) => {
     try {
       console.log('Fetching academic calendars...')
-      const res = await axiosInstance.get("/academic-calendar")
+      const res = await axiosInstance.get("/academic-calendar?all=true")
       console.log('Calendars fetched:', res.data)
       return res.data
     } catch (err: any) {

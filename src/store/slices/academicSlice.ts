@@ -26,7 +26,7 @@ export const fetchCoursesByProgram = createAsyncThunk(
   async (programId: string | number, { rejectWithValue }) => {
     try {
       // Add state parameter to get all courses (DRAFT and PUBLISHED)
-      const res = await axiosInstance.get(`/courses/programs/${programId}/courses?state=all`)
+      const res = await axiosInstance.get(`/courses/programs/${programId}/courses?all=true`)
       return { programId: String(programId), courses: res.data }
     } catch (err: any) {
       return rejectWithValue(err?.response?.data || err.message)

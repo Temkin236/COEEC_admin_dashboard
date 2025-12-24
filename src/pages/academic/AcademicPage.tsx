@@ -220,7 +220,9 @@ const AcademicPage = () => {
         await dispatch(createEvent(eventPayload)).unwrap()
         message.success('Event added')
       }
+      // Close modal and reset form
       setCalendarModalOpen(false)
+      setCalendarEditing(null)
       calendarForm.resetFields()
       // Refresh events list
       dispatch(fetchEvents())
@@ -889,7 +891,7 @@ const AcademicPage = () => {
         onCancel={() => setCourseModalOpen(false)}
         onOk={() => courseForm.submit()}
       >
-        <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, department: departments[0] }}>
+        <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, department: departments.length > 0 ? departments[0].id : undefined }}>
             <Form.Item name="programId" label="Program" rules={[{ required: true, message: 'Select program' }]}> 
               <Select
                 options={programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))}
@@ -904,7 +906,8 @@ const AcademicPage = () => {
           </Form.Item>
           <Form.Item name="department" label="Department" rules={[{ required: true, message: 'Select department' }]}> 
             <Select
-              options={departments.map(d => ({ value: d, label: d }))}
+              options={departments.map(d => ({ value: d.id, label: d.name }))}
+              placeholder="Select department"
             />
           </Form.Item>
           <Form.Item name="credits" label="Credits" rules={[{ required: true, message: 'Enter credits' }]}>
@@ -936,7 +939,11 @@ const AcademicPage = () => {
       <Modal
         title={calendarEditing ? 'Edit Event' : 'Add Event'}
         open={calendarModalOpen}
-        onCancel={() => setCalendarModalOpen(false)}
+        onCancel={() => {
+          setCalendarModalOpen(false)
+          setCalendarEditing(null)
+          calendarForm.resetFields()
+        }}
         onOk={() => calendarForm.submit()}
         width={600}
       >

@@ -40,7 +40,7 @@ export const fetchPrograms = createAsyncThunk<Program[], void, { rejectValue: st
     try {
       console.log('Fetching programs from /programs endpoint...')
       // Add state parameter to get all programs (DRAFT and PUBLISHED)
-      const res = await axiosInstance.get("/programs?state=all")
+      const res = await axiosInstance.get("/programs?all=true")
       console.log('Programs fetched successfully:', res.data)
       return res.data
     } catch (err: any) {
