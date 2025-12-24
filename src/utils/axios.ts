@@ -51,13 +51,15 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config || ({} as any)
 
-    // Log the error for debugging
-    console.error('Axios error:', {
-      status: error.response?.status,
-      message: error.response?.data?.message || error.message,
-      url: originalRequest.url,
-      data: error.response?.data
-    })
+    if (error.response?.status === 403) {
+      // Forbidden - User is authenticated but doesn't have permission
+      // or session is invalid in a way that requires re-login
+      localStorage.removeItem("token")
+      localStorage.removeItem("refreshToken")
+      localStorage.removeItem("auth_user")
+      window.location.href = "/login"
+      return Promise.reject(error)
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true

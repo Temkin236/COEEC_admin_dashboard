@@ -9,17 +9,20 @@ import contentReducer from "./slices/contentSlice"
 import departmentReducer from "./slices/departmentSlice"
 import downloadReducer from "./slices/downloadSlice"
 import eventsReducer from "./slices/eventsSlice"
+import permissionReducer from "./slices/permissionSlice"
 import programsReducer from "./slices/programsSlice"
-import researchReducer from "./slices/researchSlice"
+import researchProjectsReducer from "./slices/researchProjectsSlice"
+import roleReducer from "./slices/roleSlice"
 import staffReducer from "./slices/staffSlice"
 import studentReducer from "./slices/studentSlice"
+import usersReducer from "./slices/usersSlice"
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     content: contentReducer,
     staff: staffReducer,
-    research: researchReducer,
+    researchProjects: researchProjectsReducer,
     students: studentReducer,
     downloads: downloadReducer,
     contact: contactReducer,
@@ -30,6 +33,9 @@ export const store = configureStore({
     departments: departmentReducer,
     calendar: calendarReducer,
     events: eventsReducer,
+    role: roleReducer,
+    permission: permissionReducer,
+    users: usersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
