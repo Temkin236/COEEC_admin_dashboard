@@ -5,6 +5,7 @@ export interface Role {
   id: string
   name: string
   description?: string
+  system?: boolean
   permissionIds?: string[]
   permissions?: any[]
   createdAt?: string

@@ -45,6 +45,7 @@ import ApprovalPage from "@/pages/approval/ApprovalPage"
 import SettingsPage from "@/pages/settings/SettingsPage"
 import RolesPage from "@/pages/roles/RolesPage"
 import RoleFormPage from "@/pages/roles/RoleFormPage"
+import UsersPage from "@/pages/users/UsersPage"
 
 const { Header, Sider, Content } = Layout
 
@@ -130,6 +131,14 @@ const DashboardLayout = () => {
       children: [
         { key: "/roles", label: <Link to="/roles">View Roles</Link> },
         { key: "/roles/create", label: <Link to="/roles/create">Create Role</Link> },
+      ],
+    },
+    {
+      key: "users",
+      icon: <UserOutlined />,
+      label: "Users",
+      children: [
+        { key: "/users", label: <Link to="/users">All Users</Link> },
       ],
     },
     {
@@ -321,6 +330,7 @@ const DashboardLayout = () => {
             <Route path="/roles" element={<RolesPage />} />
             <Route path="/roles/create" element={<RoleFormPage />} />
             <Route path="/roles/:id/edit" element={<RoleFormPage />} />
+            <Route path="/users" element={<UsersPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
           </Routes>
         </Content>

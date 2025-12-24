@@ -61,7 +61,12 @@ const RolesPage = () => {
       title: "Role Name",
       dataIndex: "name",
       key: "name",
-      render: (text: string) => <span className="font-medium">{text}</span>,
+      render: (text: string, record: Role) => (
+        <Space>
+          <span className="font-medium">{text}</span>
+          {record.system && <Tag color="gold">System</Tag>}
+        </Space>
+      ),
       width: 150,
     },
     {
@@ -112,14 +117,16 @@ const RolesPage = () => {
             type="text"
             icon={<EditOutlined />}
             onClick={() => navigate(`/roles/${record.id}/edit`)}
-            title="Edit role"
+            title={record.system ? "System roles cannot be edited" : "Edit role"}
+            disabled={record.system}
           />
           <Button
             type="text"
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
-            title="Delete role"
+            title={record.system ? "System roles cannot be deleted" : "Delete role"}
+            disabled={record.system}
           />
         </Space>
       ),

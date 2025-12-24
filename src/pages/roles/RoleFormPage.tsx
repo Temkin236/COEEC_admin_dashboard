@@ -57,6 +57,12 @@ const RoleFormPage = () => {
   // Populate form when role data is loaded
   useEffect(() => {
     if (currentRole) {
+      if (currentRole.system) {
+        message.error("System roles cannot be edited")
+        navigate("/roles")
+        return
+      }
+
       form.setFieldsValue({
         name: currentRole.name,
         description: currentRole.description || "",

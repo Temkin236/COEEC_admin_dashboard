@@ -11,6 +11,7 @@ import departmentReducer from "./slices/departmentSlice"
 import roleReducer from "./slices/roleSlice"
 import permissionReducer from "./slices/permissionSlice"
 import researchProjectsReducer from "./slices/researchProjectsSlice"
+import usersReducer from "./slices/usersSlice"
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     departments: departmentReducer,
     role: roleReducer,
     permission: permissionReducer,
+    users: usersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
