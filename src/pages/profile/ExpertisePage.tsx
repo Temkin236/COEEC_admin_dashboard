@@ -34,9 +34,11 @@ export default function AreasOfExpertise() {
   const [filteredOptions, setFilteredOptions] = useState<string[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
 
+  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+
   useEffect(() => {
-    dispatch(fetchProfile("https://coeec.onrender.com/api/staff/mjha85820014hq1q386by383"))
-  }, [dispatch])
+    if (profileId) dispatch(fetchProfile(profileId))
+  }, [dispatch, profileId])
 
   useEffect(() => {
     if (storedProfile) {

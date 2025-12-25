@@ -64,6 +64,11 @@ export default function Connect() {
   const [newPlatform, setNewPlatform] = useState<PlatformKey>("instagram")
   const [newUrl, setNewUrl] = useState("")
 
+  const handleSave = () => {
+    // TODO: wire to backend save action
+    console.log('Save links', links)
+  }
+
   const addLink = () => {
     if (!newUrl) return
     setLinks((prev) => [...prev, { platform: newPlatform, url: newUrl }])
@@ -71,9 +76,11 @@ export default function Connect() {
   }
   const deleteLink = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx))
 
+  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+
   useEffect(() => {
-    dispatch(fetchProfile("https://coeec.onrender.com/api/staff/mjha85820014hq1q386by383"))
-  }, [dispatch])
+    if (profileId) dispatch(fetchProfile(profileId))
+  }, [dispatch, profileId])
 
   useEffect(() => {
     if (storedProfile) {
@@ -89,32 +96,33 @@ export default function Connect() {
       {/* Two-column side-by-side layout on small screens and up */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
         {/* Left Side - Form */}
-        <Card title="Edit Links" extra={<Button type="primary" onClick={() => console.log('Save')}>Save</Button>} bordered className="shadow-sm">
+        <Card title="Edit Links" extra={<Button size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={handleSave}>Save</Button>} bordered className="shadow-sm">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <select className="form-input" value={newPlatform} onChange={(e) => setNewPlatform(e.target.value as PlatformKey)}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <select className="form-input " value={newPlatform} onChange={(e) => setNewPlatform(e.target.value as PlatformKey)}>
                 {PLATFORM_OPTIONS.map((opt) => (
                   <option key={opt.key} value={opt.key}>{opt.label}</option>
                 ))}
               </select>
               <input type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} className="form-input md:col-span-2" placeholder="https://..." />
-              <button className="btn-primary w-full md:w-auto" onClick={addLink}>Add</button>
+              <Button style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} className="w-full md:w-auto" onClick={addLink}>Add</Button>
             </div>
 
             <div className="space-y-3">
               {links.map((l, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: 'var(--border-gray)' }}>
+                <div key={idx} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: '#eef6f7' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center" style={{ color: 'var(--primary)' }}>
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm" style={{ color: '#17A2B8' }}>
                       {PLATFORM_ICON[l.platform]({ size: 18 })}
                     </div>
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline" style={{ color: 'var(--primary-dark)' }}>
+                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline" style={{ color: '#18485e' }}>
                       {l.url}
                     </a>
                   </div>
-                  <button onClick={() => deleteLink(idx)} className="btn-secondary">Remove</button>
+                  <a onClick={() => deleteLink(idx)} style={{ color: '#17A2B8', cursor: 'pointer' }}>Remove</a>
                 </div>
               ))}
+
             </div>
 
             {/* Save moved to Card header */}
@@ -124,7 +132,7 @@ export default function Connect() {
         {/* Right Side - Preview */}
         <div className="bg-white p-4 lg:p-8 rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
           <h2 className="text-xl font-bold mb-6" style={{ color: 'var(--primary-dark)' }}>{"Connect With Me"}</h2>
-          <div className="rounded-lg p-8" style={{ background: '#ECF6F8' }}>
+          <div className="rounded-lg p-8" style={{ background: '#eaf4f7' }}>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
               {links.map((l, idx) => (
                 <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-12 h-12 rounded-full bg-white transition-colors shadow-lg" style={{ color: 'var(--primary)' }}>
@@ -133,7 +141,7 @@ export default function Connect() {
               ))}
             </div>
 
-            <div className="mt-8 pt-8 space-y-2" style={{ borderTop: '1px solid color-mix(in oklab, var(--primary) 35%, white)' }}>
+            <div className="mt-8 pt-8 space-y-2" style={{ borderTop: '1px solid #dbeff1' }}>
               {links.map((l, idx) => (
                 <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="block text-sm truncate" style={{ color: 'var(--primary-dark)' }}>
                   {l.url}

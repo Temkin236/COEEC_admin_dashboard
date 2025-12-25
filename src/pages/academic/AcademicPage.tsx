@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Card, Tabs, Table, Button, Space, Tag, Modal, Form, Input, Select, message, AutoComplete, DatePicker, Row, Col, Divider } from "antd"
+import { Card, Tabs, Table, Button, Space, Tag, Modal, Form, Input, Select, message, AutoComplete, DatePicker, Row, Col, Divider, Descriptions } from "antd"
 import dayjs from 'dayjs'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons"
 
@@ -345,6 +345,24 @@ const AcademicPage = () => {
       </Card>
 
       <Modal
+              title="Program Details"
+        open={viewModalOpen}
+        onCancel={() => setViewModalOpen(false)}
+        footer={[<Button key="close" onClick={() => setViewModalOpen(false)}>Close</Button>]}
+        width={600}
+            >
+              {viewProgram && (
+                <Descriptions bordered column={1}>
+                  <Descriptions.Item label="Department">{viewProgram.department}</Descriptions.Item>
+                  <Descriptions.Item label="Level">{viewProgram.level}</Descriptions.Item>
+                  <Descriptions.Item label="Duration">{viewProgram.duration}</Descriptions.Item>
+                  <Descriptions.Item label="Credits">{viewProgram.credits}</Descriptions.Item>
+  
+                </Descriptions>
+              )}
+            </Modal>
+
+      {/* <Modal
         title="Program Details"
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
@@ -360,7 +378,7 @@ const AcademicPage = () => {
             <div style={{ color: '#555', marginBottom: 6 }}><b>Credits:</b> {viewProgram.credits}</div>
           </div>
         )}
-      </Modal>
+      </Modal> */}
 
       <Modal
         title={editing ? "Edit Program" : "Add Program"}

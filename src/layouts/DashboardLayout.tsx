@@ -49,8 +49,10 @@ import UsersPage from "@/pages/users/UsersPage"
 // Profile pages
 import EditProfile from "@/pages/profile/EditProfile"
 import ExpertisePage from "@/pages/profile/ExpertisePage"
-import ExperienceEducation from "@/pages/profile/Experiance_Education"
+import ExperiencePage from "@/pages/profile/ExperiencePage"
+import EducationPage from "@/pages/profile/EducationPage"
 import ConnectPage from "@/pages/profile/Connect"
+import ProfileTabs from "@/pages/profile/ProfileTabs"
 
 const { Header, Sider, Content } = Layout
 
@@ -146,17 +148,7 @@ const DashboardLayout = () => {
         { key: "/users", label: <Link to="/users">All Users</Link> },
       ],
     },
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "Profile",
-        children: [
-        { key: "/profile/edit", label: <Link to="/profile/edit">Edit Profile</Link> },
-        { key: "/profile/experience", label: <Link to="/profile/experience">Experience & Education</Link> },
-        { key: "/profile/expertise", label: <Link to="/profile/expertise">Expertise</Link> },
-        { key: "/profile/connect", label: <Link to="/profile/connect">Connect</Link> },
-      ],
-    },
+    { key: "/profile", icon: <UserOutlined />, label: <Link to="/profile">Profile</Link> },
     {
       key: "research",
       icon: <ExperimentOutlined />,
@@ -349,8 +341,10 @@ const DashboardLayout = () => {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             {/* Profile pages */}
+            <Route path="/profile" element={<ProfileTabs />} />
             <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/profile/experience" element={<ExperienceEducation />} />
+            <Route path="/profile/experience" element={<ExperiencePage />} />
+            <Route path="/profile/education" element={<EducationPage />} />
             <Route path="/profile/expertise" element={<ExpertisePage />} />
             <Route path="/profile/connect" element={<ConnectPage />} />
           </Routes>
