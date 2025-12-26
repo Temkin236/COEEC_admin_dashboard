@@ -6,6 +6,7 @@ import { EyeOutlined, CheckOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchContacts, updateContactStatus } from "@/store/slices/contactSlice"
 import { formatDate, formatRelativeTime } from "@/utils/helpers"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const ContactPage = () => {
   const dispatch = useAppDispatch()
@@ -13,6 +14,10 @@ const ContactPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [selectedMessage, setSelectedMessage] = useState<any>(null)
   const [statusFilter, setStatusFilter] = useState<string>("")
+  const { canView, canUpdate } = usePermissions()
+
+  const hasContactView = canView("contact")
+  const hasContactUpdate = canUpdate("contact")
 
   useEffect(() => {
     dispatch(fetchContacts({ page: 1, limit: 10, status: statusFilter }) as any)
@@ -51,18 +56,20 @@ const ContactPage = () => {
       },
     },
     { title: "Received", dataIndex: "createdAt", key: "createdAt", render: (date: string | Date) => formatRelativeTime(date) },
-    {
+    ...((hasContactView || hasContactUpdate) ? [{
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Space>
-          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          {record.status === "new" && (
+          {hasContactView && (
+            <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
+          )}
+          {hasContactUpdate && record.status === "new" && (
             <Button type="text" icon={<CheckOutlined />} onClick={() => handleStatusUpdate(record.id, "responded")} />
           )}
         </Space>
       ),
-    },
+    }] : []),
   ]
 
   const mockData = [

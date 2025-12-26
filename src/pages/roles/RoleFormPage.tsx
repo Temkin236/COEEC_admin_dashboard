@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { Card, Form, Input, Button, Space, message, Spin, Divider } from "antd"
-import { ArrowLeftOutlined } from "@ant-design/icons"
+import { Card, Form, Input, Button, Space, message, Spin, Divider, Tag } from "antd"
+import { ArrowLeftOutlined, CloseOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {
   fetchRoleById,
@@ -259,17 +259,42 @@ const RoleFormPage = () => {
           {/* Permissions Section */}
           <Card className="xl:col-span-2 order-1 xl:order-2">
             <h3 className="text-base sm:text-lg font-medium mb-4">Permissions</h3>
+            
+            {/* Selected Permissions Tags */}
+            {selectedPermissions.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="text-sm font-medium text-blue-900 mb-2">
+                  Selected Permissions ({selectedPermissions.length})
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedPermissions.map((permId) => {
+                    const permission = permissions.find(p => p.id === permId)
+                    if (!permission) return null
+                    
+                    return (
+                      <Tag
+                        key={permId}
+                        closable
+                        onClose={() => {
+                          setSelectedPermissions(prev => prev.filter(id => id !== permId))
+                        }}
+                        color="blue"
+                        className="text-sm px-3 py-1"
+                      >
+                        {permission.resource}.{permission.action}
+                      </Tag>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <PermissionsSelection
               permissions={permissions}
               selectedPermissionIds={selectedPermissions}
               onPermissionChange={setSelectedPermissions}
               loading={loading}
             />
-            {/* Debug info - remove in production */}
-            <div className="mt-4 p-2 bg-gray-50 rounded text-xs">
-              <div>Selected permissions: {selectedPermissions.length}</div>
-              <div>Permission IDs: {selectedPermissions.join(', ')}</div>
-            </div>
           </Card>
         </div>
       )}

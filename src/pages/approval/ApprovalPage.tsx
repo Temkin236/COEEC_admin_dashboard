@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, Table, Tag, Button, Space, Modal, Descriptions, Input, message } from "antd"
 import { CheckOutlined, CloseOutlined, EyeOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
+import { usePermissions } from "@/hooks/usePermissions"
 import { fetchPendingApprovals, approveItem, rejectItem } from "@/store/slices/approvalSlice"
 import { formatRelativeTime } from "@/utils/helpers"
 
@@ -21,6 +22,10 @@ const ApprovalPage = () => {
   useEffect(() => {
     dispatch(fetchPendingApprovals() as any)
   }, [dispatch])
+
+  const { canView, canPublish } = usePermissions()
+  const hasApproveView = canView("approvals")
+  const hasApprovePublish = canPublish("approvals")
 
   const handleView = (record: any) => {
     setSelectedItem(record)
@@ -65,9 +70,9 @@ const ApprovalPage = () => {
       width: 150,
       render: (_: any, record: any) => (
         <Space>
-          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<CheckOutlined />} className="text-green-600" onClick={() => handleAction(record, "approve")} />
-          <Button type="text" danger icon={<CloseOutlined />} onClick={() => handleAction(record, "reject")} />
+          {hasApproveView && <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />}
+          {hasApprovePublish && <Button type="text" icon={<CheckOutlined />} className="text-green-600" onClick={() => handleAction(record, "approve")} />}
+          {hasApprovePublish && <Button type="text" danger icon={<CloseOutlined />} onClick={() => handleAction(record, "reject")} />}
         </Space>
       ),
     },

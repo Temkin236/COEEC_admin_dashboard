@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { Card, Table, Tag, Statistic, Row, Col } from "antd"
+import { Card, Table, Tag, Statistic, Row, Col, Empty } from "antd"
+import { usePermissions } from "@/hooks/usePermissions"
 import { UserOutlined, TeamOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStudents } from "@/store/slices/studentSlice"
@@ -13,6 +14,19 @@ const StudentsPage = () => {
   useEffect(() => {
     dispatch(fetchStudents({ page: 1, limit: 10 }) as any)
   }, [dispatch])
+
+  const { canView } = usePermissions()
+  const hasStudentsView = canView("students")
+
+  if (!hasStudentsView) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <Empty description="You do not have access to view students" />
+        </Card>
+      </div>
+    )
+  }
 
   const columns = [
     { title: "Program", dataIndex: "program", key: "program", render: (program: string) => <Tag color="blue">{program}</Tag> },

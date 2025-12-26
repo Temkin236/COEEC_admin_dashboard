@@ -16,6 +16,7 @@ import roleReducer from "./slices/roleSlice"
 import staffReducer from "./slices/staffSlice"
 import studentReducer from "./slices/studentSlice"
 import usersReducer from "./slices/usersSlice"
+import publicationsReducer from "./slices/publicationsSlice"
 
 export const store = configureStore({
   reducer: {
@@ -30,6 +31,7 @@ export const store = configureStore({
     analytics: analyticsReducer,
     academic: academicReducer,
     programs: programsReducer,
+    publications: publicationsReducer,
     departments: departmentReducer,
     calendar: calendarReducer,
     events: eventsReducer,

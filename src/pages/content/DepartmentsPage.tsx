@@ -13,6 +13,7 @@ import {
   Select,
   message,
   Descriptions,
+  Tabs,
 } from "antd"
 import {
   PlusOutlined,
@@ -22,6 +23,8 @@ import {
   InboxOutlined,
   ReloadOutlined,
 } from "@ant-design/icons"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {
   fetchDepartments,
@@ -48,18 +51,26 @@ const DepartmentsPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [viewingItem, setViewingItem] = useState<any>(null)
-  const [showArchived, setShowArchived] = useState(false)
+  const [activeTab, setActiveTab] = useState("all")
   const [form] = Form.useForm()
 
-  // Filter departments based on archived status
-  const filteredItems = items.filter(item => 
-    showArchived ? item.isDisabled : !item.isDisabled
-  )
+  // Filter departments based on active tab
+  const filteredItems = items.filter(item => {
+    if (activeTab === "active") return !item.isDisabled
+    if (activeTab === "archived") return item.isDisabled
+    return true
+  })
 
   useEffect(() => {
     dispatch(fetchDepartments())
     dispatch(fetchStaff({ limit: 100 }))
   }, [dispatch])
+
+  const { permissions: userPermissions, canView, canCreate, canUpdate, canDelete } = usePermissions()
+  const hasDeptView = canView("departments")
+  const hasDeptCreate = canCreate("departments")
+  const hasDeptUpdate = canUpdate("departments")
+  const hasDeptDelete = canDelete("departments")
 
   const cuidRegex = /^[cC][^\s-]{8,}$/
 
@@ -212,40 +223,58 @@ const DepartmentsPage = () => {
         </div>
       ),
     },
-    {
+    ...(hasDeptView || hasDeptUpdate || hasDeptDelete ? [{
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 140,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size="small" className="flex-nowrap">
-          <Button
-            type="text"
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-            disabled={record.isDisabled}
-            size="small"
-            title="View Details"
+          {/* View button shown only if user can view */}
+          <TableActions
+            resource="departments"
+            onView={() => handleView(record)}
+            onEdit={() => handleEdit(record)}
+            onDelete={() => {
+              // If user can delete globally, use delete flow; otherwise don't show delete
+              if (hasDeptDelete) {
+                // confirm then delete
+                Modal.confirm({
+                  title: "Delete Department",
+                  content: `Remove "${record.name}" permanently?`,
+                  okText: "Delete",
+                  okButtonProps: { danger: true },
+                  onOk: async () => {
+                    try {
+                      await dispatch(deleteDepartment(record.id)).unwrap()
+                      message.success("Department deleted")
+                      dispatch(fetchDepartments())
+                    } catch (err: any) {
+                      message.error(err?.message || "Failed to delete")
+                    }
+                  },
+                })
+              }
+            }}
+            record={record}
+            allowEditIfOwner={false}
+            ownerIdField={"createdById"}
           />
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            disabled={record.isDisabled}
-            size="small"
-            title="Edit Department"
-          />
-          <Button
-            type="text"
-            danger={!record.isDisabled}
-            icon={record.isDisabled ? <ReloadOutlined /> : <InboxOutlined />}
-            onClick={() => handleDeactivate(record)}
-            title={record.isDisabled ? "Reactivate Department" : "Archive Department"}
-            size="small"
-          />
+
+          {/* Archive/reactivate - treat as update permission */}
+          {hasDeptUpdate && (
+            <Button
+              type="text"
+              danger={!record.isDisabled}
+              icon={record.isDisabled ? <ReloadOutlined /> : <InboxOutlined />}
+              onClick={() => handleDeactivate(record)}
+              title={record.isDisabled ? "Reactivate Department" : "Archive Department"}
+              size="small"
+            />
+          )}
         </Space>
       ),
-    },
+    }] : []),
   ]
 
   return (
@@ -254,29 +283,28 @@ const DepartmentsPage = () => {
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">Departments</span>
-            <div className="flex items-center gap-3">
-              <Select
-                value={showArchived ? "archived" : "active"}
-                onChange={(value) => setShowArchived(value === "archived")}
-                style={{ width: 120 }}
-                size="middle"
-              >
-                <Select.Option value="active">Active</Select.Option>
-                <Select.Option value="archived">Archived</Select.Option>
-              </Select>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-                className="min-w-fit"
-              >
-                <span className="hidden sm:inline">Add Department</span>
-                <span className="sm:hidden">Add</span>
-              </Button>
-            </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+              className="min-w-fit"
+            >
+              <span className="hidden sm:inline">Add Department</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
           </div>
         }
       >
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { key: "all", label: "All Departments" },
+            { key: "active", label: "Active" },
+            { key: "archived", label: "Archived" },
+          ]}
+          className="mb-4"
+        />
         <Table
           columns={columns as any}
           dataSource={filteredItems}
@@ -304,7 +332,7 @@ const DepartmentsPage = () => {
         onOk={() => form.submit()}
         width={"90%"}
         style={{ maxWidth: 600 }}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { Card, Table, Button, Modal, Form, Input, Space, message, Popconfirm, Tag } from "antd"
 import { PlusOutlined, EditOutlined, DeleteOutlined, BankOutlined, LinkOutlined } from "@ant-design/icons"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchCareers, createCareer, updateCareer, deleteCareer, type Career } from "@/store/slices/studentSlice"
 
@@ -16,6 +18,13 @@ const CareersPage = () => {
   useEffect(() => {
     dispatch(fetchCareers() as any)
   }, [dispatch])
+
+  const { canCreate, canView, canUpdate, canDelete } = usePermissions()
+  const hasCareerView = canView("careers")
+  const hasCareerCreate = canCreate("careers")
+  const hasCareerUpdate = canUpdate("careers")
+  const hasCareerDelete = canDelete("careers")
+  const hasAnyAction = hasCareerView || hasCareerUpdate || hasCareerDelete
 
   const columns = [
     {
@@ -58,35 +67,23 @@ const CareersPage = () => {
       width: 100,
       render: (order: number) => <Tag color="green" className="font-medium">{order}</Tag>,
     },
-    {
+    ...(hasAnyAction ? [{
       title: "Actions",
       key: "actions",
       width: 120,
       fixed: 'right' as const,
       render: (_: any, record: Career) => (
-        <Space size="small" className="flex-nowrap">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-            title="Edit Career"
-          />
-          <Popconfirm
-            title="Are you sure you want to delete this career opportunity?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-              title="Delete Career"
-            />
-          </Popconfirm>
-        </Space>
+        <TableActions
+          resource="careers"
+          onView={() => handleEdit(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record.id)}
+          deleteConfirmTitle="Delete Career?"
+          deleteConfirmDescription={`Are you sure you want to delete ${record.title}?`}
+          record={record}
+        />
       ),
-    },
+    }] : []),
   ]
 
   const handleAdd = () => {
@@ -152,15 +149,17 @@ const CareersPage = () => {
                 <div className="text-sm text-gray-500">Manage career opportunities and job postings for students</div>
               </div>
             </div>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={handleAdd}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Add Career Opportunity</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
+            {hasCareerCreate && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={handleAdd}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Add Career Opportunity</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            )}
           </div>
         }
       >

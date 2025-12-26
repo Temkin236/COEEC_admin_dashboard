@@ -3,17 +3,32 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, Button, Table, Space, Tag, Input, Select, Avatar, Modal, message } from "antd"
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons"
+import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchStaff, deleteStaff } from "@/store/slices/staffSlice"
+import { fetchStaff, deleteStaff, setPage, setLimit } from "@/store/slices/staffSlice"
 import { getInitials } from "@/utils/helpers"
 import { DEPARTMENTS } from "@/utils/constants"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 
 const StaffListPage = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { items, total, page, limit, loading } = useAppSelector((state) => state.staff)
   const [filters, setFilters] = useState<{ search: string; department: string }>({ search: "", department: "" })
+  const perms = usePermissions()
+  const { canCreate, canView, canUpdate, canDelete, permissions: userPermissions } = perms
+
+  const hasStaffView = canView("staff")
+  const hasStaffCreate = canCreate("staff")
+  const hasStaffUpdate = canUpdate("staff")
+  const hasStaffDelete = canDelete("staff")
+
+  // Has any action permission
+  const hasAnyAction = hasStaffView || hasStaffUpdate || hasStaffDelete
+
+  // Debugging: log permission array and derived booleans
+  console.log("StaffList permissions:", { userPermissions, hasStaffView, hasStaffCreate, hasStaffUpdate, hasStaffDelete })
 
   useEffect(() => {
     dispatch((fetchStaff as any)({ page, limit, filters }))
@@ -48,10 +63,31 @@ const StaffListPage = () => {
       width: 250,
       render: (_: string, record: any) => {
         const fullName = record.displayName || 'N/A'
+
+        // Safely compute photo source: API may return a string (base64 or url) or an object
+        let photoSrc: string | null = null
+        const p = record.photo
+        if (typeof p === 'string') {
+          if (p.startsWith && p.startsWith('data:image')) {
+            photoSrc = p
+          } else if (p.startsWith && (p.startsWith('http') || p.startsWith('//'))) {
+            photoSrc = p
+          } else {
+            // assume base64 string
+            photoSrc = `data:image/*;base64,${p}`
+          }
+        } else if (p && typeof p === 'object') {
+          if (typeof p.url === 'string' && p.url) photoSrc = p.url
+          else if (typeof p.path === 'string' && p.path) photoSrc = p.path
+          else if (typeof p.data === 'string' && p.data) {
+            photoSrc = p.data.startsWith && p.data.startsWith('data:image') ? p.data : `data:image/*;base64,${p.data}`
+          }
+        }
+
         return (
           <Space>
-            {record.photo ? (
-              <Avatar src={record.photo.startsWith('data:image') ? record.photo : `data:image/*;base64,${record.photo}`} style={{ backgroundColor: "#1e3a5f" }} />
+            {photoSrc ? (
+              <Avatar src={photoSrc} style={{ backgroundColor: "#1e3a5f" }} />
             ) : (
               <Avatar style={{ backgroundColor: "#1e3a5f" }}>{getInitials(fullName)}</Avatar>
             )}
@@ -157,19 +193,23 @@ const StaffListPage = () => {
         )
       },
     },
-    {
+    ...(hasAnyAction ? [{
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 150,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
-        <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/staff/${record.id}`)} size="small" title="View" />
-          <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/staff/${record.id}`)} size="small" title="Edit" />
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} size="small" title="Delete" />
-        </Space>
+        <TableActions
+          resource="staff"
+          onView={() => navigate(`/staff/${record.id}`)}
+          onEdit={() => navigate(`/staff/${record.id}`)}
+          onDelete={() => handleDelete(record.id)}
+          deleteConfirmTitle="Delete Staff Member?"
+          deleteConfirmDescription={`Are you sure you want to delete ${record.displayName}?`}
+          record={record}
+        />
       ),
-    },
+    }] : []),
   ]
 
   return (
@@ -178,15 +218,17 @@ const StaffListPage = () => {
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">Staff Members</span>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={() => navigate("/staff/new")}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Add Staff</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
+            {hasStaffCreate && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => navigate("/staff/new")}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Add Staff</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            )}
           </div>
         }
       >
@@ -219,13 +261,17 @@ const StaffListPage = () => {
           rowKey="id"
           scroll={{ x: 800 }}
           pagination={{ 
-            current: page, 
-            pageSize: limit, 
-            total, 
-            showSizeChanger: true, 
-            showQuickJumper: true,
-            showTotal: (t, range) => `${range[0]}-${range[1]} of ${t} staff members`
-          }}
+              current: page, 
+              pageSize: limit, 
+              total, 
+              showSizeChanger: true, 
+              showQuickJumper: true,
+              showTotal: (t, range) => `${range[0]}-${range[1]} of ${t} staff members`,
+              onChange: (newPage: number, newPageSize?: number) => {
+                if (newPageSize && newPageSize !== limit) dispatch(setLimit(newPageSize))
+                dispatch(setPage(newPage))
+              }
+            }}
           className="border-0"
         />
       </Card>

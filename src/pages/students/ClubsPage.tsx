@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { Card, Table, Button, Modal, Form, Input, Space, message, Popconfirm, Tag } from "antd"
 import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, LinkOutlined } from "@ant-design/icons"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchClubs, createClub, updateClub, deleteClub, type Club } from "@/store/slices/studentSlice"
 
@@ -34,9 +36,10 @@ const ClubsPage = () => {
       ellipsis: {
         showTitle: true,
       },
-      render: (description: string) => (
-        <div className="max-w-xs text-gray-600">{description}</div>
-      ),
+      render: (description: any) => {
+        const text = description && typeof description === 'object' ? (description.content || '') : (description || '')
+        return <div className="max-w-xs text-gray-600">{text}</div>
+      },
     },
     {
       title: "Website",
@@ -89,6 +92,15 @@ const ClubsPage = () => {
     },
   ]
 
+  const { canCreate, canView, canUpdate, canDelete } = usePermissions()
+
+  const hasClubView = canView("clubs")
+  const hasClubCreate = canCreate("clubs")
+  const hasClubUpdate = canUpdate("clubs")
+  const hasClubDelete = canDelete("clubs")
+
+  const hasAnyAction = hasClubView || hasClubUpdate || hasClubDelete
+
   const handleAdd = () => {
     setEditingClub(null)
     form.resetFields()
@@ -97,7 +109,9 @@ const ClubsPage = () => {
 
   const handleEdit = (club: Club) => {
     setEditingClub(club)
-    form.setFieldsValue(club)
+    // normalize description for form (string expected)
+    const desc = club?.description && typeof club.description === 'object' ? club.description.content : club?.description
+    form.setFieldsValue({ ...club, description: desc })
     setIsModalOpen(true)
   }
 
@@ -117,7 +131,9 @@ const ClubsPage = () => {
         ...values,
         order: parseInt(values.order) || 0,
         websiteUrl: values.websiteUrl?.trim() || '',
-        images: values.images || []
+        images: values.images || [],
+        // API expects description as an object { content: string }
+        description: { content: values.description || '' },
       }
 
       // Remove websiteUrl if empty to avoid validation issues
@@ -153,15 +169,17 @@ const ClubsPage = () => {
                 <div className="text-sm text-gray-500">Manage student clubs and organizations</div>
               </div>
             </div>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={handleAdd}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Add Club</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
+            {hasClubCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAdd}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Add Club</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            )}
           </div>
         }
       >

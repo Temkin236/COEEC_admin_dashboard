@@ -19,7 +19,11 @@ import {
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
+  EyeOutlined,
 } from "@ant-design/icons"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
+import { Descriptions } from "antd"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchRoles, deleteRole, setPage, setSearchTerm } from "@/store/slices/roleSlice"
 import type { Role } from "@/store/slices/roleSlice"
@@ -30,10 +34,20 @@ const RolesPage = () => {
   const { items, total, page, limit, loading, searchTerm } = useAppSelector(
     (state) => state.role
   )
+  const { items: allPermissions } = useAppSelector((state) => state.permission)
   
   useEffect(() => {
     dispatch(fetchRoles())
   }, [dispatch])
+
+  const { canCreate, canView, canUpdate, canDelete } = usePermissions()
+  const hasRoleView = canView("roles")
+  const hasRoleCreate = canCreate("roles")
+  const hasRoleUpdate = canUpdate("roles")
+  const hasRoleDelete = canDelete("roles")
+
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [viewingRole, setViewingRole] = useState<Role | null>(null)
 
   const handleDelete = (id: string) => {
     Modal.confirm({
@@ -106,31 +120,26 @@ const RolesPage = () => {
         })
       },
     },
-    {
+    ...(hasRoleView || hasRoleUpdate || hasRoleDelete ? [{
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 140,
       fixed: "right" as const,
-      render: (_: any, record: Role) => (
-        <Space size="small">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/roles/${record.id}/edit`)}
-            title={record.system ? "System roles cannot be edited" : "Edit role"}
-            disabled={record.system}
+      render: (_: any, record: Role) => {
+        const onEdit = !record.system && hasRoleUpdate ? () => navigate(`/roles/${record.id}/edit`) : undefined
+        const onDelete = !record.system && hasRoleDelete ? () => handleDelete(record.id) : undefined
+        return (
+          <TableActions
+            resource="roles"
+            onView={() => { setViewingRole(record); setViewModalOpen(true) }}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            record={record}
+            allowEditIfOwner={false}
           />
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-            title={record.system ? "System roles cannot be deleted" : "Delete role"}
-            disabled={record.system}
-          />
-        </Space>
-      ),
-    },
+        )
+      }
+    }] : []),
   ]
 
   return (
@@ -144,15 +153,17 @@ const RolesPage = () => {
                 Manage system roles and permissions
               </p>
             </div>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate("/roles/create")}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Create Role</span>
-              <span className="sm:hidden">Create</span>
-            </Button>
+            {hasRoleCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate("/roles/create")}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Create Role</span>
+                <span className="sm:hidden">Create</span>
+              </Button>
+            )}
           </div>
         }
       >
@@ -180,6 +191,50 @@ const RolesPage = () => {
               scroll={{ x: 800 }}
               className="border-0"
             />
+            <Modal
+              title="Role Permissions"
+              open={viewModalOpen}
+              onCancel={() => setViewModalOpen(false)}
+              footer={[<Button key="close" onClick={() => setViewModalOpen(false)}>Close</Button>]}
+              width={800}
+            >
+              {viewingRole && (
+                <Descriptions bordered column={1}>
+                  <Descriptions.Item label="Role Name">{viewingRole.name}</Descriptions.Item>
+                  <Descriptions.Item label="Description">{viewingRole.description || '—'}</Descriptions.Item>
+                  <Descriptions.Item label="Permissions">
+                    <div className="flex flex-wrap gap-2">
+                        {(viewingRole.permissions || viewingRole.permissionIds || []).map((p: any) => {
+                          const permId = typeof p === "string" ? p : (p.permissionId || p.id || p.permission?.id)
+
+                          let label = ""
+                          if (typeof p === "string") {
+                            const found = allPermissions.find((ap: any) => ap.id === p)
+                            label = found ? `${found.resource}.${found.action}` : p
+                          } else if (p.permission) {
+                            const pr = p.permission
+                            label = pr.resource && pr.action ? `${pr.resource}.${pr.action}` : (pr.action || pr.id || JSON.stringify(pr))
+                          } else if (p.resource && p.action) {
+                            label = `${p.resource}.${p.action}`
+                          } else if (p.permissionId) {
+                            const found = allPermissions.find((ap: any) => ap.id === p.permissionId)
+                            label = found ? `${found.resource}.${found.action}` : p.permissionId
+                          } else if (p.id) {
+                            const found = allPermissions.find((ap: any) => ap.id === p.id)
+                            label = found ? `${found.resource}.${found.action}` : p.id
+                          } else {
+                            label = String(p)
+                          }
+
+                          return (
+                            <Tag key={permId || JSON.stringify(p)} color="blue">{label}</Tag>
+                          )
+                        })}
+                      </div>
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
+            </Modal>
             {total > 0 && (
               <div className="flex justify-center sm:justify-end mt-6 pt-4 border-t border-gray-200">
                 <Pagination

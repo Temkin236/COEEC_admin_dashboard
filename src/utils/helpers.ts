@@ -49,3 +49,99 @@ export const hasPermission = (userRole?: string, requiredRoles?: string[]) => {
   if (!requiredRoles || requiredRoles.length === 0) return true
   return requiredRoles.includes(userRole || "")
 }
+
+// Permission interface matching backend structure
+export interface Permission {
+  id: string
+  action: string // e.g., "departments", "staff", "users"
+  resource: string // e.g., "view", "create", "update", "delete", "publish"
+  description?: string | null
+}
+
+/**
+ * Check if user has a specific permission
+ * @param permissions - User's permissions array from token
+ * @param action - Resource name (e.g., "departments", "staff", "users")
+ * @param resource - Action type (e.g., "view", "create", "update", "delete")
+ * @returns boolean - Whether user has the permission
+ */
+export const checkPermission = (
+  permissions: Permission[] | undefined,
+  action: string,
+  resource: string
+): boolean => {
+  if (!permissions || permissions.length === 0) return false
+  const normalize = (s?: string) => (s || "").toString().toLowerCase().trim()
+  const stripPlural = (s: string) => s.replace(/s$/i, "")
+
+  const a = normalize(action)
+  const r = normalize(resource)
+
+  return permissions.some((p) => {
+    const pa = normalize(p.action)
+    const pr = normalize(p.resource)
+
+    // direct match
+    if (pa === a && pr === r) return true
+
+    // allow plural/singular mismatches (department vs departments)
+    if (stripPlural(pa) === stripPlural(a) && pr === r) return true
+    if (pa === a && stripPlural(pr) === stripPlural(r)) return true
+
+    // tolerate swapped fields (some sources may emit action/resource reversed)
+    if (pa === r && pr === a) return true
+
+    return false
+  })
+}
+
+/**
+ * Check if user has any of the specified permissions
+ * @param permissions - User's permissions array
+ * @param checks - Array of [action, resource] tuples to check
+ * @returns boolean - Whether user has at least one of the permissions
+ */
+export const checkAnyPermission = (
+  permissions: Permission[] | undefined,
+  checks: Array<[string, string]>
+): boolean => {
+  if (!permissions || permissions.length === 0) return false
+  return checks.some(([action, resource]) => checkPermission(permissions, action, resource))
+}
+
+/**
+ * Check if user has all of the specified permissions
+ * @param permissions - User's permissions array
+ * @param checks - Array of [action, resource] tuples to check
+ * @returns boolean - Whether user has all of the permissions
+ */
+export const checkAllPermissions = (
+  permissions: Permission[] | undefined,
+  checks: Array<[string, string]>
+): boolean => {
+  if (!permissions || permissions.length === 0) return false
+  return checks.every(([action, resource]) => checkPermission(permissions, action, resource))
+}
+
+/**
+ * Get all permissions for a specific action (resource)
+ * @param permissions - User's permissions array
+ * @param action - Resource name (e.g., "departments")
+ * @returns Array of resource types user can perform on that action
+ */
+export const getResourcePermissions = (
+  permissions: Permission[] | undefined,
+  action: string
+): string[] => {
+  if (!permissions || permissions.length === 0) return []
+  const normalize = (s?: string) => (s || "").toString().toLowerCase().trim()
+  const stripPlural = (s: string) => s.replace(/s$/i, "")
+  const a = normalize(action)
+
+  return permissions
+    .filter((p) => {
+      const pa = normalize(p.action)
+      return pa === a || stripPlural(pa) === stripPlural(a)
+    })
+    .map((p) => p.resource)
+}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Card, Table, Tag, Input, Select, Space, Button } from "antd"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 import { SearchOutlined, ExportOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchAlumni } from "@/store/slices/studentSlice"
@@ -15,6 +17,14 @@ const AlumniPage = () => {
     dispatch((fetchAlumni as any)({ page: 1, limit: 10 }))
   }, [dispatch])
 
+  const { canView, canCreate, canUpdate, canDelete } = usePermissions()
+  const hasAlumniView = canView("alumni")
+  const hasAlumniCreate = canCreate("alumni")
+  const hasAlumniUpdate = canUpdate("alumni")
+  const hasAlumniDelete = canDelete("alumni")
+
+  const hasAnyAction = hasAlumniView || hasAlumniUpdate || hasAlumniDelete
+
   const columns = [
     { title: "Name", dataIndex: "name", key: "name", ellipsis: true },
     { title: "Program", dataIndex: "program", key: "program", render: (program: string) => <Tag color="blue">{program}</Tag> },
@@ -22,6 +32,15 @@ const AlumniPage = () => {
     { title: "Current Position", dataIndex: "currentPosition", key: "position", ellipsis: true },
     { title: "Company/Organization", dataIndex: "organization", key: "organization" },
     { title: "Status", dataIndex: "status", key: "status", render: (status: string) => <Tag color={status === "verified" ? "success" : "default"}>{status}</Tag> },
+    ...(hasAnyAction ? [{
+      title: "Actions",
+      key: "actions",
+      width: 120,
+      fixed: 'right' as const,
+      render: (_: any, record: any) => (
+        <TableActions resource="alumni" onView={() => {}} record={record} />
+      ),
+    }] : []),
   ]
 
   const mockData = [

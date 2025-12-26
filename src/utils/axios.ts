@@ -52,12 +52,8 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config || ({} as any)
 
     if (error.response?.status === 403) {
-      // Forbidden - User is authenticated but doesn't have permission
-      // or session is invalid in a way that requires re-login
-      localStorage.removeItem("token")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("auth_user")
-      window.location.href = "/login"
+      // Forbidden - user is authenticated but doesn't have permission.
+      // Do NOT clear auth or redirect on 403; let the caller/UI handle showing a message.
       return Promise.reject(error)
     }
 

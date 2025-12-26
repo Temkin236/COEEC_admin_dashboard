@@ -6,6 +6,7 @@ import { UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined } from "
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchDownloads, uploadFile, removeDownload, incrementDownloadCount } from "@/store/slices/downloadSlice"
 import { formatRelativeTime } from "@/utils/helpers"
+import { usePermissions } from "@/hooks/usePermissions"
 
 const { TextArea } = Input
 
@@ -15,6 +16,11 @@ const DownloadsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [fileToUpload, setFileToUpload] = useState<any>(null)
   const [form] = Form.useForm()
+  const { canCreate, canDelete, canView } = usePermissions()
+
+  const hasDownloadsCreate = canCreate("downloads")
+  const hasDownloadsDelete = canDelete("downloads")
+  const hasDownloadsView = canView("downloads")
 
   useEffect(() => {
     dispatch(fetchDownloads({ page: 1, limit: 10 }) as any)
@@ -79,18 +85,22 @@ const DownloadsPage = () => {
     { title: "Size", dataIndex: "size", key: "size", render: (size: number) => `${(size / 1024).toFixed(2)} KB`, responsive: ["md"] },
     { title: "Uploaded", dataIndex: "createdAt", key: "createdAt", render: (date: string | Date) => formatRelativeTime(date), responsive: ["md"] },
     { title: "Downloads", dataIndex: "downloadCount", key: "downloads", responsive: ["sm"] },
-    {
+    ...((hasDownloadsView || hasDownloadsDelete) ? [{
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Space>
-          <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => onDownload(record)}>
-            Download
-          </Button>
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+          {hasDownloadsView && (
+            <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => onDownload(record)}>
+              Download
+            </Button>
+          )}
+          {hasDownloadsDelete && (
+            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => onDelete(record)} />
+          )}
         </Space>
       ),
-    },
+    }] : []),
   ]
 
   const mockData = [
@@ -100,7 +110,16 @@ const DownloadsPage = () => {
 
   return (
     <div className="space-y-4 p-2 sm:p-4">
-      <Card title="Download Center" extra={<Button type="primary" icon={<UploadOutlined />} onClick={() => setIsModalOpen(true)}>Upload File</Button>}>
+      <Card 
+        title="Download Center" 
+        extra={
+          hasDownloadsCreate && (
+            <Button type="primary" icon={<UploadOutlined />} onClick={() => setIsModalOpen(true)}>
+              Upload File
+            </Button>
+          )
+        }
+      >
         <div className="overflow-x-auto">
           <Table
             columns={columns as any}

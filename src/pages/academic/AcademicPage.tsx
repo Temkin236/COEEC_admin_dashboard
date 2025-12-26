@@ -1,5 +1,7 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons"
 import { Button, Card, Col, DatePicker, Divider, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, message } from "antd"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 import dayjs from 'dayjs'
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
@@ -39,6 +41,28 @@ const AcademicPage = () => {
   const [viewProgram, setViewProgram] = useState<any | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
 
+  const { permissions: userPermissions, canView, canCreate, canUpdate, canDelete, can } = usePermissions()
+
+  const hasProgramsView = canView("programs")
+  const hasProgramsCreate = canCreate("programs")
+  const hasProgramsUpdate = canUpdate("programs")
+  const hasProgramsDelete = canDelete("programs")
+
+  const hasCoursesView = canView("courses")
+  const hasCoursesCreate = canCreate("courses")
+  const hasCoursesUpdate = canUpdate("courses")
+  const hasCoursesDelete = canDelete("courses")
+
+  const hasCalendarView = canView("calendar") || canView("calendars")
+  const hasCalendarCreate = canCreate("calendar")
+  const hasCalendarUpdate = canUpdate("calendar")
+  const hasCalendarDelete = canDelete("calendar")
+
+  const hasNewsView = canView("news") || canView("announcements")
+  const hasNewsCreate = canCreate("news")
+  const hasNewsUpdate = canUpdate("news")
+  const hasNewsDelete = canDelete("news")
+
   const [calendarModalOpen, setCalendarModalOpen] = useState(false)
   const [calendarEditing, setCalendarEditing] = useState<any | null>(null)
   const [calendarForm] = Form.useForm()
@@ -75,18 +99,15 @@ const AcademicPage = () => {
         const currentState = record.state || 'DRAFT'
         return (
           <Space>
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              onClick={() => openEditAcademicCalendar(record)}
+            <TableActions
+              resource="calendar"
+              onView={() => { /* no view for academic calendar row */ }}
+              onEdit={() => openEditAcademicCalendar(record)}
+              onDelete={() => handleDeleteAcademicCalendar(record.id)}
+              record={record}
+              allowEditIfOwner={false}
             />
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
-              onClick={() => handleDeleteAcademicCalendar(record.id)}
-            />
-            {currentState !== 'PUBLISHED' && (
+            {currentState !== 'PUBLISHED' && can('calendar', 'publish') && (
               <Button 
                 type="primary" 
                 size="small"
@@ -137,9 +158,15 @@ const AcademicPage = () => {
         const currentState = record.state || record.status || 'DRAFT'
         return (
           <Space>
-            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCalendar(record) }} />
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCalendarEvent(record.id) }} />
-            {currentState !== 'PUBLISHED' && (
+            <TableActions
+              resource="events"
+              onView={() => openViewCalendar(record)}
+              onEdit={() => openEditCalendar(record)}
+              onDelete={() => handleDeleteCalendarEvent(record.id)}
+              record={record}
+              allowEditIfOwner={false}
+            />
+            {currentState !== 'PUBLISHED' && can('events', 'publish') && (
               <Button 
                 type="primary" 
                 size="small"
@@ -355,8 +382,14 @@ const AcademicPage = () => {
     { title: 'Created', dataIndex: 'createdAt', key: 'createdAt', render: (d: any) => d ? d.format('MMM D, YYYY HH:mm') : '' },
     { title: 'Actions', key: 'actions', render: (_: any, r: any) => (
       <Space>
-        <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); annForm.setFieldsValue({ title: r.title, body: r.body }); setAnnModalOpen(true); }} />
-        <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteAnnouncement(r.id); }} />
+        <TableActions
+          resource="news"
+          onView={() => { annForm.setFieldsValue({ title: r.title, body: r.body }); setAnnModalOpen(true); }}
+          onEdit={() => { annForm.setFieldsValue({ title: r.title, body: r.body }); setAnnModalOpen(true); }}
+          onDelete={() => handleDeleteAnnouncement(r.id)}
+          record={r}
+          allowEditIfOwner={false}
+        />
       </Space>
     ) }
   ]
@@ -505,9 +538,15 @@ const AcademicPage = () => {
         const currentState = record.state || record.status || 'DRAFT'
         return (
           <Space>
-            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEdit(record); }} />
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} />
-            {currentState !== 'PUBLISHED' && (
+            <TableActions
+              resource="programs"
+              onView={() => openView(record)}
+              onEdit={() => openEdit(record)}
+              onDelete={() => handleDelete(record.id)}
+              record={record}
+              allowEditIfOwner={false}
+            />
+            {currentState !== 'PUBLISHED' && can('programs', 'publish') && (
               <Button 
                 type="primary" 
                 size="small"
@@ -563,9 +602,15 @@ const AcademicPage = () => {
         const currentState = record.state || record.status || 'DRAFT'
         return (
           <Space>
-            <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); openEditCourse(record); }} />
-            <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteCourse(record.id); }} />
-            {currentState !== 'PUBLISHED' && (
+            <TableActions
+              resource="courses"
+              onView={() => openViewCourse(record)}
+              onEdit={() => openEditCourse(record)}
+              onDelete={() => handleDeleteCourse(record.id)}
+              record={record}
+              allowEditIfOwner={false}
+            />
+            {currentState !== 'PUBLISHED' && can('courses', 'publish') && (
               <Button 
                 type="primary" 
                 size="small"
@@ -669,11 +714,19 @@ const AcademicPage = () => {
 
   // Fetch programs on mount
   useEffect(() => {
-    dispatch(fetchPrograms())
-    dispatch(fetchDepartments())
-    dispatch(fetchCalendars())
-    dispatch(fetchEvents())
-  }, [dispatch])
+    if (hasProgramsView) {
+      dispatch(fetchPrograms())
+    }
+
+    if (canView("departments")) {
+      dispatch(fetchDepartments())
+    }
+
+    if (hasCalendarView) {
+      dispatch(fetchCalendars())
+      dispatch(fetchEvents())
+    }
+  }, [dispatch, hasProgramsView, hasCalendarView])
 
   // Update program name options when programs change
   useEffect(() => {
@@ -691,25 +744,38 @@ const AcademicPage = () => {
     <div className="space-y-4">
       <Card title="Academic Information">
         <Tabs defaultActiveKey="1">
-          <TabPane tab="Programs" key="1">
-            <div className="mb-4">
-              <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Program</Button>
-            </div>
-            <Table
-              columns={programColumns as any}
-              dataSource={programs}
-              rowKey="id"
-              pagination={false}
-              rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-              onRow={(record) => ({
-                onClick: () => openView(record),
-              })}
-            />
-          </TabPane>
-
-          <TabPane tab="Courses" key="2">
+          {hasProgramsView && (
+            <TabPane tab="Programs" key="1">
               <div className="mb-4">
-                <Button type="primary" icon={<PlusOutlined />} onClick={openAddCourse}>Add Course</Button>
+                {hasProgramsCreate && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Program</Button>
+                )}
+              </div>
+              <Table
+                columns={programColumns as any}
+                dataSource={programs}
+                rowKey="id"
+                pagination={false}
+                rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
+                onRow={(record) => ({
+                  onClick: () => {
+                    if (hasProgramsView) {
+                      openView(record)
+                    } else {
+                      message.warning('You do not have permission to view programs')
+                    }
+                  },
+                })}
+              />
+            </TabPane>
+          )}
+
+          {hasCoursesView && (
+            <TabPane tab="Courses" key="2">
+              <div className="mb-4">
+                {hasCoursesCreate && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openAddCourse}>Add Course</Button>
+                )}
               </div>
               <Table
                 columns={courseColumns as any}
@@ -717,98 +783,130 @@ const AcademicPage = () => {
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
                 rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-                onRow={(record) => ({ onClick: () => openViewCourse(record) })}
+                onRow={(record) => ({ onClick: () => {
+                  if (hasCoursesView) {
+                    openViewCourse(record)
+                  } else {
+                    message.warning('You do not have permission to view courses')
+                  }
+                } })}
               />
-          </TabPane>
+            </TabPane>
+          )}
 
-          <TabPane tab="Academic Calendar" key="3">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <div className="text-2xl font-bold text-blue-900 mb-2">Academic Calendar</div>
-                {calendars.length > 0 ? (
-                  <Select
-                    style={{ width: 300 }}
-                    placeholder="Select academic calendar"
-                    value={activeCalendar?.id}
-                    onChange={(id) => {
-                      const selected = calendars.find(c => c.id === id)
-                      setActiveCalendar(selected || null)
-                    }}
-                  >
-                    {calendars.map(cal => (
-                      <Select.Option key={cal.id} value={cal.id}>
-                        {cal.title} - {cal.academicYear} ({cal.semester})
-                      </Select.Option>
-                    ))}
-                  </Select>
-                ) : (
-                  <div className="text-sm text-gray-500">No academic calendars available. Create one to get started.</div>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <a className="text-blue-700 mr-4 cursor-pointer" onClick={() => handleDownloadPdf()}>Download PDF</a>
-                <Button type="primary" onClick={() => openAddAcademicCalendar()}>New Academic Calendar</Button>
-                <Button type="primary" onClick={() => openAddCalendar()}>Add Event</Button>
-                <Button type="primary" onClick={() => openAddAnnouncement()}>Add Announcement</Button>
-              </div>
-            </div>
-            <Row gutter={24}>
-              <Col xs={24}>
-                <Card title="Academic Calendars" className="mb-4">
-                  <Table
-                    columns={academicCalendarColumns as any}
-                    dataSource={calendars}
-                    rowKey="id"
-                    pagination={false}
-                    loading={calendarState.loading}
-                    size="small"
-                  />
-                </Card>
-              </Col>
-            </Row>
-            <Row gutter={24}>
-              <Col xs={24} md={16}>
-                <Card title="Events">
-                  <Table
-                    columns={calendarColumns as any}
-                    dataSource={calendarEvents}
-                    rowKey="id"
-                    pagination={false}
-                    loading={eventsState.loading}
-                    rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-                    onRow={(record) => ({ onClick: () => openViewCalendar(record) })}
-                  />
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card>
-                  <div className="text-xl font-semibold">Announcements</div>
-                  <Divider />
-                  <div className="text-sm text-gray-600 mb-4">
-                      {announcements.map((a) => (
-                        <div key={a.id} className="mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => { annForm.setFieldsValue({ title: a.title, body: a.body }); setAnnModalOpen(true); }}>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-semibold">{a.title}</div>
-                              <div className="text-xs text-gray-400">{a.createdAt.format('MMM D, YYYY HH:mm')}</div>
-                            </div>
-                            <div className="ml-4">
-                              <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); annForm.setFieldsValue({ title: a.title, body: a.body }); setAnnModalOpen(true); }} />
-                              <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteAnnouncement(a.id) }} />
-                            </div>
-                          </div>
-                          <div className="mt-2 text-gray-600">{a.body}</div>
-                        </div>
+          {hasCalendarView && (
+            <TabPane tab="Academic Calendar" key="3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex-1">
+                  <div className="text-2xl font-bold text-blue-900 mb-2">Academic Calendar</div>
+                  {calendars.length > 0 ? (
+                    <Select
+                      style={{ width: 300 }}
+                      placeholder="Select academic calendar"
+                      value={activeCalendar?.id}
+                      onChange={(id) => {
+                        const selected = calendars.find(c => c.id === id)
+                        setActiveCalendar(selected || null)
+                      }}
+                    >
+                      {calendars.map(cal => (
+                        <Select.Option key={cal.id} value={cal.id}>
+                          {cal.title} - {cal.academicYear} ({cal.semester})
+                        </Select.Option>
                       ))}
+                    </Select>
+                  ) : (
+                    <div className="text-sm text-gray-500">No academic calendars available. Create one to get started.</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <a className="text-blue-700 mr-4 cursor-pointer" onClick={() => handleDownloadPdf()}>Download PDF</a>
+                  {hasCalendarCreate && (
+                    <Button type="primary" onClick={() => openAddAcademicCalendar()}>New Academic Calendar</Button>
+                  )}
+                  {hasCalendarCreate && (
+                    <Button type="primary" onClick={() => openAddCalendar()}>Add Event</Button>
+                  )}
+                  {hasNewsCreate && (
+                    <Button type="primary" onClick={() => openAddAnnouncement()}>Add Announcement</Button>
+                  )}
+                </div>
+              </div>
+              <Row gutter={24}>
+                <Col xs={24}>
+                  <Card title="Academic Calendars" className="mb-4">
+                    <Table
+                      columns={academicCalendarColumns as any}
+                      dataSource={calendars}
+                      rowKey="id"
+                      pagination={false}
+                      loading={calendarState.loading}
+                      size="small"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+              <Row gutter={24}>
+                <Col xs={24} md={16}>
+                  <Card title="Events">
+                    <Table
+                      columns={calendarColumns as any}
+                      dataSource={calendarEvents}
+                      rowKey="id"
+                      pagination={false}
+                      loading={eventsState.loading}
+                      rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
+                      onRow={(record) => ({ onClick: () => {
+                        if (hasCalendarView) {
+                          openViewCalendar(record)
+                        } else {
+                          message.warning('You do not have permission to view calendar events')
+                        }
+                      } })}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card>
+                    <div className="text-xl font-semibold">Announcements</div>
+                    <Divider />
+                    <div className="text-sm text-gray-600 mb-4">
+                        {announcements.map((a) => (
+                          <div key={a.id} className="mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => {
+                            if (hasNewsView) {
+                              annForm.setFieldsValue({ title: a.title, body: a.body });
+                              setAnnModalOpen(true);
+                            } else {
+                              message.warning('You do not have permission to view announcements')
+                            }
+                          }}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-semibold">{a.title}</div>
+                                <div className="text-xs text-gray-400">{a.createdAt.format('MMM D, YYYY HH:mm')}</div>
+                              </div>
+                              <div className="ml-4">
+                                {hasNewsUpdate && (
+                                  <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); annForm.setFieldsValue({ title: a.title, body: a.body }); setAnnModalOpen(true); }} />
+                                )}
+                                {hasNewsDelete && (
+                                  <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteAnnouncement(a.id) }} />
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-2 text-gray-600">{a.body}</div>
+                          </div>
+                        ))}
 
-                    <div className="mt-4">
-                      <Button block onClick={() => setAnnArchiveOpen(true)}>View All Archives</Button>
+                      <div className="mt-4">
+                        <Button block onClick={() => setAnnArchiveOpen(true)}>View All Archives</Button>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              </Col>
-            </Row>
-          </TabPane>
+                  </Card>
+                </Col>
+              </Row>
+            </TabPane>
+          )}
         </Tabs>
       </Card>
 

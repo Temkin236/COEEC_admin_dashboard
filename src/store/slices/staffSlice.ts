@@ -113,6 +113,8 @@ const staffSlice = createSlice({
   reducers: {
     clearStaffError: (state) => { state.error = null },
     setCurrentStaff: (state, action: PayloadAction<StaffItem | null>) => { state.currentStaff = action.payload },
+    setPage: (state, action: PayloadAction<number>) => { state.page = action.payload },
+    setLimit: (state, action: PayloadAction<number>) => { state.limit = action.payload },
   },
   extraReducers: (builder) => {
     builder
@@ -145,5 +147,5 @@ const staffSlice = createSlice({
   },
 })
 
-export const { clearStaffError, setCurrentStaff } = staffSlice.actions
+export const { clearStaffError, setCurrentStaff, setPage, setLimit } = staffSlice.actions
 export default staffSlice.reducer

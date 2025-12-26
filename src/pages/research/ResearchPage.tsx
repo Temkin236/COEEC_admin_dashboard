@@ -29,6 +29,8 @@ import {
   publishResearchProject,
   ResearchProject,
 } from "@/store/slices/researchProjectsSlice"
+import { usePermissions } from "@/hooks/usePermissions"
+import TableActions from "@/components/common/TableActions"
 
 const { RangePicker } = DatePicker
 
@@ -40,6 +42,14 @@ const ResearchPage = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [viewingItem, setViewingItem] = useState<ResearchProject | null>(null)
   const [form] = Form.useForm()
+  const { canCreate, canView, canUpdate, canDelete, can } = usePermissions()
+
+  const hasResearchView = canView("research")
+  const hasResearchCreate = canCreate("research")
+  const hasResearchUpdate = canUpdate("research")
+  const hasResearchDelete = canDelete("research")
+  const hasResearchPublish = can("research", "publish")
+  const hasAnyAction = hasResearchView || hasResearchUpdate || hasResearchDelete || hasResearchPublish
 
   useEffect(() => {
     dispatch(fetchResearchProjects() as any)
@@ -154,47 +164,43 @@ const ResearchPage = () => {
         </Tag>
       ),
     },
-    {
+    ...(hasAnyAction ? [{
       title: "Actions",
       key: "actions",
-      width: 280,
+      width: 250,
       fixed: 'right' as const,
       render: (_: any, record: ResearchProject) => (
         <Space size="small" className="flex-nowrap">
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-            title="View Details"
+          <TableActions
+            resource="research"
+            onView={() => handleView(record)}
+            onEdit={() => handleEdit(record)}
+            onDelete={() => handleDelete(record.id!)}
+            deleteConfirmTitle="Delete Research Project?"
+            deleteConfirmDescription={`Are you sure you want to delete "${record.title}"?`}
+            record={record}
+            allowEditIfOwner={true}
+            ownerIdField="createdById"
           />
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            title="Edit"
-          />
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id!)}
-            title="Delete"
-          />
-          {record.state === "DRAFT" && (
+          {hasResearchPublish && record.state === "DRAFT" && (
             <Button
               type="primary"
               icon={<CheckCircleOutlined />}
               onClick={() => handlePublish(record.id!)}
+              size="small"
               style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
             >
               Publish
             </Button>
           )}
           {record.state === "PUBLISHED" && (
-            <Tag color="green" icon={<FileTextOutlined />} className="px-3 py-1 text-sm">
+            <Tag color="green" icon={<FileTextOutlined />} className="px-2 py-1 text-xs">
               Published
             </Tag>
           )}
         </Space>
       ),
-    },
+    }] : []),
   ]
 
   return (
@@ -203,15 +209,17 @@ const ResearchPage = () => {
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">Research Projects Management</span>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={handleAdd}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Add Project</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
+            {hasResearchCreate && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={handleAdd}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Add Project</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            )}
           </div>
         }
       >
@@ -237,7 +245,7 @@ const ResearchPage = () => {
         onCancel={() => setIsModalOpen(false)}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           form={form}
