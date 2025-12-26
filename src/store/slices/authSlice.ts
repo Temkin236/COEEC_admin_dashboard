@@ -20,12 +20,34 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("/auth/login", credentials)
-      const { accessToken, refreshToken, user } = response.data as LoginResponse
+      let { accessToken, refreshToken, user } = response.data as LoginResponse
       localStorage.setItem("token", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
-      if (user) {
+
+      // If server didn't return user info, try to decode the JWT payload as a fallback
+      if (!user && accessToken) {
+        try {
+          const base64Url = accessToken.split('.')[1]
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+          const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          }).join(''))
+          const payload = JSON.parse(jsonPayload)
+          const fallbackUser: AuthUser = {
+            id: (payload && (payload.sub || payload.id || payload.userId || payload._id)) || 'unknown',
+            email: payload?.email || '',
+            role: (payload?.role as Role) || 'user',
+            name: (payload?.name as string) || (payload?.fullName as string) || undefined,
+          }
+          user = fallbackUser as any
+          localStorage.setItem("auth_user", JSON.stringify(fallbackUser))
+        } catch (e) {
+          // ignore parsing errors
+        }
+      } else if (user) {
         localStorage.setItem("auth_user", JSON.stringify(user))
       }
+
       return { accessToken, refreshToken, user }
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || "Login failed")

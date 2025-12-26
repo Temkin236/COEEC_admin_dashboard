@@ -56,11 +56,13 @@ export const UpdateProfile = createAsyncThunk<any, UpdateProfilePayload, { rejec
   },
 )
 
-export const createProfile = createAsyncThunk<any, any, { rejectValue: string }>(
+export const createProfile = createAsyncThunk<any, { userId: string; data: any }, { rejectValue: string }>(
   "profile/create",
-  async (data, { rejectWithValue }) => {
+  async ({ userId, data }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(`/staff`, data)
+      // Include userId in the payload as required by the API
+      const payload = { userId, ...data }
+      const response = await axiosInstance.post(`/staff`, payload)
       return response.data
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message || "Failed to create profile")
@@ -180,7 +182,7 @@ export const addEducation = createAsyncThunk<any, { staffId: string; data: any }
   "profile/addEducation",
   async ({ staffId, data }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(`/profiles/education/${staffId}`, data)
+      const response = await axiosInstance.post(`/profiles/education`, data)
       return response.data
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message || "Failed to add education")

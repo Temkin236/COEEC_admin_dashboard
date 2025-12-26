@@ -95,6 +95,18 @@ export const uploadCV = createAsyncThunk<{ id: string; cvUrl: string }, { id: st
   },
 )
 
+export const uploadPhoto = createAsyncThunk<{ id: string; photoUrl: string } , { id: string; file: File }>(
+  "staff/uploadPhoto",
+  async ({ id, file }) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    const response = await axiosInstance.post(`/staff/${id}/photo`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    })
+    return response.data
+  }
+)
+
 interface StaffState {
   items: StaffItem[]
   currentStaff: StaffItem | null
@@ -142,6 +154,7 @@ const staffSlice = createSlice({
       })
       .addCase(deleteStaff.fulfilled, (state, action: PayloadAction<string>) => { state.items = state.items.filter((item) => item.id !== action.payload); state.total -= 1 })
       .addCase(uploadCV.fulfilled, (state, action: PayloadAction<{ id: string; cvUrl: string }>) => { if (state.currentStaff && state.currentStaff.id === action.payload.id) state.currentStaff.cvUrl = action.payload.cvUrl })
+      .addCase(uploadPhoto.fulfilled, (state, action: PayloadAction<{ id: string; photoUrl: string }>) => { if (state.currentStaff && state.currentStaff.id === action.payload.id) state.currentStaff.photo = action.payload.photoUrl })
   },
 })
 

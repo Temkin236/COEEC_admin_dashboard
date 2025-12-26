@@ -20,7 +20,9 @@ const LoginPage = () => {
   const onFinish = async (values: LoginFormValues) => {
     try {
       // cast the thunk creator to any because the slice is implemented in JS and has no TS param typings
-      await (dispatch((login as any)(values)) as any).unwrap()
+      const res = await (dispatch((login as any)(values)) as any).unwrap()
+      // log the user id returned by the login response
+      console.log("LoginPage - logged in user id:", res?.user?.id)
       navigate("/")
     } catch (err) {
       console.error("Login failed:", err)

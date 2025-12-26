@@ -91,3 +91,12 @@ code {
   .upload-box { max-width: 160px; aspect-ratio: 160 / 130; }
   .upload-circle { width: 96px; height: 96px; }
 }
+
+/* Allow clicks to pass through modal wrapper so sidebar remains clickable */
+.allow-sidebar-click-wrap {
+  pointer-events: none; /* allow clicks through the wrapper */
+}
+.allow-sidebar-click-wrap .allow-sidebar-click-modal {
+  pointer-events: auto; /* keep the modal itself interactive */
+  z-index: 1001; /* ensure modal sits above content visually */
+}

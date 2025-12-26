@@ -5,6 +5,8 @@ import { Card, Form, Input, Select, Button, Upload, Row, Col } from "antd"
 import { UploadOutlined, DownloadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { UpdateProfile, fetchProfile, createProfile } from "@/store/slices/profileSlice"
+import { uploadCV, uploadPhoto } from "@/store/slices/staffSlice"
+import axiosInstance from "@/utils/axios"
 
 interface ProfileFormData {
   fullName: string
@@ -20,6 +22,7 @@ interface ProfileFormData {
 }
 
 export default function Profile() {
+  const { items: departments } = useAppSelector((s) => s.departments)
   const [formData, setFormData] = useState<ProfileFormData>({
     fullName: "",
     title: "",
@@ -32,18 +35,37 @@ export default function Profile() {
     cv: null,
     description: "",
   })
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+  const [cvFile, setCvFile] = useState<File | null>(null)
   const handleChange = (name: keyof ProfileFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const dispatch = useAppDispatch()
   const { data: storedProfile } = useAppSelector((s) => s.profile)
+  const { user } = useAppSelector((s) => s.auth)
+  // fallback to localStorage when auth.user isn't ready
+  const _stored = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
+  const _parsed = _stored ? JSON.parse(_stored) : null
+  const currentUser = user || _parsed
 
   const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id 
 
   useEffect(() => {
     if (profileId) dispatch(fetchProfile(profileId))
   }, [dispatch, profileId])
+
+  useEffect(() => {
+    const load = async () => {
+      const mod = await import("@/store/slices/departmentSlice")
+      dispatch(mod.fetchDepartments())
+    }
+    load()
+  }, [dispatch])
+
+  useEffect(() => {
+    console.log("EditProfile - auth user id:", currentUser?.id, "profile id:", profileId)
+  }, [currentUser, profileId])
 
   useEffect(() => {
     if (storedProfile) {
@@ -64,6 +86,7 @@ export default function Profile() {
   }, [storedProfile])
   const handleImageUpload = ({ file }: any) => {
     const f = file.originFileObj || file
+    setProfileImageFile(f)
     const reader = new FileReader()
     reader.onloadend = () => setFormData((p) => ({ ...p, profileImage: reader.result as string }))
     reader.readAsDataURL(f)
@@ -72,8 +95,69 @@ export default function Profile() {
 
   const handleCvUpload = ({ file }: any) => {
     const f = file.originFileObj || file
+    setCvFile(f)
     setFormData((p) => ({ ...p, cv: f.name }))
     return false
+  }
+
+  const handleSave = async () => {
+    const payload: any = {
+      displayName: formData.fullName,
+      title: formData.title,
+      departmentId: formData.department,
+      email: formData.email,
+      phone: formData.phone,
+      officeLocation: formData.officeLocation,
+      researchAreas: [],
+      biography: { description: formData.description || "" },
+      photoId: null,
+      cvId: null,
+    }
+
+    const id = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+
+    try {
+      // If profile exists, upload files to that staff record first
+      if (id) {
+        if (cvFile) {
+          const res: any = await dispatch(uploadCV({ id, file: cvFile }) as any).unwrap()
+          if (res) {
+            payload.cvId = res.cvId || res.id || null
+            payload.cvUrl = res.cvUrl || res.cvUrl || null
+          }
+        }
+        if (profileImageFile) {
+          const res: any = await dispatch(uploadPhoto({ id, file: profileImageFile }) as any).unwrap()
+          if (res) {
+            payload.photoId = res.photoId || res.id || null
+            payload.photoUrl = res.photoUrl || res.photoUrl || null
+          }
+        }
+
+        await dispatch(UpdateProfile({ id, data: payload }))
+      } else {
+        // create profile first
+        const userId = currentUser?.id || (currentUser?._id as string) || ''
+        const created: any = await dispatch(createProfile({ userId, data: payload }) as any).unwrap()
+        const createdId = created?.id || created?._id
+        if (createdId) {
+          if (cvFile) {
+            const res: any = await dispatch(uploadCV({ id: createdId, file: cvFile }) as any).unwrap()
+            if (res) {
+              await dispatch(UpdateProfile({ id: createdId, data: { cvId: res.cvId || res.id || null, cvUrl: res.cvUrl || res.cvUrl || null } }))
+            }
+          }
+          if (profileImageFile) {
+            const res: any = await dispatch(uploadPhoto({ id: createdId, file: profileImageFile }) as any).unwrap()
+            if (res) {
+              await dispatch(UpdateProfile({ id: createdId, data: { photoId: res.photoId || res.id || null, photoUrl: res.photoUrl || res.photoUrl || null } }))
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to save profile or upload files", e)
+    }
   }
 
   return (
@@ -89,27 +173,7 @@ export default function Profile() {
                     type="primary"
                     size="small"
                     style={{ background: '#17A2B8', borderRadius: 6, fontWeight: 500 }}
-                    onClick={() => {
-                        const payload = {
-                          displayName: formData.fullName,
-                          title: formData.title,
-                          departmentId: formData.department,
-                          email: formData.email,
-                          phone: formData.phone,
-                          officeLocation: formData.officeLocation,
-                          researchAreas: [],
-                          biography: { description: formData.description || "" },
-                          photoId: null,
-                          cvId: null,
-                        }
-                        const id = (storedProfile as any)?.id ?? (storedProfile as any)?._id
-                        if (id) {
-                          dispatch(UpdateProfile({ id, data: payload }))
-                        } else {
-                          // create new profile
-                          dispatch(createProfile(payload))
-                        }
-                      }}
+                    onClick={handleSave}
                   >
                     Save
                   </Button>
@@ -136,12 +200,19 @@ export default function Profile() {
                   <Select
                     size="large"
                     value={formData.department}
-                    placeholder={storedProfile?.departmentId || "Select department"}
+                    placeholder={
+                      // show stored profile department name when available
+                      (departments.find((d) => d.id === (storedProfile as any)?.departmentId)?.name as string) || "Select department"
+                    }
                     onChange={(v) => handleChange("department", v)}
+                    showSearch
+                    optionFilterProp="children"
                   >
-                    <Select.Option value="Electrical Engineering">Electrical Engineering</Select.Option>
-                    <Select.Option value="Computer Engineering">Computer Engineering</Select.Option>
-                    <Select.Option value="Software Engineering">Software Engineering</Select.Option>
+                    {departments.map((d) => (
+                      <Select.Option key={d.id} value={d.id}>
+                        {d.name}
+                      </Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
                 <Form.Item label="Role">
@@ -218,7 +289,9 @@ export default function Profile() {
                   <div style={{ color: '#6b7280' }}>{formData.title || (storedProfile as any)?.title || ''}</div>
                 </div>
 
-                <div className="font-semibold" style={{ color: '#18485e' }}>{formData.department || (storedProfile as any)?.departmentId || ''}</div>
+                <div className="font-semibold" style={{ color: '#18485e' }}>
+                  {(departments.find((d) => d.id === formData.department)?.name) || (departments.find((d) => d.id === (storedProfile as any)?.departmentId)?.name) || formData.department || (storedProfile as any)?.departmentId || ''}
+                </div>
                 <div className="font-semibold" style={{ color: '#18485e' }}>{formData.role || (storedProfile as any)?.role || ''}</div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#18485e', marginTop: 16 }}>

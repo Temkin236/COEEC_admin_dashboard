@@ -49,18 +49,37 @@ export default function ExperiencePage() {
 
   const handleSave = () => {
     if (pendingExperienceList.length > 0) {
-      pendingExperienceList.forEach((item) => {
-        dispatch(addExperienceThunk({ staffId: profileId, data: item }))
+      pendingExperienceList.forEach((item, idx) => {
+        const payload = {
+          title: item.position,
+          organization: item.organization,
+          startYear: item.startYear,
+          endYear: item.endYear ?? 0,
+          isCurrent: !!item.isPresent,
+          description: item.description || "",
+          order: (experiences?.length || 0) + idx,
+        }
+        dispatch(addExperienceThunk({ staffId: profileId, data: payload }))
       })
       setPendingExperienceList([])
       return
     }
     if (!newExperience.position || !newExperience.organization) return
+    const payload = {
+      title: newExperience.position,
+      organization: newExperience.organization,
+      startYear: newExperience.startYear,
+      endYear: newExperience.endYear ?? 0,
+      isCurrent: !!newExperience.isPresent,
+      description: newExperience.description || "",
+      order: experiences?.length ? experiences.length : 0,
+    }
+
     if (!experiences || experiences.length === 0) {
-      dispatch(addExperienceThunk({ staffId: profileId, data: newExperience }))
+      dispatch(addExperienceThunk({ staffId: profileId, data: payload }))
     } else {
       const existingId = experiences[0].id || (experiences[0] as any)?._id
-      if (existingId) dispatch(updateExperience({ id: existingId, data: newExperience }))
+      if (existingId) dispatch(updateExperience({ id: existingId, data: payload }))
     }
     setNewExperience({ position: "", organization: "", startYear: new Date().getFullYear(), endYear: null, isPresent: false, description: "" })
   }
@@ -113,10 +132,10 @@ export default function ExperiencePage() {
                       <div style={{ position: 'absolute', right: 12, top: 12, cursor: 'pointer' }} onClick={() => removeExperience(exp.id)}>
                         <DeleteOutlined style={{ color: '#e11d48' }} />
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>{exp.position}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{(exp as any).position || (exp as any).title}</div>
                       <div style={{ fontSize: 13, color: '#18485e', fontWeight: 500 }}>{exp.organization}</div>
-                      <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 6 }}>{exp.startYear} - {exp.isPresent ? 'Present' : exp.endYear}</div>
-                      {exp.description && <div style={{ marginTop: 8, color: '#374151', fontSize: 13 }}>{exp.description}</div>}
+                      <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 6 }}>{(exp as any).startYear} - {((exp as any).isPresent ?? (exp as any).isCurrent) ? 'Present' : (exp as any).endYear}</div>
+                      {(exp as any).description && <div style={{ marginTop: 8, color: '#374151', fontSize: 13 }}>{(exp as any).description}</div>}
                     </div>
                   ))}
                 </div>
@@ -178,10 +197,10 @@ export default function ExperiencePage() {
                           <div style={{ position: 'absolute', right: 12, top: 12, cursor: 'pointer' }} onClick={() => removeExperience(exp.id)}>
                             <DeleteOutlined style={{ color: '#e11d48' }} />
                           </div>
-                          <div style={{ fontWeight: 700, fontSize: 15 }}>{exp.position}</div>
+                          <div style={{ fontWeight: 700, fontSize: 15 }}>{(exp as any).position || (exp as any).title}</div>
                           <div style={{ fontSize: 13, color: '#18485e', fontWeight: 500 }}>{exp.organization}</div>
-                          <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 2 }}>{exp.startYear} - {exp.isPresent ? 'Present' : exp.endYear}</div>
-                          {exp.description && <div style={{ marginTop: 6, color: '#374151', fontSize: 13 }}>{exp.description}</div>}
+                          <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 2 }}>{(exp as any).startYear} - {((exp as any).isPresent ?? (exp as any).isCurrent) ? 'Present' : (exp as any).endYear}</div>
+                          {(exp as any).description && <div style={{ marginTop: 6, color: '#374151', fontSize: 13 }}>{(exp as any).description}</div>}
                         </div>
                       </div>
                     ))}
