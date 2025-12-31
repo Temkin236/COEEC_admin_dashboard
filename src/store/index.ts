@@ -17,6 +17,7 @@ import staffReducer from "./slices/staffSlice"
 import studentReducer from "./slices/studentSlice"
 import usersReducer from "./slices/usersSlice"
 import publicationsReducer from "./slices/publicationsSlice"
+import mediaReducer from "./slices/mediaSlice"
 
 export const store = configureStore({
   reducer: {
@@ -38,6 +39,7 @@ export const store = configureStore({
     role: roleReducer,
     permission: permissionReducer,
     users: usersReducer,
+    media: mediaReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

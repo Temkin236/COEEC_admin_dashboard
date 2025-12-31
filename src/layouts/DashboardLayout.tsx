@@ -1,6 +1,17 @@
-import { useState, useMemo } from "react"
-import { Layout, Menu, Dropdown, Avatar, Badge, Space, Button, Drawer, List, Typography } from "antd"
-import type { MenuProps } from "antd"
+import { useState, useMemo } from "react";
+import {
+  Layout,
+  Menu,
+  Dropdown,
+  Avatar,
+  Badge,
+  Space,
+  Button,
+  Drawer,
+  List,
+  Typography,
+} from "antd";
+import type { MenuProps } from "antd";
 import {
   DashboardOutlined,
   FileTextOutlined,
@@ -14,42 +25,52 @@ import {
   SettingOutlined,
   BellOutlined,
   GlobalOutlined,
-} from "@ant-design/icons"
-import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom"
-import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { logout } from "@/store/slices/authSlice"
-import { checkPermission, checkAnyPermission } from "@/utils/helpers"
-import { LANGUAGE_LABELS } from "@/utils/constants"
-import { SIDEBAR_TEXT, type LanguageKey } from "@/utils/translations"
-import { useLanguage } from "@/contexts/LanguageContext"
+  NotificationOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+import {
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
+import { checkPermission, checkAnyPermission } from "@/utils/helpers";
+import { LANGUAGE_LABELS } from "@/utils/constants";
+import { SIDEBAR_TEXT, type LanguageKey } from "@/utils/translations";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Pages
-import DashboardPage from "@/pages/dashboard/DashboardPage"
-import HomePage from "@/pages/content/HomePage"
-import AboutPage from "@/pages/content/AboutPage"
-import DepartmentsPage from "@/pages/content/DepartmentsPage"
-import HomeAdminPage from "@/pages/content/HomeAdminPage"
-import AboutAdminPage from "@/pages/content/AboutAdminPage"
-import StaffListPage from "@/pages/staff/StaffListPage"
-import StaffFormPage from "@/pages/staff/StaffFormPage"
-import ResearchPage from "@/pages/research/ResearchPage"
-import PublicationsPage from "@/pages/research/PublicationsPage"
-import StudentsPage from "@/pages/students/StudentsPage"
-import AlumniPage from "@/pages/students/AlumniPage"
-import StudentLifePage from "@/pages/students/StudentLifePage"
-import ClubsPage from "@/pages/students/ClubsPage"
-import CareersPage from "@/pages/students/CareersPage"
-import AcademicPage from "@/pages/academic/AcademicPage"
-import DownloadsPage from "@/pages/downloads/DownloadsPage"
-import ContactPage from "@/pages/contact/ContactPage"
-import ApprovalPage from "@/pages/approval/ApprovalPage"
-import SettingsPage from "@/pages/settings/SettingsPage"
-import RolesPage from "@/pages/roles/RolesPage"
-import RoleFormPage from "@/pages/roles/RoleFormPage"
-import UsersPage from "@/pages/users/UsersPage"
-import ProtectedRoute from "@/components/common/ProtectedRoute"
+import DashboardPage from "@/pages/dashboard/DashboardPage";
+import HomePage from "@/pages/content/HomePage";
+import AboutPage from "@/pages/content/AboutPage";
+import DepartmentsPage from "@/pages/content/DepartmentsPage";
+import HomeAdminPage from "@/pages/content/HomeAdminPage";
+import AboutAdminPage from "@/pages/content/AboutAdminPage";
+import StaffListPage from "@/pages/staff/StaffListPage";
+import StaffFormPage from "@/pages/staff/StaffFormPage";
+import ResearchPage from "@/pages/research/ResearchPage";
+import PublicationsPage from "@/pages/research/PublicationsPage";
+import StudentsPage from "@/pages/students/StudentsPage";
+import AlumniPage from "@/pages/students/AlumniPage";
+import StudentLifePage from "@/pages/students/StudentLifePage";
+import ClubsPage from "@/pages/students/ClubsPage";
+import CareersPage from "@/pages/students/CareersPage";
+import AcademicPage from "@/pages/academic/AcademicPage";
+import DownloadsPage from "@/pages/downloads/DownloadsPage";
+import ContactPage from "@/pages/contact/ContactPage";
+import ApprovalPage from "@/pages/approval/ApprovalPage";
+import SettingsPage from "@/pages/settings/SettingsPage";
+import RolesPage from "@/pages/roles/RolesPage";
+import RoleFormPage from "@/pages/roles/RoleFormPage";
+import UsersPage from "@/pages/users/UsersPage";
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+import NewsPage from "@/pages/news/newsPage";
+import EventsPage from "@/pages/events/eventsPage";
 
-const { Header, Sider, Content } = Layout
+const { Header, Sider, Content } = Layout;
 
 const HEADER_TEXT: Record<LanguageKey, { title: string; subtitle: string }> = {
   en: {
@@ -64,25 +85,33 @@ const HEADER_TEXT: Record<LanguageKey, { title: string; subtitle: string }> = {
     title: "COEEC",
     subtitle: "Kolleejjii Elektirikaa fi Computing",
   },
-}
+};
 
 const DashboardLayout = () => {
-  const dispatch = useAppDispatch()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { user } = useAppSelector((state) => state.auth)
-  const { language: currentLanguage, setLanguage } = useLanguage()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAppSelector((state) => state.auth);
+  const { language: currentLanguage, setLanguage } = useLanguage();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notifications = [
-    { id: 1, title: "New staff member added", description: "A new staff profile was created." },
-    { id: 2, title: "Pending content approval", description: "There are pages awaiting review." },
-  ]
+    {
+      id: 1,
+      title: "New staff member added",
+      description: "A new staff profile was created.",
+    },
+    {
+      id: 2,
+      title: "Pending content approval",
+      description: "There are pages awaiting review.",
+    },
+  ];
 
   const handleLogout = () => {
-    dispatch(logout())
-    navigate("/login")
-  }
+    dispatch(logout());
+    navigate("/login");
+  };
 
   const languageMenu: MenuProps = {
     items: [
@@ -91,22 +120,38 @@ const DashboardLayout = () => {
       { key: "af", label: "Afaan Oromo" },
     ],
     onClick: ({ key }) => {
-      setLanguage(key as LanguageKey)
+      setLanguage(key as LanguageKey);
     },
-  }
+  };
 
   const userMenu: MenuProps = {
     items: [
-      { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => navigate("/settings/profile") },
-      { key: "settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate("/settings") },
+      {
+        key: "profile",
+        icon: <UserOutlined />,
+        label: "Profile",
+        onClick: () => navigate("/settings/profile"),
+      },
+      {
+        key: "settings",
+        icon: <SettingOutlined />,
+        label: "Settings",
+        onClick: () => navigate("/settings"),
+      },
       { type: "divider" },
-      { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: handleLogout, danger: true },
+      {
+        key: "logout",
+        icon: <LogoutOutlined />,
+        label: "Logout",
+        onClick: handleLogout,
+        danger: true,
+      },
     ],
-  }
+  };
 
   const menuItems: MenuProps["items"] = useMemo(() => {
-    const permissions = user?.permissions || []
-    const items: MenuProps["items"] = []
+    const permissions = user?.permissions || [];
+    const items: MenuProps["items"] = [];
 
     // Debug logging - show actual permissions and targeted checks
     console.log("User info:", {
@@ -114,23 +159,31 @@ const DashboardLayout = () => {
       permissionsCount: permissions.length,
       permissions: permissions,
       email: user?.email,
-    })
+    });
     console.log("Permission checks:", {
       staff_view: checkPermission(permissions, "staff", "view"),
       departments_view: checkPermission(permissions, "departments", "view"),
-      any_staff_actions: checkAnyPermission(permissions, [["staff", "view"], ["staff", "create"], ["staff", "update" ]]),
-    })
+      any_staff_actions: checkAnyPermission(permissions, [
+        ["staff", "view"],
+        ["staff", "create"],
+        ["staff", "update"],
+      ]),
+    });
 
     // Dashboard - always visible
-    items.push({ 
-      key: "/", 
-      icon: <DashboardOutlined />, 
-      label: <Link to="/">{SIDEBAR_TEXT[currentLanguage].dashboard}</Link> 
-    })
+    items.push({
+      key: "/",
+      icon: <DashboardOutlined />,
+      label: <Link to="/">{SIDEBAR_TEXT[currentLanguage].dashboard}</Link>,
+    });
 
     // Content Management - pages and departments
-    const canPages = checkAnyPermission(permissions, [["pages", "view"], ["pages", "create"], ["pages", "update"]])
-    const canDepartments = checkPermission(permissions, "departments", "view")
+    const canPages = checkAnyPermission(permissions, [
+      ["pages", "view"],
+      ["pages", "create"],
+      ["pages", "update"],
+    ]);
+    const canDepartments = checkPermission(permissions, "departments", "view");
 
     // Content pages (homepage, about). Departments will be a top-level item.
     if (canPages) {
@@ -139,10 +192,24 @@ const DashboardLayout = () => {
         icon: <FileTextOutlined />,
         label: SIDEBAR_TEXT[currentLanguage].content,
         children: [
-          { key: "/content/homepage", label: <Link to="/content/homepage-admin">{SIDEBAR_TEXT[currentLanguage].homepage}</Link> },
-          { key: "/content/about-admin", label: <Link to="/content/about-admin">{SIDEBAR_TEXT[currentLanguage].about}</Link> },
+          {
+            key: "/content/homepage",
+            label: (
+              <Link to="/content/homepage-admin">
+                {SIDEBAR_TEXT[currentLanguage].homepage}
+              </Link>
+            ),
+          },
+          {
+            key: "/content/about-admin",
+            label: (
+              <Link to="/content/about-admin">
+                {SIDEBAR_TEXT[currentLanguage].about}
+              </Link>
+            ),
+          },
         ],
-      })
+      });
     }
 
     // Departments as top-level (so it's not nested under Content)
@@ -150,18 +217,40 @@ const DashboardLayout = () => {
       items.push({
         key: "departments",
         icon: <FileTextOutlined />,
-        label: <Link to="/content/departments">{SIDEBAR_TEXT[currentLanguage].departments}</Link>,
-      })
+        label: (
+          <Link to="/content/departments">
+            {SIDEBAR_TEXT[currentLanguage].departments}
+          </Link>
+        ),
+      });
     }
 
     // Staff Management
-    if (checkAnyPermission(permissions, [["staff", "view"], ["staff", "create"], ["staff", "update"]])) {
-      const staffChildren: any[] = []
+    if (
+      checkAnyPermission(permissions, [
+        ["staff", "view"],
+        ["staff", "create"],
+        ["staff", "update"],
+      ])
+    ) {
+      const staffChildren: any[] = [];
       if (checkPermission(permissions, "staff", "view")) {
-        staffChildren.push({ key: "/staff", label: <Link to="/staff">{SIDEBAR_TEXT[currentLanguage].staffAll}</Link> })
+        staffChildren.push({
+          key: "/staff",
+          label: (
+            <Link to="/staff">{SIDEBAR_TEXT[currentLanguage].staffAll}</Link>
+          ),
+        });
       }
       if (checkPermission(permissions, "staff", "create")) {
-        staffChildren.push({ key: "/staff/new", label: <Link to="/staff/new">{SIDEBAR_TEXT[currentLanguage].staffAdd}</Link> })
+        staffChildren.push({
+          key: "/staff/new",
+          label: (
+            <Link to="/staff/new">
+              {SIDEBAR_TEXT[currentLanguage].staffAdd}
+            </Link>
+          ),
+        });
       }
       if (staffChildren.length > 0) {
         items.push({
@@ -169,18 +258,30 @@ const DashboardLayout = () => {
           icon: <TeamOutlined />,
           label: SIDEBAR_TEXT[currentLanguage].staff,
           children: staffChildren,
-        })
+        });
       }
     }
 
     // Roles Management
-    if (checkAnyPermission(permissions, [["roles", "view"], ["roles", "create"], ["roles", "assign"]])) {
-      const rolesChildren: any[] = []
+    if (
+      checkAnyPermission(permissions, [
+        ["roles", "view"],
+        ["roles", "create"],
+        ["roles", "assign"],
+      ])
+    ) {
+      const rolesChildren: any[] = [];
       if (checkPermission(permissions, "roles", "view")) {
-        rolesChildren.push({ key: "/roles", label: <Link to="/roles">View Roles</Link> })
+        rolesChildren.push({
+          key: "/roles",
+          label: <Link to="/roles">View Roles</Link>,
+        });
       }
       if (checkPermission(permissions, "roles", "create")) {
-        rolesChildren.push({ key: "/roles/create", label: <Link to="/roles/create">Create Role</Link> })
+        rolesChildren.push({
+          key: "/roles/create",
+          label: <Link to="/roles/create">Create Role</Link>,
+        });
       }
       if (rolesChildren.length > 0) {
         items.push({
@@ -188,7 +289,7 @@ const DashboardLayout = () => {
           icon: <TeamOutlined />,
           label: "Roles",
           children: rolesChildren,
-        })
+        });
       }
     }
 
@@ -201,17 +302,36 @@ const DashboardLayout = () => {
         children: [
           { key: "/users", label: <Link to="/users">All Users</Link> },
         ],
-      })
+      });
     }
 
     // Research & Publications
-    if (checkAnyPermission(permissions, [["research", "view"], ["publications", "view"]])) {
-      const researchChildren: any[] = []
+    if (
+      checkAnyPermission(permissions, [
+        ["research", "view"],
+        ["publications", "view"],
+      ])
+    ) {
+      const researchChildren: any[] = [];
       if (checkPermission(permissions, "research", "view")) {
-        researchChildren.push({ key: "/research", label: <Link to="/research">{SIDEBAR_TEXT[currentLanguage].researchProjects}</Link> })
+        researchChildren.push({
+          key: "/research",
+          label: (
+            <Link to="/research">
+              {SIDEBAR_TEXT[currentLanguage].researchProjects}
+            </Link>
+          ),
+        });
       }
       if (checkPermission(permissions, "publications", "view")) {
-        researchChildren.push({ key: "/research/publications", label: <Link to="/research/publications">{SIDEBAR_TEXT[currentLanguage].researchPublications}</Link> })
+        researchChildren.push({
+          key: "/research/publications",
+          label: (
+            <Link to="/research/publications">
+              {SIDEBAR_TEXT[currentLanguage].researchPublications}
+            </Link>
+          ),
+        });
       }
       if (researchChildren.length > 0) {
         items.push({
@@ -219,7 +339,7 @@ const DashboardLayout = () => {
           icon: <ExperimentOutlined />,
           label: SIDEBAR_TEXT[currentLanguage].research,
           children: researchChildren,
-        })
+        });
       }
     }
 
@@ -230,71 +350,155 @@ const DashboardLayout = () => {
         icon: <BookOutlined />,
         label: SIDEBAR_TEXT[currentLanguage].students,
         children: [
-          { key: "/students", label: <Link to="/students">{SIDEBAR_TEXT[currentLanguage].studentsAll}</Link> },
-          { key: "/students/alumni", label: <Link to="/students/alumni">{SIDEBAR_TEXT[currentLanguage].studentsAlumni}</Link> },
-          { key: "/students/life", label: <Link to="/students/life">{SIDEBAR_TEXT[currentLanguage].studentsLife}</Link> },
-          { key: "/students/clubs", label: <Link to="/students/clubs">{SIDEBAR_TEXT[currentLanguage].studentsClubs}</Link> },
-          { key: "/students/careers", label: <Link to="/students/careers">{SIDEBAR_TEXT[currentLanguage].studentsCareers}</Link> },
+          {
+            key: "/students",
+            label: (
+              <Link to="/students">
+                {SIDEBAR_TEXT[currentLanguage].studentsAll}
+              </Link>
+            ),
+          },
+          {
+            key: "/students/alumni",
+            label: (
+              <Link to="/students/alumni">
+                {SIDEBAR_TEXT[currentLanguage].studentsAlumni}
+              </Link>
+            ),
+          },
+          {
+            key: "/students/life",
+            label: (
+              <Link to="/students/life">
+                {SIDEBAR_TEXT[currentLanguage].studentsLife}
+              </Link>
+            ),
+          },
+          {
+            key: "/students/clubs",
+            label: (
+              <Link to="/students/clubs">
+                {SIDEBAR_TEXT[currentLanguage].studentsClubs}
+              </Link>
+            ),
+          },
+          {
+            key: "/students/careers",
+            label: (
+              <Link to="/students/careers">
+                {SIDEBAR_TEXT[currentLanguage].studentsCareers}
+              </Link>
+            ),
+          },
         ],
-      })
+      });
     }
 
     // Academic - courses, programs, calendar
-    if (checkAnyPermission(permissions, [["courses", "view"], ["programs", "view"], ["calendar", "view"]])) {
-      items.push({ 
-        key: "/academic", 
-        icon: <BookOutlined />, 
-        label: <Link to="/academic">{SIDEBAR_TEXT[currentLanguage].academic}</Link> 
-      })
+    if (
+      checkAnyPermission(permissions, [
+        ["courses", "view"],
+        ["programs", "view"],
+        ["calendar", "view"],
+      ])
+    ) {
+      items.push({
+        key: "/academic",
+        icon: <BookOutlined />,
+        label: (
+          <Link to="/academic">{SIDEBAR_TEXT[currentLanguage].academic}</Link>
+        ),
+      });
     }
 
     // Downloads
     if (checkPermission(permissions, "downloads", "view")) {
-      items.push({ 
-        key: "/downloads", 
-        icon: <DownloadOutlined />, 
-        label: <Link to="/downloads">{SIDEBAR_TEXT[currentLanguage].downloads}</Link> 
-      })
+      items.push({
+        key: "/downloads",
+        icon: <DownloadOutlined />,
+        label: (
+          <Link to="/downloads">{SIDEBAR_TEXT[currentLanguage].downloads}</Link>
+        ),
+      });
+    }
+
+    // News
+    if (
+      checkAnyPermission(permissions, [
+        ["news", "view"],
+        ["news", "create"],
+        ["news", "update"],
+      ])
+    ) {
+      items.push({
+        key: "/news",
+        icon: <NotificationOutlined />,
+        label: <Link to="/news">{SIDEBAR_TEXT[currentLanguage].news}</Link>,
+      });
+    }
+
+    // Events
+    if (
+      checkAnyPermission(permissions, [
+        ["events", "view"],
+        ["events", "create"],
+        ["events", "update"],
+      ])
+    ) {
+      items.push({
+        key: "/events",
+        icon: <CalendarOutlined />,
+        label: <Link to="/events">{SIDEBAR_TEXT[currentLanguage].events}</Link>,
+      });
     }
 
     // Contact - always visible for messages
-    items.push({ 
-      key: "/contact", 
-      icon: <MessageOutlined />, 
-      label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link> 
-    })
+    items.push({
+      key: "/contact",
+      icon: <MessageOutlined />,
+      label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link>,
+    });
 
     // Approvals - if user has publish permissions on any resource
-    if (checkAnyPermission(permissions, [
-      ["pages", "publish"],
-      ["news", "publish"],
-      ["events", "publish"],
-      ["programs", "publish"],
-    ])) {
-      items.push({ 
-        key: "/approval", 
-        icon: <FileTextOutlined />, 
-        label: <Link to="/approval">{SIDEBAR_TEXT[currentLanguage].approvals}</Link> 
-      })
+    if (
+      checkAnyPermission(permissions, [
+        ["pages", "publish"],
+        ["news", "publish"],
+        ["events", "publish"],
+        ["programs", "publish"],
+      ])
+    ) {
+      items.push({
+        key: "/approval",
+        icon: <FileTextOutlined />,
+        label: (
+          <Link to="/approval">{SIDEBAR_TEXT[currentLanguage].approvals}</Link>
+        ),
+      });
     }
 
-    return items
-  }, [user?.permissions, currentLanguage])
+    return items;
+  }, [user?.permissions, currentLanguage]);
 
   const getSelectedKeys = () => {
-    const path = location.pathname
-    if (path === "/") return ["/"]
+    const path = location.pathname;
+    if (path === "/") return ["/"];
     for (const item of menuItems ?? []) {
       if (item && "children" in item && item.children) {
         for (const child of item.children) {
-          if (typeof child !== "string" && path.startsWith(String(child.key))) return [String(child.key)]
+          if (typeof child !== "string" && path.startsWith(String(child.key)))
+            return [String(child.key)];
         }
-      } else if (item && typeof item !== "string" && path.startsWith(String(item.key))) {
-        return [String(item.key)]
+      } else if (
+        item &&
+        typeof item !== "string" &&
+        path.startsWith(String(item.key))
+      ) {
+        return [String(item.key)];
       }
     }
-    return ["/"]
-  }
+    return ["/"];
+  };
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
@@ -307,15 +511,27 @@ const DashboardLayout = () => {
       >
         <div className="h-16 flex items-center justify-center border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/downloads/coeec-logo.png" alt="COEEC" className="h-8 w-8 rounded-full object-cover" />
+            <img
+              src="/downloads/coeec-logo.png"
+              alt="COEEC"
+              className="h-8 w-8 rounded-full object-cover"
+            />
             <span className="text-primary-600 font-semibold tracking-wide text-sm">
               COEEC Admin
             </span>
           </Link>
         </div>
         {/* Scrollable menu area when sidebar content exceeds viewport */}
-        <div className="overflow-y-auto" style={{ height: "calc(100vh - 64px)" }}>
-          <Menu mode="inline" selectedKeys={getSelectedKeys()} items={menuItems} className="border-r-0" />
+        <div
+          className="overflow-y-auto"
+          style={{ height: "calc(100vh - 64px)" }}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={getSelectedKeys()}
+            items={menuItems}
+            className="border-r-0"
+          />
         </div>
       </Sider>
       <Layout style={{ height: "100vh", overflow: "hidden" }}>
@@ -351,7 +567,11 @@ const DashboardLayout = () => {
           </div>
           <Space size={12} wrap>
             <Dropdown menu={languageMenu} placement="bottomRight">
-              <Button type="text" icon={<GlobalOutlined />} className="px-2 sm:px-3">
+              <Button
+                type="text"
+                icon={<GlobalOutlined />}
+                className="px-2 sm:px-3"
+              >
                 {LANGUAGE_LABELS[currentLanguage]}
               </Button>
             </Dropdown>
@@ -366,16 +586,23 @@ const DashboardLayout = () => {
             </Badge>
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space className="cursor-pointer">
-                <Avatar style={{ backgroundColor: "#17A2B8" }}>{user?.name?.charAt(0) || "U"}</Avatar>
+                <Avatar style={{ backgroundColor: "#17A2B8" }}>
+                  {user?.name?.charAt(0) || "U"}
+                </Avatar>
                 <div className="hidden sm:block">
-                  <div className="text-xs sm:text-sm font-medium">{user?.name || "User"}</div>
+                  <div className="text-xs sm:text-sm font-medium">
+                    {user?.name || "User"}
+                  </div>
                 </div>
               </Space>
             </Dropdown>
           </Space>
         </Header>
         {/* Notifications Drawer */}
-        <Content className="m-0 md:m-2" style={{ overflow: "auto", height: "calc(100vh - 64px)" }}>
+        <Content
+          className="m-0 md:m-2"
+          style={{ overflow: "auto", height: "calc(100vh - 64px)" }}
+        >
           <Drawer
             title="Notifications"
             placement="right"
@@ -384,7 +611,9 @@ const DashboardLayout = () => {
             size="large"
           >
             {notifications.length === 0 ? (
-              <Typography.Text type="secondary">No notifications yet.</Typography.Text>
+              <Typography.Text type="secondary">
+                No notifications yet.
+              </Typography.Text>
             ) : (
               <List
                 itemLayout="vertical"
@@ -393,14 +622,18 @@ const DashboardLayout = () => {
                   <List.Item key={item.id}>
                     <List.Item.Meta
                       title={<span className="font-medium">{item.title}</span>}
-                      description={<span className="text-sm text-gray-500">{item.description}</span>}
+                      description={
+                        <span className="text-sm text-gray-500">
+                          {item.description}
+                        </span>
+                      }
                     />
                   </List.Item>
                 )}
               />
             )}
           </Drawer>
-        {/* Mobile navigation drawer */}
+          {/* Mobile navigation drawer */}
           <Drawer
             title={SIDEBAR_TEXT[currentLanguage].dashboard}
             placement="left"
@@ -420,150 +653,286 @@ const DashboardLayout = () => {
           </Drawer>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
-            
+
             {/* Content Pages */}
-            <Route path="/content/homepage" element={
-              <ProtectedRoute requiredAnyPermissions={[["pages", "view"], ["pages", "update"]]}>
-                <HomePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/content/homepage-admin" element={
-              <ProtectedRoute requiredAnyPermissions={[["pages", "view"], ["pages", "update"]]}>
-                <HomeAdminPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/content/about-admin" element={
-              <ProtectedRoute requiredAnyPermissions={[["pages", "view"], ["pages", "update"]]}>
-                <AboutAdminPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/content/about" element={
-              <ProtectedRoute requiredAnyPermissions={[["pages", "view"], ["pages", "update"]]}>
-                <AboutPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/content/departments" element={
-              <ProtectedRoute requiredPermission={["departments", "view"]}>
-                <DepartmentsPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/content/homepage"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["pages", "view"],
+                    ["pages", "update"],
+                  ]}
+                >
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content/homepage-admin"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["pages", "view"],
+                    ["pages", "update"],
+                  ]}
+                >
+                  <HomeAdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content/about-admin"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["pages", "view"],
+                    ["pages", "update"],
+                  ]}
+                >
+                  <AboutAdminPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content/about"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["pages", "view"],
+                    ["pages", "update"],
+                  ]}
+                >
+                  <AboutPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content/departments"
+              element={
+                <ProtectedRoute requiredPermission={["departments", "view"]}>
+                  <DepartmentsPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Staff Management */}
-            <Route path="/staff" element={
-              <ProtectedRoute requiredPermission={["staff", "view"]}>
-                <StaffListPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/staff/new" element={
-              <ProtectedRoute requiredPermission={["staff", "create"]}>
-                <StaffFormPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/staff/:id" element={
-              <ProtectedRoute requiredAnyPermissions={[["staff", "view"], ["staff", "update"]]}>
-                <StaffFormPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute requiredPermission={["staff", "view"]}>
+                  <StaffListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/new"
+              element={
+                <ProtectedRoute requiredPermission={["staff", "create"]}>
+                  <StaffFormPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/:id"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["staff", "view"],
+                    ["staff", "update"],
+                  ]}
+                >
+                  <StaffFormPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Research & Publications */}
-            <Route path="/research" element={
-              <ProtectedRoute requiredPermission={["research", "view"]}>
-                <ResearchPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/research/publications" element={
-              <ProtectedRoute requiredPermission={["publications", "view"]}>
-                <PublicationsPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/research"
+              element={
+                <ProtectedRoute requiredPermission={["research", "view"]}>
+                  <ResearchPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/research/publications"
+              element={
+                <ProtectedRoute requiredPermission={["publications", "view"]}>
+                  <PublicationsPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Students & Student Life */}
-            <Route path="/students" element={
-              <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                <StudentsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/students/alumni" element={
-              <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                <AlumniPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/students/life" element={
-              <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                <StudentLifePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/students/clubs" element={
-              <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                <ClubsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/students/careers" element={
-              <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                <CareersPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/students"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <StudentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/alumni"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <AlumniPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/life"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <StudentLifePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/clubs"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <ClubsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/careers"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <CareersPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Academic (courses, programs, calendar) */}
-            <Route path="/academic" element={
-              <ProtectedRoute requiredAnyPermissions={[["courses", "view"], ["programs", "view"], ["calendar", "view"]]}>
-                <AcademicPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/academic"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["courses", "view"],
+                    ["programs", "view"],
+                    ["calendar", "view"],
+                  ]}
+                >
+                  <AcademicPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Downloads */}
-            <Route path="/downloads" element={
-              <ProtectedRoute requiredPermission={["downloads", "view"]}>
-                <DownloadsPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/downloads"
+              element={
+                <ProtectedRoute requiredPermission={["downloads", "view"]}>
+                  <DownloadsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* News */}
+            <Route
+              path="/news"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["news", "view"],
+                    ["news", "create"],
+                    ["news", "update"],
+                  ]}
+                >
+                  <NewsPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Events */}
+            <Route
+              path="/events"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["events", "view"],
+                    ["events", "create"],
+                    ["events", "update"],
+                  ]}
+                >
+                  <EventsPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Contact - accessible to all */}
             <Route path="/contact" element={<ContactPage />} />
-            
+
             {/* Approval */}
-            <Route path="/approval" element={
-              <ProtectedRoute requiredAnyPermissions={[
-                ["pages", "publish"],
-                ["news", "publish"],
-                ["events", "publish"],
-                ["programs", "publish"],
-              ]}>
-                <ApprovalPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/approval"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["pages", "publish"],
+                    ["news", "publish"],
+                    ["events", "publish"],
+                    ["programs", "publish"],
+                  ]}
+                >
+                  <ApprovalPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Roles Management */}
-            <Route path="/roles" element={
-              <ProtectedRoute requiredPermission={["roles", "view"]}>
-                <RolesPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/roles/create" element={
-              <ProtectedRoute requiredPermission={["roles", "create"]}>
-                <RoleFormPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/roles/:id/edit" element={
-              <ProtectedRoute requiredAnyPermissions={[["roles", "view"], ["roles", "create"]]}>
-                <RoleFormPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/roles"
+              element={
+                <ProtectedRoute requiredPermission={["roles", "view"]}>
+                  <RolesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles/create"
+              element={
+                <ProtectedRoute requiredPermission={["roles", "create"]}>
+                  <RoleFormPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles/:id/edit"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["roles", "view"],
+                    ["roles", "create"],
+                  ]}
+                >
+                  <RoleFormPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Users Management */}
-            <Route path="/users" element={
-              <ProtectedRoute requiredPermission={["users", "view"]}>
-                <UsersPage />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute requiredPermission={["users", "view"]}>
+                  <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Settings - accessible to all authenticated users for profile */}
             <Route path="/settings/*" element={<SettingsPage />} />
           </Routes>
         </Content>
       </Layout>
     </Layout>
-  )
-}
+  );
+};
 
-export default DashboardLayout
+export default DashboardLayout;

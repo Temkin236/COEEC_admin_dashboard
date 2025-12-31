@@ -24,6 +24,8 @@ export const SIDEBAR_TEXT: Record<
     downloads: string
     contact: string
     approvals: string
+    news: string
+    events: string
   }
 > = {
   en: {
@@ -48,6 +50,8 @@ export const SIDEBAR_TEXT: Record<
     downloads: "Downloads",
     contact: "Contact & Feedback",
     approvals: "Approvals",
+    news: "News",
+    events: "Events",
   },
   am: {
     dashboard: "ዳሽቦርድ",
@@ -71,6 +75,8 @@ export const SIDEBAR_TEXT: Record<
     downloads: "ዳውንሎድ",
     contact: "እውቂያ & አስተያየት",
     approvals: "አጽድቆ ማጽደቅ",
+    news: "ዜና",
+    events: "ዝግጅቶች",
   },
   af: {
     dashboard: "Daashboordii",
@@ -94,5 +100,7 @@ export const SIDEBAR_TEXT: Record<
     downloads: "Buufannoowwan",
     contact: "Quunnamtii & Yaada",
     approvals: "Hayyama",
+    news: "Oduu",
+    events: "Taateewwan",
   },
 }
