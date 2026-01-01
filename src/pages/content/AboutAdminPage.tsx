@@ -149,6 +149,44 @@ const AboutAdminPage = () => {
   return (
     <>
       <div className="space-y-4">
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
+          <React.Fragment>
+            {activeTab === "1" && (
+              <AboutHistorySection
+                sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
+                sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
+                sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
+                sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
+                timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
+              />
+            )}
+            {activeTab === "2" && (
+              <MissionVisionSection
+                mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}
+                vision={form.getFieldValue('vision') || about.items[0]?.vision || ''}
+                missionIcon={form.getFieldValue('missionIcon') || about.items[0]?.missionIcon || 'AimOutlined'}
+                visionIcon={form.getFieldValue('visionIcon') || about.items[0]?.visionIcon || 'EyeOutlined'}
+                missionTitle={form.getFieldValue('missionTitle') || about.items[0]?.missionTitle || 'Our Mission'}
+                visionTitle={form.getFieldValue('visionTitle') || about.items[0]?.visionTitle || 'Our Vision'}
+              />
+            )}
+            {activeTab === "3" && (
+              <DeanMessageSection
+                leadershipLabel={form.getFieldValue('deanLeadershipLabel') || about.items[0]?.deanLeadershipLabel || 'LEADERSHIP'}
+                sectionTitle={form.getFieldValue('deanSectionTitle') || about.items[0]?.deanSectionTitle || 'Building the Future of Engineering'}
+                quote={form.getFieldValue('deanQuote') || about.items[0]?.deanQuote || 'We are not just teaching engineering; we are cultivating the mindset of innovation that will drive Ethiopia\'s digital transformation. Our students are the architects of tomorrow.'}
+                detail={form.getFieldValue('deanDetail') || about.items[0]?.deanDetail || 'Welcome to the College of Electrical Engineering and Computing (COEEC). For over three decades, we have been at the forefront of technological advancement in the region. Our curriculum balances rigorous theoretical foundations with hands-on practical experience, ensuring our graduates are industry-ready from day one.\nI invite you to explore our vibrant community, where cutting-edge research meets social impact.'}
+                deanName={form.getFieldValue('deanName') || about.items[0]?.deanName || ''}
+                deanTitle={form.getFieldValue('deanTitle') || about.items[0]?.deanTitle || ''}
+                deanMessage={form.getFieldValue('deanMessage') || about.items[0]?.deanMessage || ''}
+                deanImage={form.getFieldValue('deanImage') || about.items[0]?.deanImage || ''}
+                signature={form.getFieldValue('deanSignature') || about.items[0]?.deanSignature || ''}
+              />
+            )}
+            {/* Core Values and Administration previews handled below when activeTab matches */}
+          </React.Fragment>
+        </div>
         <Card
           title="About the College - Admin Editor"
         >
@@ -564,44 +602,7 @@ const AboutAdminPage = () => {
             </Tabs>
           </Form>
         </Card>
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
-        <React.Fragment>
-          {activeTab === "1" && (
-            <AboutHistorySection
-              sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
-              sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
-              sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
-              sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
-              timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
-            />
-          )}
-          {activeTab === "2" && (
-            <MissionVisionSection
-              mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}
-              vision={form.getFieldValue('vision') || about.items[0]?.vision || ''}
-              missionIcon={form.getFieldValue('missionIcon') || about.items[0]?.missionIcon || 'AimOutlined'}
-              visionIcon={form.getFieldValue('visionIcon') || about.items[0]?.visionIcon || 'EyeOutlined'}
-              missionTitle={form.getFieldValue('missionTitle') || about.items[0]?.missionTitle || 'Our Mission'}
-              visionTitle={form.getFieldValue('visionTitle') || about.items[0]?.visionTitle || 'Our Vision'}
-            />
-          )}
-          {activeTab === "3" && (
-            <DeanMessageSection
-              leadershipLabel={form.getFieldValue('deanLeadershipLabel') || about.items[0]?.deanLeadershipLabel || 'LEADERSHIP'}
-              sectionTitle={form.getFieldValue('deanSectionTitle') || about.items[0]?.deanSectionTitle || 'Building the Future of Engineering'}
-              quote={form.getFieldValue('deanQuote') || about.items[0]?.deanQuote || 'We are not just teaching engineering; we are cultivating the mindset of innovation that will drive Ethiopia\'s digital transformation. Our students are the architects of tomorrow.'}
-              detail={form.getFieldValue('deanDetail') || about.items[0]?.deanDetail || 'Welcome to the College of Electrical Engineering and Computing (COEEC). For over three decades, we have been at the forefront of technological advancement in the region. Our curriculum balances rigorous theoretical foundations with hands-on practical experience, ensuring our graduates are industry-ready from day one.\nI invite you to explore our vibrant community, where cutting-edge research meets social impact.'}
-              deanName={form.getFieldValue('deanName') || about.items[0]?.deanName || ''}
-              deanTitle={form.getFieldValue('deanTitle') || about.items[0]?.deanTitle || ''}
-              deanMessage={form.getFieldValue('deanMessage') || about.items[0]?.deanMessage || ''}
-              deanImage={form.getFieldValue('deanImage') || about.items[0]?.deanImage || ''}
-              signature={form.getFieldValue('deanSignature') || about.items[0]?.deanSignature || ''}
-            />
-          )}
-          {/* ...existing code for Core Values and Administration tabs... */}
-        </React.Fragment>
-      </div>
+      
         {activeTab === "2" && (
           <MissionVisionSection
             mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}

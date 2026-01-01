@@ -49,6 +49,8 @@ import StaffListPage from "@/pages/staff/StaffListPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
 import ResearchPage from "@/pages/research/ResearchPage";
 import PublicationsPage from "@/pages/research/PublicationsPage";
+import AboutPage from "@/pages/content/AboutPage";
+import AboutAdminPage from "@/pages/content/AboutAdminPage";
 /* Students pages removed from layout: /students route and submenu */
 import AcademicPage from "@/pages/academic/AcademicPage";
 import DownloadsPage from "@/pages/downloads/DownloadsPage";
@@ -298,6 +300,13 @@ const DashboardLayout = () => {
         });
       }
     }
+
+    // About (public page) - visible to all authenticated users (no permission required)
+    items.push({
+      key: "/content/about",
+      icon: <FileTextOutlined />,
+      label: <Link to="/content/about">{SIDEBAR_TEXT[currentLanguage].about}</Link>,
+    });
 
     // Students section removed
 
@@ -664,6 +673,25 @@ const DashboardLayout = () => {
 
             {/* Contact - public page: shows form for public users, admin UI for users with contact.view */}
             <Route path="/contact" element={<ContactPage />} />
+
+            {/* Public About page (no permission required) */}
+            <Route path="/content/about" element={<AboutPage />} />
+
+            {/* Admin editor for About page */}
+            <Route
+              path="/content/about/admin"
+              element={
+                <ProtectedRoute
+                  requiredAnyPermissions={[
+                    ["departments", "update"],
+                    ["news", "update"],
+                    ["research", "update"],
+                  ]}
+                >
+                  <AboutAdminPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Approval route removed per project requirement */}
 
