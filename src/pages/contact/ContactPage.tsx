@@ -1,44 +1,63 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Tag, Button, Space, Modal, Descriptions, Select, message } from "antd"
-import { EyeOutlined, CheckOutlined } from "@ant-design/icons"
+import { Card, Table, Tag, Button, Space, Modal, Descriptions, Tabs, message, Tooltip } from "antd"
+import { EyeOutlined, CheckOutlined, DeleteOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchContacts, updateContactStatus } from "@/store/slices/contactSlice"
+import { fetchContacts, fetchContactById, deleteContact, handleContact } from "@/store/slices/contactSlice"
 import { formatDate, formatRelativeTime } from "@/utils/helpers"
 import { usePermissions } from "@/hooks/usePermissions"
 
 const ContactPage = () => {
   const dispatch = useAppDispatch()
-  const { items, loading } = useAppSelector((state) => state.contact)
+  const { items, loading, selected } = useAppSelector((state) => state.contact)
+
   const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [selectedMessage, setSelectedMessage] = useState<any>(null)
-  const [statusFilter, setStatusFilter] = useState<string>("")
-  const { canView, canUpdate } = usePermissions()
+  const [activeTab, setActiveTab] = useState("new")
+
+  const { canView, canUpdate, can } = usePermissions()
 
   const hasContactView = canView("contact")
   const hasContactUpdate = canUpdate("contact")
+  const hasContactHandle = can && can("contact", "handle")
+  const hasContactDelete = can && can("contact", "delete")
 
   useEffect(() => {
-    dispatch(fetchContacts({ page: 1, limit: 10, status: statusFilter }) as any)
-  }, [dispatch, statusFilter])
+    dispatch(fetchContacts({ page: 1, limit: 10 }) as any)
+  }, [dispatch])
 
-  const handleView = (record: any) => {
-    setSelectedMessage(record)
+  const newItems = Array.isArray(items) ? items.filter((i) => !i.handledAt) : []
+  const handledItems = Array.isArray(items) ? items.filter((i) => !!i.handledAt) : []
+
+  const handleView = async (record: any) => {
+    await dispatch(fetchContactById(record.id) as any)
     setViewModalOpen(true)
   }
 
-  const handleStatusUpdate = async (id: number, status: string) => {
+  const handleStatusUpdate = async (id: string | number) => {
     try {
-      await dispatch(updateContactStatus({ id, status }) as any).unwrap()
-      message.success(`Message marked as ${status}`)
-    } catch (error) {
+      await dispatch(handleContact({ id }) as any).unwrap()
+      message.success("Contact marked as handled")
+      dispatch(fetchContacts({ page: 1, limit: 10 }) as any)
+    } catch {
       message.error("Failed to update status")
     }
   }
 
+  const handleDelete = async (id: string | number) => {
+    Modal.confirm({
+      title: "Delete Contact",
+      content: "Are you sure you want to delete this message?",
+      okText: "Delete",
+      okType: "danger",
+      onOk: async () => {
+        await dispatch(deleteContact(id) as any)
+        message.success("Contact deleted")
+      },
+    })
+  }
+
   const columns = [
-    { title: "Name", dataIndex: "name", key: "name" },
     { title: "Email", dataIndex: "email", key: "email" },
     { title: "Subject", dataIndex: "subject", key: "subject", ellipsis: true },
     {
@@ -46,35 +65,55 @@ const ContactPage = () => {
       dataIndex: "status",
       key: "status",
       render: (status: string) => {
-        const colors: Record<string, any> = {
+        const colors: Record<string, string> = {
           new: "blue",
           read: "default",
-          responded: "success",
+          responded: "green",
           archived: "default",
         }
         return <Tag color={colors[status]}>{status}</Tag>
       },
     },
-    { title: "Received", dataIndex: "createdAt", key: "createdAt", render: (date: string | Date) => formatRelativeTime(date) },
-    ...((hasContactView || hasContactUpdate) ? [{
+    {
+      title: "Received",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) => formatRelativeTime(date),
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (_: any, record: any) => (
         <Space>
-          {hasContactView && (
+          <Tooltip title="View">
             <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          )}
-          {hasContactUpdate && record.status === "new" && (
-            <Button type="text" icon={<CheckOutlined />} onClick={() => handleStatusUpdate(record.id, "responded")} />
-          )}
+          </Tooltip>
+
+          {!record.handledAt ? (
+            <Tooltip title="Mark handled">
+              <span>
+                <Button
+                  type="text"
+                  icon={<CheckOutlined />}
+                  onClick={() => handleStatusUpdate(record.id)}
+                />
+              </span>
+            </Tooltip>
+          ) : null}
+
+          <Tooltip title="Delete">
+            <span>
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handleDelete(record.id)}
+              />
+            </span>
+          </Tooltip>
         </Space>
       ),
-    }] : []),
-  ]
-
-  const mockData = [
-    { id: 1, name: "John Doe", email: "john@example.com", subject: "Inquiry about admission", message: "I would like to know more about the admission process...", status: "new", createdAt: new Date("2024-01-20") },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", subject: "Research collaboration", message: "I am interested in collaborating on a research project...", status: "responded", createdAt: new Date("2024-01-18") },
+    },
   ]
 
   return (
@@ -82,41 +121,63 @@ const ContactPage = () => {
       <Card
         title="Contact & Feedback"
         extra={
-          <Select placeholder="Filter by status" style={{ width: 150 }} onChange={setStatusFilter} allowClear>
-            <Select.Option value="new">New</Select.Option>
-            <Select.Option value="read">Read</Select.Option>
-            <Select.Option value="responded">Responded</Select.Option>
-            <Select.Option value="archived">Archived</Select.Option>
-          </Select>
+          <Tabs activeKey={activeTab} onChange={(k) => setActiveTab(k)}>
+            <Tabs.TabPane tab={`New (${newItems.length})`} key="new" />
+            <Tabs.TabPane tab={`Handled (${handledItems.length})`} key="handled" />
+          </Tabs>
         }
       >
-        <Table columns={columns as any} dataSource={mockData} loading={!!loading} rowKey="id" pagination={{ pageSize: 10 }} />
+        <Table
+          columns={columns}
+          dataSource={activeTab === "new" ? newItems : handledItems}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+        />
       </Card>
 
       <Modal
         title="Message Details"
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
+        width={700}
         footer={[
           <Button key="close" onClick={() => setViewModalOpen(false)}>
             Close
           </Button>,
-          <Button key="respond" type="primary" onClick={() => message.info("Respond feature coming soon")}>
+          <Button
+            key="respond"
+            type="primary"
+            onClick={() => message.info("Respond feature coming soon")}
+          >
             Respond
           </Button>,
         ]}
-        width={700}
       >
-        {selectedMessage && (
+        {selected && (
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Name">{selectedMessage.name}</Descriptions.Item>
-            <Descriptions.Item label="Email">{selectedMessage.email}</Descriptions.Item>
-            <Descriptions.Item label="Subject">{selectedMessage.subject}</Descriptions.Item>
-            <Descriptions.Item label="Message">{selectedMessage.message}</Descriptions.Item>
+            <Descriptions.Item label="Name">{selected.name}</Descriptions.Item>
+            <Descriptions.Item label="Email">{selected.email}</Descriptions.Item>
+            {selected.category && (
+              <Descriptions.Item label="Category">{selected.category}</Descriptions.Item>
+            )}
+            <Descriptions.Item label="Message">{selected.message}</Descriptions.Item>
             <Descriptions.Item label="Status">
-              <Tag color="blue">{selectedMessage.status}</Tag>
+              <Tag color="blue">{selected.status}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Received">{formatDate(selectedMessage.createdAt)}</Descriptions.Item>
+            {selected.handledBy && (
+              <Descriptions.Item label="Handled By">
+                {selected.handledBy.displayName || selected.handledBy.id}
+              </Descriptions.Item>
+            )}
+            {selected.handledAt && (
+              <Descriptions.Item label="Handled At">
+                {formatDate(selected.handledAt)}
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="Received">
+              {formatDate(selected.createdAt)}
+            </Descriptions.Item>
           </Descriptions>
         )}
       </Modal>

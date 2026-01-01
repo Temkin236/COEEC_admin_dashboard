@@ -1,5 +1,8 @@
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons"
-import { Button, Card, Col, DatePicker, Divider, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, message } from "antd"
+import { Button, Card, Col, DatePicker, Divider, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, message, Descriptions } from "antd"
+import ProgramsTab from "./components/ProgramsTab"
+import CoursesTab from "./components/CoursesTab"
+import CalendarTab from "./components/CalendarTab"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
 import dayjs from 'dayjs'
@@ -76,7 +79,7 @@ const AcademicPage = () => {
   
   // Active calendar selection
   const [activeCalendar, setActiveCalendar] = useState<any | null>(null)
-
+  
   const calendarEvents = Array.isArray(events) ? events : []  // Ensure it's always an array
 
   // Columns for academic calendars list
@@ -180,8 +183,8 @@ const AcademicPage = () => {
             )}
           </Space>
         )
-      } 
-    }
+      },
+    },
   ]
 
   const handlePublishEvent = async (id: string | number) => {
@@ -310,10 +313,10 @@ const AcademicPage = () => {
     try {
       if (editingAcademicCalendar) {
         await dispatch(updateCalendar({ id: editingAcademicCalendar.id, data: payload })).unwrap()
-        message.success('Academic calendar updated successfully!')
+        message.success("Academic calendar updated successfully!")
       } else {
         await dispatch(createCalendar(payload)).unwrap()
-        message.success('Academic calendar created successfully!')
+        message.success("Academic calendar created successfully!")
       }
       setAcademicCalendarModalOpen(false)
       academicCalendarForm.resetFields()
@@ -541,6 +544,7 @@ const AcademicPage = () => {
             <TableActions
               resource="programs"
               onView={() => openView(record)}
+              forceView={true}
               onEdit={() => openEdit(record)}
               onDelete={() => handleDelete(record.id)}
               record={record}
@@ -605,6 +609,7 @@ const AcademicPage = () => {
             <TableActions
               resource="courses"
               onView={() => openViewCourse(record)}
+              forceView={true}
               onEdit={() => openEditCourse(record)}
               onDelete={() => handleDeleteCourse(record.id)}
               record={record}
@@ -714,13 +719,9 @@ const AcademicPage = () => {
 
   // Fetch programs on mount
   useEffect(() => {
-    if (hasProgramsView) {
-      dispatch(fetchPrograms())
-    }
-
-    if (canView("departments")) {
-      dispatch(fetchDepartments())
-    }
+    // Always fetch programs and departments so UI can display existing data
+    dispatch(fetchPrograms())
+    dispatch(fetchDepartments())
 
     if (hasCalendarView) {
       dispatch(fetchCalendars())
@@ -744,169 +745,87 @@ const AcademicPage = () => {
     <div className="space-y-4">
       <Card title="Academic Information">
         <Tabs defaultActiveKey="1">
-          {hasProgramsView && (
+          {(hasProgramsView || programs.length > 0) && (
             <TabPane tab="Programs" key="1">
-              <div className="mb-4">
-                {hasProgramsCreate && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Program</Button>
-                )}
-              </div>
-              <Table
-                columns={programColumns as any}
-                dataSource={programs}
-                rowKey="id"
-                pagination={false}
-                rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-                onRow={(record) => ({
-                  onClick: () => {
-                    if (hasProgramsView) {
-                      openView(record)
-                    } else {
-                      message.warning('You do not have permission to view programs')
-                    }
-                  },
-                })}
+              <ProgramsTab
+                programs={programs}
+                hasProgramsCreate={hasProgramsCreate}
+                openAdd={openAdd}
+                programColumns={programColumns}
+                hasProgramsView={hasProgramsView}
+                openView={openView}
               />
             </TabPane>
           )}
 
-          {hasCoursesView && (
+          {(hasCoursesView || courses.length > 0) && (
             <TabPane tab="Courses" key="2">
-              <div className="mb-4">
-                {hasCoursesCreate && (
-                  <Button type="primary" icon={<PlusOutlined />} onClick={openAddCourse}>Add Course</Button>
-                )}
-              </div>
-              <Table
-                columns={courseColumns as any}
-                dataSource={courses}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-                rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-                onRow={(record) => ({ onClick: () => {
-                  if (hasCoursesView) {
-                    openViewCourse(record)
-                  } else {
-                    message.warning('You do not have permission to view courses')
-                  }
-                } })}
+              <CoursesTab
+                courses={courses}
+                hasCoursesCreate={hasCoursesCreate}
+                openAddCourse={openAddCourse}
+                courseColumns={courseColumns}
+                hasCoursesView={hasCoursesView}
+                openViewCourse={openViewCourse}
               />
             </TabPane>
           )}
 
-          {hasCalendarView && (
+          {(hasCalendarView || calendars.length > 0) && (
             <TabPane tab="Academic Calendar" key="3">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1">
-                  <div className="text-2xl font-bold text-blue-900 mb-2">Academic Calendar</div>
-                  {calendars.length > 0 ? (
-                    <Select
-                      style={{ width: 300 }}
-                      placeholder="Select academic calendar"
-                      value={activeCalendar?.id}
-                      onChange={(id) => {
-                        const selected = calendars.find(c => c.id === id)
-                        setActiveCalendar(selected || null)
-                      }}
-                    >
-                      {calendars.map(cal => (
-                        <Select.Option key={cal.id} value={cal.id}>
-                          {cal.title} - {cal.academicYear} ({cal.semester})
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <div className="text-sm text-gray-500">No academic calendars available. Create one to get started.</div>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <a className="text-blue-700 mr-4 cursor-pointer" onClick={() => handleDownloadPdf()}>Download PDF</a>
-                  {hasCalendarCreate && (
-                    <Button type="primary" onClick={() => openAddAcademicCalendar()}>New Academic Calendar</Button>
-                  )}
-                  {hasCalendarCreate && (
-                    <Button type="primary" onClick={() => openAddCalendar()}>Add Event</Button>
-                  )}
-                  {hasNewsCreate && (
-                    <Button type="primary" onClick={() => openAddAnnouncement()}>Add Announcement</Button>
-                  )}
-                </div>
-              </div>
-              <Row gutter={24}>
-                <Col xs={24}>
-                  <Card title="Academic Calendars" className="mb-4">
-                    <Table
-                      columns={academicCalendarColumns as any}
-                      dataSource={calendars}
-                      rowKey="id"
-                      pagination={false}
-                      loading={calendarState.loading}
-                      size="small"
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              <Row gutter={24}>
-                <Col xs={24} md={16}>
-                  <Card title="Events">
-                    <Table
-                      columns={calendarColumns as any}
-                      dataSource={calendarEvents}
-                      rowKey="id"
-                      pagination={false}
-                      loading={eventsState.loading}
-                      rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
-                      onRow={(record) => ({ onClick: () => {
-                        if (hasCalendarView) {
-                          openViewCalendar(record)
+              <CalendarTab
+                calendars={calendars}
+                activeCalendar={activeCalendar}
+                setActiveCalendar={setActiveCalendar}
+                handleDownloadPdf={handleDownloadPdf}
+                hasCalendarCreate={hasCalendarCreate}
+                openAddAcademicCalendar={openAddAcademicCalendar}
+                openAddCalendar={openAddCalendar}
+                calendarsLoading={calendarState.loading}
+                calendarEvents={calendarEvents}
+                calendarColumns={calendarColumns}
+                eventsLoading={eventsState.loading}
+                openViewCalendar={openViewCalendar}
+              />
+              <Card>
+                <div className="text-xl font-semibold">Announcements</div>
+                <Divider />
+                <div className="text-sm text-gray-600 mb-4">
+                    {announcements.map((a) => (
+                      <div key={a.id} className="mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => {
+                        if (hasNewsView) {
+                          annForm.setFieldsValue({ title: a.title, body: a.body });
+                          setAnnModalOpen(true);
                         } else {
-                          message.warning('You do not have permission to view calendar events')
+                          message.warning('You do not have permission to view announcements')
                         }
-                      } })}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={24} md={8}>
-                  <Card>
-                    <div className="text-xl font-semibold">Announcements</div>
-                    <Divider />
-                    <div className="text-sm text-gray-600 mb-4">
-                        {announcements.map((a) => (
-                          <div key={a.id} className="mb-4 cursor-pointer hover:bg-gray-50 p-2 rounded" onClick={() => {
-                            if (hasNewsView) {
-                              annForm.setFieldsValue({ title: a.title, body: a.body });
-                              setAnnModalOpen(true);
-                            } else {
-                              message.warning('You do not have permission to view announcements')
-                            }
-                          }}>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <div className="font-semibold">{a.title}</div>
-                                <div className="text-xs text-gray-400">{a.createdAt.format('MMM D, YYYY HH:mm')}</div>
-                              </div>
-                              <div className="ml-4">
-                                {hasNewsUpdate && (
-                                  <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); annForm.setFieldsValue({ title: a.title, body: a.body }); setAnnModalOpen(true); }} />
-                                )}
-                                {hasNewsDelete && (
-                                  <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteAnnouncement(a.id) }} />
-                                )}
-                              </div>
-                            </div>
-                            <div className="mt-2 text-gray-600">{a.body}</div>
+                      }}>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-semibold">{a.title}</div>
+                            <div className="text-xs text-gray-400">{a.createdAt.format('MMM D, YYYY HH:mm')}</div>
                           </div>
-                        ))}
-
-                      <div className="mt-4">
-                        <Button block onClick={() => setAnnArchiveOpen(true)}>View All Archives</Button>
+                          <div className="ml-4">
+                            {hasNewsUpdate && (
+                              <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); annForm.setFieldsValue({ title: a.title, body: a.body }); setAnnModalOpen(true); }} />
+                            )}
+                            {hasNewsDelete && (
+                              <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDeleteAnnouncement(a.id) }} />
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-2 text-gray-600">{a.body}</div>
                       </div>
-                    </div>
-                  </Card>
-                </Col>
-              </Row>
+                    ))}
+
+                  <div className="mt-4">
+                    <Button block onClick={() => setAnnArchiveOpen(true)}>View All Archives</Button>
+                  </div>
+                </div>
+              </Card>
             </TabPane>
           )}
+
         </Tabs>
       </Card>
 
@@ -915,16 +834,26 @@ const AcademicPage = () => {
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
         footer={[<Button key="close" onClick={() => setViewModalOpen(false)}>Close</Button>]}
-        width={600}
+        width={700}
       >
         {viewProgram && (
-          <div>
-            <h3 style={{ marginBottom: 8 }}>{viewProgram.name}</h3>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Department:</b> {viewProgram.department}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Level:</b> {viewProgram.level}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Duration:</b> {viewProgram.duration}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Credits:</b> {viewProgram.credits}</div>
-          </div>
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Program Name">{viewProgram.title || viewProgram.name}</Descriptions.Item>
+            <Descriptions.Item label="Code">{viewProgram.code}</Descriptions.Item>
+            <Descriptions.Item label="Level">{viewProgram.level}</Descriptions.Item>
+            <Descriptions.Item label="Duration">{viewProgram.durationMonths ?? viewProgram.duration ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Credits">{viewProgram.credits ?? 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="State"><Tag color={viewProgram.state === 'PUBLISHED' ? 'green' : 'orange'}>{viewProgram.state || 'DRAFT'}</Tag></Descriptions.Item>
+            {viewProgram.department && (
+              <Descriptions.Item label="Department">
+                <div style={{ fontWeight: 600 }}>{viewProgram.department.name}</div>
+                <div style={{ color: '#666' }}>{viewProgram.department.slug}</div>
+                {viewProgram.department.description && <div style={{ marginTop: 8 }}>{typeof viewProgram.department.description === 'string' ? viewProgram.department.description : JSON.stringify(viewProgram.department.description)}</div>}
+              </Descriptions.Item>
+            )}
+            <Descriptions.Item label="Created At">{viewProgram.createdAt ? dayjs(viewProgram.createdAt).format('MMM D, YYYY HH:mm') : ''}</Descriptions.Item>
+            <Descriptions.Item label="Updated At">{viewProgram.updatedAt ? dayjs(viewProgram.updatedAt).format('MMM D, YYYY HH:mm') : ''}</Descriptions.Item>
+          </Descriptions>
         )}
       </Modal>
 
@@ -1031,128 +960,6 @@ const AcademicPage = () => {
             {/* Level Removed From Details */}
           </div>
         )}
-      </Modal>
-
-      {/* Calendar Modal */}
-      <Modal
-        title={calendarEditing ? 'Edit Event' : 'Add Event'}
-        open={calendarModalOpen}
-        onCancel={() => {
-          setCalendarModalOpen(false)
-          setCalendarEditing(null)
-          calendarForm.resetFields()
-        }}
-        onOk={() => calendarForm.submit()}
-        width={600}
-      >
-        <Form form={calendarForm} layout="vertical" onFinish={handleCalendarSubmit}>
-          <Form.Item name="title" label="Event Title" rules={[{ required: true, message: 'Enter event title' }]}>
-            <Input placeholder="e.g., Mid-Semester Examinations" />
-          </Form.Item>
-          <Form.Item 
-            name="slug" 
-            label="Event Slug" 
-            rules={[{ required: true, message: 'Enter event slug (URL-friendly identifier)' }]}
-          >
-            <Input placeholder="e.g., mid-semester-exam-2025" />
-          </Form.Item>
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={3} placeholder="Event description (optional)" />
-          </Form.Item>
-          <Form.Item name="startDate" label="Start Date" rules={[{ required: true, message: 'Select start date' }]}>
-            <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" />
-          </Form.Item>
-          <Form.Item name="endDate" label="End Date" rules={[{ required: true, message: 'Select end date' }]}>
-            <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss" />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="Calendar Event Details"
-        open={calendarViewModalOpen}
-        onCancel={() => setCalendarViewModalOpen(false)}
-        footer={[<Button key="close" onClick={() => setCalendarViewModalOpen(false)}>Close</Button>]}
-        width={600}
-      >
-        {calendarView && (
-          <div>
-            <h3 style={{ marginBottom: 8 }}>{calendarView.title}</h3>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Slug:</b> {calendarView.slug || 'N/A'}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Start Date:</b> {(calendarView.startAt || calendarView.startDate) ? dayjs(calendarView.startAt || calendarView.startDate).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>End Date:</b> {(calendarView.endAt || calendarView.endDate) ? dayjs(calendarView.endAt || calendarView.endDate).format('MMM D, YYYY HH:mm') : 'N/A'}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Description:</b> {calendarView.description || 'N/A'}</div>
-            <div style={{ color: '#555', marginBottom: 6 }}><b>Status:</b> {calendarView.state || 'DRAFT'}</div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        title="Add Announcement"
-        open={annModalOpen}
-        onCancel={() => setAnnModalOpen(false)}
-        onOk={() => annForm.submit()}
-        okButtonProps={{ type: 'primary' }}
-        width={600}
-      >
-        <Form form={annForm} layout="vertical" onFinish={handleAnnouncementSubmit}>
-          <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Enter a title' }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="body" label="Message" rules={[{ required: true, message: 'Enter message' }]}>
-            <Input.TextArea rows={4} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Academic Calendar Creation Modal */}
-      <Modal
-        title={editingAcademicCalendar ? 'Edit Academic Calendar' : 'Create Academic Calendar'}
-        open={academicCalendarModalOpen}
-        onCancel={() => {
-          setAcademicCalendarModalOpen(false)
-          setEditingAcademicCalendar(null)
-        }}
-        onOk={() => academicCalendarForm.submit()}
-        okButtonProps={{ type: 'primary' }}
-        width={500}
-      >
-        <Form form={academicCalendarForm} layout="vertical" onFinish={handleAcademicCalendarSubmit}>
-          <Form.Item 
-            name="title" 
-            label="Calendar Title" 
-            rules={[{ required: true, message: 'Enter calendar title' }]}
-          >
-            <Input placeholder="e.g., Semester I Calendar" />
-          </Form.Item>
-          <Form.Item 
-            name="academicYear" 
-            label="Academic Year" 
-            rules={[{ required: true, message: 'Enter academic year' }]}
-          >
-            <Input placeholder="e.g., 2025/2026" />
-          </Form.Item>
-          <Form.Item 
-            name="semester" 
-            label="Semester" 
-            rules={[{ required: true, message: 'Enter semester' }]}
-          >
-            <Input placeholder="e.g., Semester I or Semester II" />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="Announcements Archive"
-        open={annArchiveOpen}
-        onCancel={() => setAnnArchiveOpen(false)}
-        footer={null}
-        width={800}
-      >
-        <div className="mb-4">
-          <Input.Search placeholder="Search announcements" allowClear value={annArchiveSearch} onChange={(e) => setAnnArchiveSearch(e.target.value)} onSearch={(v) => setAnnArchiveSearch(v)} />
-        </div>
-        <Table columns={archiveColumns as any} dataSource={filteredAnnouncements} rowKey="id" pagination={{ pageSize: 6 }} />
       </Modal>
     </div>
   )

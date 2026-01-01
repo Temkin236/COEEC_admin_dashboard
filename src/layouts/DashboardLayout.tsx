@@ -44,24 +44,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 // Pages
 import DashboardPage from "@/pages/dashboard/DashboardPage";
-import HomePage from "@/pages/content/HomePage";
-import AboutPage from "@/pages/content/AboutPage";
 import DepartmentsPage from "@/pages/content/DepartmentsPage";
-import HomeAdminPage from "@/pages/content/HomeAdminPage";
-import AboutAdminPage from "@/pages/content/AboutAdminPage";
 import StaffListPage from "@/pages/staff/StaffListPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
 import ResearchPage from "@/pages/research/ResearchPage";
 import PublicationsPage from "@/pages/research/PublicationsPage";
-import StudentsPage from "@/pages/students/StudentsPage";
-import AlumniPage from "@/pages/students/AlumniPage";
-import StudentLifePage from "@/pages/students/StudentLifePage";
-import ClubsPage from "@/pages/students/ClubsPage";
-import CareersPage from "@/pages/students/CareersPage";
+/* Students pages removed from layout: /students route and submenu */
 import AcademicPage from "@/pages/academic/AcademicPage";
 import DownloadsPage from "@/pages/downloads/DownloadsPage";
 import ContactPage from "@/pages/contact/ContactPage";
-import ApprovalPage from "@/pages/approval/ApprovalPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import RolesPage from "@/pages/roles/RolesPage";
 import RoleFormPage from "@/pages/roles/RoleFormPage";
@@ -177,43 +168,8 @@ const DashboardLayout = () => {
       label: <Link to="/">{SIDEBAR_TEXT[currentLanguage].dashboard}</Link>,
     });
 
-    // Content Management - pages and departments
-    const canPages = checkAnyPermission(permissions, [
-      ["pages", "view"],
-      ["pages", "create"],
-      ["pages", "update"],
-    ]);
-    const canDepartments = checkPermission(permissions, "departments", "view");
-
-    // Content pages (homepage, about). Departments will be a top-level item.
-    if (canPages) {
-      items.push({
-        key: "content",
-        icon: <FileTextOutlined />,
-        label: SIDEBAR_TEXT[currentLanguage].content,
-        children: [
-          {
-            key: "/content/homepage",
-            label: (
-              <Link to="/content/homepage-admin">
-                {SIDEBAR_TEXT[currentLanguage].homepage}
-              </Link>
-            ),
-          },
-          {
-            key: "/content/about-admin",
-            label: (
-              <Link to="/content/about-admin">
-                {SIDEBAR_TEXT[currentLanguage].about}
-              </Link>
-            ),
-          },
-        ],
-      });
-    }
-
-    // Departments as top-level (so it's not nested under Content)
-    if (canDepartments) {
+    // Departments as top-level
+    if (checkPermission(permissions, "departments", "view")) {
       items.push({
         key: "departments",
         icon: <FileTextOutlined />,
@@ -343,56 +299,7 @@ const DashboardLayout = () => {
       }
     }
 
-    // Students - studentlife
-    if (checkPermission(permissions, "studentlife", "view")) {
-      items.push({
-        key: "students",
-        icon: <BookOutlined />,
-        label: SIDEBAR_TEXT[currentLanguage].students,
-        children: [
-          {
-            key: "/students",
-            label: (
-              <Link to="/students">
-                {SIDEBAR_TEXT[currentLanguage].studentsAll}
-              </Link>
-            ),
-          },
-          {
-            key: "/students/alumni",
-            label: (
-              <Link to="/students/alumni">
-                {SIDEBAR_TEXT[currentLanguage].studentsAlumni}
-              </Link>
-            ),
-          },
-          {
-            key: "/students/life",
-            label: (
-              <Link to="/students/life">
-                {SIDEBAR_TEXT[currentLanguage].studentsLife}
-              </Link>
-            ),
-          },
-          {
-            key: "/students/clubs",
-            label: (
-              <Link to="/students/clubs">
-                {SIDEBAR_TEXT[currentLanguage].studentsClubs}
-              </Link>
-            ),
-          },
-          {
-            key: "/students/careers",
-            label: (
-              <Link to="/students/careers">
-                {SIDEBAR_TEXT[currentLanguage].studentsCareers}
-              </Link>
-            ),
-          },
-        ],
-      });
-    }
+    // Students section removed
 
     // Academic - courses, programs, calendar
     if (
@@ -452,30 +359,12 @@ const DashboardLayout = () => {
       });
     }
 
-    // Contact - always visible for messages
+    // Contact - visible to all (public contact form + admin view inside page)
     items.push({
       key: "/contact",
       icon: <MessageOutlined />,
       label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link>,
     });
-
-    // Approvals - if user has publish permissions on any resource
-    if (
-      checkAnyPermission(permissions, [
-        ["pages", "publish"],
-        ["news", "publish"],
-        ["events", "publish"],
-        ["programs", "publish"],
-      ])
-    ) {
-      items.push({
-        key: "/approval",
-        icon: <FileTextOutlined />,
-        label: (
-          <Link to="/approval">{SIDEBAR_TEXT[currentLanguage].approvals}</Link>
-        ),
-      });
-    }
 
     return items;
   }, [user?.permissions, currentLanguage]);
@@ -654,59 +543,7 @@ const DashboardLayout = () => {
           <Routes>
             <Route path="/" element={<DashboardPage />} />
 
-            {/* Content Pages */}
-            <Route
-              path="/content/homepage"
-              element={
-                <ProtectedRoute
-                  requiredAnyPermissions={[
-                    ["pages", "view"],
-                    ["pages", "update"],
-                  ]}
-                >
-                  <HomePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/content/homepage-admin"
-              element={
-                <ProtectedRoute
-                  requiredAnyPermissions={[
-                    ["pages", "view"],
-                    ["pages", "update"],
-                  ]}
-                >
-                  <HomeAdminPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/content/about-admin"
-              element={
-                <ProtectedRoute
-                  requiredAnyPermissions={[
-                    ["pages", "view"],
-                    ["pages", "update"],
-                  ]}
-                >
-                  <AboutAdminPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/content/about"
-              element={
-                <ProtectedRoute
-                  requiredAnyPermissions={[
-                    ["pages", "view"],
-                    ["pages", "update"],
-                  ]}
-                >
-                  <AboutPage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Content pages removed (homepage/about) per project requirement */}
             <Route
               path="/content/departments"
               element={
@@ -765,47 +602,7 @@ const DashboardLayout = () => {
               }
             />
 
-            {/* Students & Student Life */}
-            <Route
-              path="/students"
-              element={
-                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                  <StudentsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/students/alumni"
-              element={
-                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                  <AlumniPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/students/life"
-              element={
-                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                  <StudentLifePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/students/clubs"
-              element={
-                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                  <ClubsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/students/careers"
-              element={
-                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
-                  <CareersPage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Students routes removed */}
 
             {/* Academic (courses, programs, calendar) */}
             <Route
@@ -865,25 +662,10 @@ const DashboardLayout = () => {
               }
             />
 
-            {/* Contact - accessible to all */}
+            {/* Contact - public page: shows form for public users, admin UI for users with contact.view */}
             <Route path="/contact" element={<ContactPage />} />
 
-            {/* Approval */}
-            <Route
-              path="/approval"
-              element={
-                <ProtectedRoute
-                  requiredAnyPermissions={[
-                    ["pages", "publish"],
-                    ["news", "publish"],
-                    ["events", "publish"],
-                    ["programs", "publish"],
-                  ]}
-                >
-                  <ApprovalPage />
-                </ProtectedRoute>
-              }
-            />
+            {/* Approval route removed per project requirement */}
 
             {/* Roles Management */}
             <Route

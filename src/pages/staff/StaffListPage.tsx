@@ -7,7 +7,7 @@ import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icon
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaff, deleteStaff, setPage, setLimit } from "@/store/slices/staffSlice"
 import { getInitials } from "@/utils/helpers"
-import { DEPARTMENTS } from "@/utils/constants"
+import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
 
@@ -15,6 +15,7 @@ const StaffListPage = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { items, total, page, limit, loading } = useAppSelector((state) => state.staff)
+  const { items: departments = [] } = useAppSelector((state) => state.departments)
   const [filters, setFilters] = useState<{ search: string; department: string }>({ search: "", department: "" })
   const perms = usePermissions()
   const { canCreate, canView, canUpdate, canDelete, permissions: userPermissions } = perms
@@ -33,6 +34,10 @@ const StaffListPage = () => {
   useEffect(() => {
     dispatch((fetchStaff as any)({ page, limit, filters }))
   }, [dispatch, page, limit, filters])
+
+  useEffect(() => {
+    dispatch(fetchDepartments() as any)
+  }, [dispatch])
 
   const handleDelete = async (id: string | number) => {
     Modal.confirm({
@@ -240,15 +245,15 @@ const StaffListPage = () => {
             className="w-full"
             allowClear 
           />
-          <Select 
-            placeholder="Filter by department" 
-            onChange={handleDepartmentFilter} 
+          <Select
+            placeholder="Filter by department"
+            onChange={handleDepartmentFilter}
             className="w-full"
             allowClear
           >
-            {DEPARTMENTS.map((dept) => (
-              <Select.Option key={dept.code} value={dept.code}>
-                {dept.name}
+            {Array.isArray(departments) && departments.map((dept: any) => (
+              <Select.Option key={dept.id || dept.code} value={dept.code || dept.id}>
+                {dept.name || dept.title || dept.code}
               </Select.Option>
             ))}
           </Select>

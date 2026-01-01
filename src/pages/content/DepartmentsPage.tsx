@@ -183,11 +183,12 @@ const DepartmentsPage = () => {
           if (!headId) return <Tag size="small">No Head Assigned</Tag>
 
           const staff = staffItems.find((s) => s.id === headId)
-          if (staff) return (
-            <div className="font-medium">
-              {staff.firstName} {staff.lastName}
-            </div>
-          )
+          if (staff) {
+            const name = staff.displayName || `${staff.firstName || ""} ${staff.lastName || ""}`.trim()
+            return (
+              <div className="font-medium">{name || "Unnamed"}</div>
+            )
+          }
 
           if (!cuidRegex.test(headId)) {
             return <Tag color="warning" size="small">Demo: {headId}</Tag>
@@ -358,10 +359,10 @@ const DepartmentsPage = () => {
               placeholder="Select department head"
               options={[
                 { value: "", label: "--- None ---" },
-                ...(staffItems || []).map((s) => ({
-                  value: s.id,
-                  label: `${s.firstName} ${s.lastName}`,
-                })),
+                ...(staffItems || []).map((s) => {
+                  const label = s.displayName || `${s.firstName || ""} ${s.lastName || ""}`.trim() || "Unnamed"
+                  return { value: s.id, label }
+                }),
               ]}
               filterOption={(input, option) =>
                 (option?.label ?? "").toLowerCase().includes(input.toLowerCase())

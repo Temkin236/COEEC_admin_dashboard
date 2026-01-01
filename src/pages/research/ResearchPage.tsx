@@ -10,6 +10,7 @@ import {
   Tag,
   Space,
   message,
+  Tabs,
 } from "antd"
 import {
   PlusOutlined,
@@ -41,6 +42,7 @@ const ResearchPage = () => {
   const [editingItem, setEditingItem] = useState<ResearchProject | null>(null)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [viewingItem, setViewingItem] = useState<ResearchProject | null>(null)
+  const [activeState, setActiveState] = useState<string | 'ALL'>('ALL')
   const [form] = Form.useForm()
   const { canCreate, canView, canUpdate, canDelete, can } = usePermissions()
 
@@ -54,6 +56,14 @@ const ResearchPage = () => {
   useEffect(() => {
     dispatch(fetchResearchProjects() as any)
   }, [dispatch])
+
+  useEffect(() => {
+    // ensure activeState stays valid when items change
+    const states = new Set(items.map((it: any) => it.state).filter(Boolean))
+    if (activeState !== 'ALL' && !states.has(activeState)) {
+      setActiveState('ALL')
+    }
+  }, [items])
 
   const handleAdd = () => {
     setEditingItem(null)
@@ -122,12 +132,26 @@ const ResearchPage = () => {
       summary: formattedSummary,
     }
 
+    // Remove empty/undefined relation fields so backend doesn't try to connect missing records
+    const clean = (obj: any) => {
+      const out: any = {}
+      Object.entries(obj).forEach(([k, v]) => {
+        if (v === undefined || v === null) return
+        if (Array.isArray(v) && v.length === 0) return
+        if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) return
+        out[k] = v
+      })
+      return out
+    }
+
+    const payload = clean(data)
+
     try {
       if (editingItem && editingItem.id) {
-        await dispatch(updateResearchProject({ id: editingItem.id, data }) as any)
+        await dispatch(updateResearchProject({ id: editingItem.id, data: payload }) as any)
         message.success("Project updated successfully!")
       } else {
-        await dispatch(createResearchProject(data) as any)
+        await dispatch(createResearchProject(payload) as any)
         message.success("Project created successfully!")
       }
       setIsModalOpen(false)
@@ -205,6 +229,14 @@ const ResearchPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      {/* Tabs by project state (All + distinct states from server) */}
+      <Tabs activeKey={String(activeState)} onChange={(k) => setActiveState(k === 'ALL' ? 'ALL' : String(k))} className="mb-4">
+        <Tabs.TabPane tab={`All (${items.length})`} key="ALL" />
+        {Array.from(new Set(items.map((it: any) => it.state).filter(Boolean))).map((st: any) => (
+          <Tabs.TabPane key={st} tab={`${st} (${items.filter((i: any) => i.state === st).length})`} />
+        ))}
+      </Tabs>
+
       <Card
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -225,7 +257,7 @@ const ResearchPage = () => {
       >
         <Table
           columns={columns as any}
-          dataSource={items}
+          dataSource={activeState === 'ALL' ? items : items.filter((it: any) => it.state === activeState)}
           rowKey="id"
           loading={loading}
           scroll={{ x: 800 }}
@@ -238,6 +270,9 @@ const ResearchPage = () => {
           className="border-0"
         />
       </Card>
+
+        {/* Render Publications inline if the publications tab is selected (simple client-side switch) */}
+        {/* For now, keep Projects view as default; when user wants Publications by default, we can switch */}
 
       <Modal
         title={editingItem ? "Edit Project" : "Add New Project"}

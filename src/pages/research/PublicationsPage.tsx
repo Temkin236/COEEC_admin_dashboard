@@ -34,11 +34,52 @@ const PublicationsPage = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      // Normalize authors: accept comma-separated string or array
+      let payload = { ...values }
+      if (typeof payload.authors === 'string') {
+        payload.authors = payload.authors.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+
+      // Validate pdfId if provided (backend expects a cuid-like id)
+      if (payload.pdfId) {
+        const cuidRe = /^[cC][^\s-]{8,}$/
+        if (!cuidRe.test(String(payload.pdfId))) {
+          message.error('PDF Id appears invalid (expected cuid format).')
+          return
+        }
+      }
+
+      // Validate URL if provided
+      if (payload.url) {
+        try {
+          // eslint-disable-next-line no-new
+          new URL(String(payload.url))
+        } catch (e) {
+          message.error('URL is invalid.')
+          return
+        }
+      }
+
+      // Clean empty values so backend doesn't receive empty strings/arrays
+      const clean = (obj: any) => {
+        const out: any = {}
+        Object.entries(obj).forEach(([k, v]) => {
+          if (v === undefined || v === null) return
+          if (typeof v === 'string' && v.trim() === '') return
+          if (Array.isArray(v) && v.length === 0) return
+          if (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0) return
+          out[k] = v
+        })
+        return out
+      }
+
+      payload = clean(payload)
+
       if (editing && editing.id) {
-        await dispatch(updatePublication({ id: editing.id, data: values })).unwrap()
+        await dispatch(updatePublication({ id: editing.id, data: payload })).unwrap()
         message.success('Publication updated')
       } else {
-        await dispatch(createPublication(values)).unwrap()
+        await dispatch(createPublication(payload)).unwrap()
         message.success('Publication created')
       }
       setModalOpen(false)
@@ -80,8 +121,12 @@ const PublicationsPage = () => {
             <Input onChange={(e) => { const v = e.target.value; form.setFieldValue('authors', v.split(',').map((s: string) => s.trim())) }} />
           </Form.Item>
           <Form.Item name="year" label="Year"><InputNumber style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="pdfId" label="PDF Id"><Input /></Form.Item>
-          <Form.Item name="url" label="URL"><Input /></Form.Item>
+          <Form.Item name="pdfId" label="PDF Id" rules={[{ pattern: /^[cC][^\\s-]{8,}$/, message: 'PDF Id must be a valid cuid format' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="url" label="URL" rules={[{ type: 'url', message: 'Enter a valid URL' }]}>
+            <Input />
+          </Form.Item>
         </Form>
       </Modal>
     </div>

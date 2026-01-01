@@ -1,5 +1,5 @@
 import { Space, Button, Popconfirm, Tooltip } from "antd"
-import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"
+import { EditOutlined, DeleteOutlined, EyeOutlined, CheckOutlined } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useAppSelector } from "@/store/hooks"
 
@@ -14,11 +14,13 @@ interface TableActionsProps {
   onView?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  onHandle?: () => void
   deleteConfirmTitle?: string
   deleteConfirmDescription?: string
   record?: any
   allowEditIfOwner?: boolean
   ownerIdField?: string // e.g., 'createdById' or 'createdBy.id'
+  forceView?: boolean
 }
 
 const TableActions = ({
@@ -26,6 +28,7 @@ const TableActions = ({
   onView,
   onEdit,
   onDelete,
+  onHandle,
   deleteConfirmTitle = "Delete this item?",
   deleteConfirmDescription = "This action cannot be undone.",
   record,
@@ -33,11 +36,13 @@ const TableActions = ({
   ownerIdField,
 }: TableActionsProps) => {
   const { canView, canUpdate, canDelete } = usePermissions()
+  const { can } = usePermissions()
   const user = useAppSelector((s: any) => s.auth.user)
 
-  const hasView = canView(resource)
+  const hasView = canView(resource) || !!forceView
   let hasUpdate = canUpdate(resource)
   let hasDelete = canDelete(resource)
+  const hasHandle = (can && can(resource, "handle")) || hasUpdate
 
   // If owner-based override is allowed, enable update/delete for record owner
   if (record && allowEditIfOwner) {
@@ -49,7 +54,7 @@ const TableActions = ({
   }
 
   // If no permissions at all, return null
-  if (!hasView && !hasUpdate && !hasDelete) {
+  if (!hasView && !hasUpdate && !hasDelete && !hasHandle) {
     return <span className="text-gray-400 text-xs">No access</span>
   }
 
@@ -62,6 +67,18 @@ const TableActions = ({
             icon={<EyeOutlined />}
             onClick={onView}
             size="small"
+          />
+        </Tooltip>
+      )}
+
+      {hasHandle && onHandle && (
+        <Tooltip title="Mark handled">
+          <Button
+            type="text"
+            icon={<CheckOutlined />}
+            onClick={onHandle}
+            size="small"
+            className="text-green-600 hover:text-green-700"
           />
         </Tooltip>
       )}
