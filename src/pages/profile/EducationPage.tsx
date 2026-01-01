@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { getMyEducation } from "@/store/slices/profileSlice"
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { Card, Form, Input, Button, Row, Col } from "antd"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
@@ -42,6 +43,12 @@ export default function EducationPage() {
       if (Array.isArray(storedphoto.education)) setEducation(storedphoto.education)
     }
   }, [storedphoto])
+
+  // Attempt to fetch education from dev backend and populate preview/placeholders
+  // Fetch education via profile slice (uses axiosInstance and token)
+  useEffect(() => {
+    dispatch(getMyEducation())
+  }, [dispatch])
 
   const handleSave = () => {
     if (pendingEducationList.length > 0) {

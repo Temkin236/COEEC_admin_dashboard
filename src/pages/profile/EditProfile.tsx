@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react"
 import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin } from "antd"
 import { UploadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined, DownloadOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchphoto, createphoto, fetchExperiences } from "@/store/slices/profileSlice"
+import axios from "axios"
+import { fetchphoto, createphoto, fetchExperiences, setphoto } from "@/store/slices/profileSlice"
 import { uploadCV, uploadPhoto, updateStaff } from "@/store/slices/staffSlice"
 // Import directly to ensure the action is available immediately
 import { fetchDepartments } from "@/store/slices/departmentSlice"
@@ -64,6 +65,30 @@ export default function photo() {
       // fetch experiences for preview
       dispatch(fetchExperiences(photo))
     }
+  }, [dispatch, photo])
+
+  // 2b. Attempt to fetch staff data from the dev backend and populate preview/placeholders
+  useEffect(() => {
+    const fetchDevStaff = async () => {
+      try {
+        const fallbackId = "cmjmhl7x2000eh41qovi3n1jo"
+        const localId = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
+        const staffIdToFetch = localId || photo || fallbackId
+        if (!staffIdToFetch) return
+        const url = `https://coeec-dev-backend.onrender.com/api/staff/${staffIdToFetch}`
+        const res = await axios.get(url, { headers: { accept: "application/json" } })
+        if (res?.data) {
+          // update redux and form state so preview + placeholders use the fetched data
+          dispatch(setphoto(res.data))
+          // fetch experiences for preview as well
+          dispatch(fetchExperiences(staffIdToFetch))
+        }
+      } catch (err) {
+        // do not break the UI on fetch failure
+        console.debug("Dev staff fetch failed:", err)
+      }
+    }
+    fetchDevStaff()
   }, [dispatch, photo])
 
   // 3. Sync form data when photo is loaded
