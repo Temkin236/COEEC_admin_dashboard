@@ -29,4 +29,4 @@ export const DEPARTMENTS = [
   { id: 3, name: "Information Technology", code: "IT" },
 ] as const
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api"
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://coeec-dev-backend.onrender.com"

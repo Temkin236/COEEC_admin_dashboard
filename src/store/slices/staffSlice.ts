@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
 import axiosInstance from "@/utils/axios"
+import axios from 'axios'
 
 export interface StaffItem {
   id: string
@@ -13,7 +14,7 @@ export interface StaffItem {
   email: string
   phone?: string
   officeLocation?: string
-  cvId?: string | null
+  cv?: string | null
   createdAt?: string
   updatedAt?: string
   department?: {
@@ -56,15 +57,15 @@ export const createStaff = createAsyncThunk<StaffItem, any>("staff/createStaff",
     officeLocation: data.officeLocation,
     researchAreas: data.researchAreas || [],
     biography: data.biography || {},
-    photoId: data.photoId,
-    cvId: data.cvId
+    photo: data.photoId,
+    cv: data.cv
   }
   const response = await axiosInstance.post("/staff", payload)
   return response.data
 })
 
 export const updateStaff = createAsyncThunk<StaffItem, { id: string; data: any }>("staff/updateStaff", async ({ id, data }) => {
-  // Prepare data for PUT request (excluding computed fields)
+  // Prepare data for PUT request (excluding computed fields and using photo/cv instead of photoId/cvId)
   const payload = {
     displayName: data.displayName,
     title: data.title,
@@ -72,7 +73,11 @@ export const updateStaff = createAsyncThunk<StaffItem, { id: string; data: any }
     researchAreas: data.researchAreas || [],
     email: data.email,
     phone: data.phone,
-    officeLocation: data.officeLocation
+    officeLocation: data.officeLocation,
+    departmentId: data.departmentId,
+    // Use photo and cv, not photoId and cvId
+    photo: data.photo || data.photoId || null,
+    cv: data.cv || data.cvId || null
   }
   const response = await axiosInstance.put(`/staff/${id}`, payload)
   return response.data
@@ -87,11 +92,20 @@ export const uploadCV = createAsyncThunk<{ id: string; cvUrl: string }, { id: st
   "staff/uploadCV",
   async ({ id, file }) => {
     const formData = new FormData()
-    formData.append("file", file)
-    const response = await axiosInstance.post(`/staff/${id}/cv`, formData, { 
-      headers: { "Content-Type": "multipart/form-data" } 
+    formData.append("files", file)
+    formData.append('visibility', 'PUBLIC')
+    const token = localStorage.getItem("token");
+
+    // upload to correct media endpoint
+    const response = await axios.post('https://coeec.onrender.com/api/media/upload', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
     })
-    return response.data
+    const returnedId = response?.data?.id ?? response?.data ?? null
+    const returnedUrl = response?.data?.url ?? response?.data?.cvUrl ?? response?.data ?? ''
+    return { id: String(returnedId), cvUrl: String(returnedUrl) }
   },
 )
 
@@ -99,11 +113,19 @@ export const uploadPhoto = createAsyncThunk<{ id: string; photoUrl: string } , {
   "staff/uploadPhoto",
   async ({ id, file }) => {
     const formData = new FormData()
-    formData.append("file", file)
-    const response = await axiosInstance.post(`/staff/${id}/photo`, formData, {
-      headers: { "Content-Type": "multipart/form-data" }
+    formData.append("files", file)
+    formData.append('visibility', 'PUBLIC')
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post('https://coeec.onrender.com/api/media/upload', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
     })
-    return response.data
+    const returnedId = response?.data?.id ?? response?.data ?? null
+    const returnedUrl = response?.data?.url ?? response?.data?.photoUrl ?? response?.data ?? ''
+    return { id: String(returnedId), photoUrl: String(returnedUrl) }
   }
 )
 
@@ -146,7 +168,20 @@ const staffSlice = createSlice({
       })
       .addCase(fetchStaff.rejected, (state, action) => { state.loading = false; state.error = action.error.message || null })
       .addCase(fetchStaffById.fulfilled, (state, action: PayloadAction<StaffItem | null>) => { state.currentStaff = action.payload })
-      .addCase(createStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => { state.items.unshift(action.payload); state.total += 1 })
+      .addCase(createStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => {
+        state.items.unshift(action.payload); state.total += 1
+        try {
+          if (typeof window !== 'undefined' && action.payload) {
+            const id = (action.payload as any).id || (action.payload as any)._id
+            if (id) {
+              localStorage.setItem('staff_id', String(id))
+              localStorage.setItem('staffId', String(id))
+            }
+          }
+        } catch (e) {
+          // ignore localStorage errors
+        }
+      })
       .addCase(updateStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => {
         const index = state.items.findIndex((item) => item.id === action.payload.id)
         if (index !== -1) state.items[index] = action.payload

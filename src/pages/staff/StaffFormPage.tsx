@@ -66,7 +66,7 @@ const { Title } = Typography
         researchAreas: values.researchAreas || [],
         biography: values.biography || {},
         photoId: values.photoId,
-        cvId: values.cvId
+        cv: values.cv
       }
 
       if (isEdit) {

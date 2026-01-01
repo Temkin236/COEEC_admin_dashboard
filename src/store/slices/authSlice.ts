@@ -24,8 +24,8 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
       localStorage.setItem("token", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
 
-      // If server didn't return user info, try to decode the JWT payload as a fallback
-      if (!user && accessToken) {
+      // Decode the JWT payload and store it in localStorage as `auth_user`.
+      if (accessToken) {
         try {
           const base64Url = accessToken.split('.')[1]
           const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
@@ -33,18 +33,15 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
           }).join(''))
           const payload = JSON.parse(jsonPayload)
-          const fallbackUser: AuthUser = {
-            id: (payload && (payload.sub || payload.id || payload.userId || payload._id)) || 'unknown',
-            email: payload?.email || '',
-            role: (payload?.role as Role) || 'user',
-            name: (payload?.name as string) || (payload?.fullName as string) || undefined,
-          }
-          user = fallbackUser as any
-          localStorage.setItem("auth_user", JSON.stringify(fallbackUser))
+          // store the full token payload so it contains id, roles, permissions, iat, exp, etc.
+          localStorage.setItem("auth_user", JSON.stringify(payload))
+          // prefer server-provided `user` when present, otherwise use decoded payload
+          if (!user) user = payload as any
         } catch (e) {
           // ignore parsing errors
         }
       } else if (user) {
+        // no token but server returned user
         localStorage.setItem("auth_user", JSON.stringify(user))
       }
 

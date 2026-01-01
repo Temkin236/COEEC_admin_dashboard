@@ -5,7 +5,7 @@ import { LinkedinOutlined, GlobalOutlined, BookOutlined, MailOutlined, Instagram
 import { Card, Button } from "antd"
 import type React from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchProfile } from "@/store/slices/profileSlice"
+import { fetchphoto } from "@/store/slices/profileSlice"
 
 type PlatformKey = "linkedin" | "googleScholar" | "researchGate" | "personalWebsite" | "instagram" | "twitter" | "facebook" | "youtube"
 
@@ -59,7 +59,7 @@ interface SocialLink { platform: PlatformKey; url: string }
 
 export default function Connect() {
   const dispatch = useAppDispatch()
-  const { data: storedProfile } = useAppSelector((s) => s.profile)
+  const { data: storedphoto } = useAppSelector((s) => s.photo)
   const [links, setLinks] = useState<SocialLink[]>([])
   const [newPlatform, setNewPlatform] = useState<PlatformKey>("instagram")
   const [newUrl, setNewUrl] = useState("")
@@ -76,20 +76,20 @@ export default function Connect() {
   }
   const deleteLink = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx))
 
-  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id
 
   useEffect(() => {
-    if (profileId) dispatch(fetchProfile(profileId))
-  }, [dispatch, profileId])
+    if (photo) dispatch(fetchphoto(photo))
+  }, [dispatch, photo])
 
   useEffect(() => {
-    if (storedProfile) {
-      const social = Array.isArray(storedProfile.socialLinks)
-        ? storedProfile.socialLinks
-        : (storedProfile.links || [])
+    if (storedphoto) {
+      const social = Array.isArray(storedphoto.socialLinks)
+        ? storedphoto.socialLinks
+        : (storedphoto.links || [])
       setLinks(social)
     }
-  }, [storedProfile])
+  }, [storedphoto])
 
   return (
     <div className="p-4 lg:p-8 min-h-screen">

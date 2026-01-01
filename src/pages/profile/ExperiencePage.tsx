@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { Card, Form, Input, Button, Row, Col, Checkbox } from "antd"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchProfile, fetchExperiences, addExperience as addExperienceThunk, updateExperience, deleteExperience } from "@/store/slices/profileSlice"
+import { fetchphoto, fetchExperiences, addExperience as addExperienceThunk, updateExperience, deleteExperience } from "@/store/slices/profileSlice"
 
 interface ExperienceEntry {
   id: string
@@ -18,7 +18,7 @@ interface ExperienceEntry {
 
 export default function ExperiencePage() {
   const dispatch = useAppDispatch()
-  const { data: storedProfile } = useAppSelector((s) => s.profile)
+  const { data: storedphoto } = useAppSelector((s) => s.photo)
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([])
   const [pendingExperienceList, setPendingExperienceList] = useState<Array<Omit<ExperienceEntry, "id">>>([])
 
@@ -31,21 +31,25 @@ export default function ExperiencePage() {
     description: "",
   })
 
-  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id ?? 'mjha85820014hq1q386by383'
+  const storedAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
+  const parsedAuth = storedAuthRaw ? JSON.parse(storedAuthRaw) : null
+  const authStaffId = parsedAuth ? (parsedAuth.staffId || parsedAuth.staff_id || parsedAuth.id) : null
+  const legacyStaffKey = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
+  const photo = (storedphoto as any)?.id || (storedphoto as any)?._id || authStaffId || legacyStaffKey || null
 
   useEffect(() => {
-    if (profileId) {
-      dispatch(fetchProfile(profileId))
-      dispatch(fetchExperiences(profileId))
+    if (photo) {
+      dispatch(fetchphoto(photo))
+      dispatch(fetchExperiences(photo))
     }
-  }, [dispatch, profileId])
+  }, [dispatch, photo])
 
   useEffect(() => {
-    if (storedProfile) {
-      if (Array.isArray(storedProfile.experiences)) setExperiences(storedProfile.experiences)
-      else if (Array.isArray(storedProfile.experience)) setExperiences(storedProfile.experience)
+    if (storedphoto) {
+      if (Array.isArray(storedphoto.experiences)) setExperiences(storedphoto.experiences)
+      else if (Array.isArray(storedphoto.experience)) setExperiences(storedphoto.experience)
     }
-  }, [storedProfile])
+  }, [storedphoto])
 
   const handleSave = () => {
     if (pendingExperienceList.length > 0) {
@@ -59,7 +63,7 @@ export default function ExperiencePage() {
           description: item.description || "",
           order: (experiences?.length || 0) + idx,
         }
-        dispatch(addExperienceThunk({ staffId: profileId, data: payload }))
+        dispatch(addExperienceThunk({ staffId: photo, data: payload }))
       })
       setPendingExperienceList([])
       return
@@ -76,7 +80,7 @@ export default function ExperiencePage() {
     }
 
     if (!experiences || experiences.length === 0) {
-      dispatch(addExperienceThunk({ staffId: profileId, data: payload }))
+      dispatch(addExperienceThunk({ staffId: photo, data: payload }))
     } else {
       const existingId = experiences[0].id || (experiences[0] as any)?._id
       if (existingId) dispatch(updateExperience({ id: existingId, data: payload }))
@@ -123,23 +127,7 @@ export default function ExperiencePage() {
 
 
 
-              {/* pending items will display in the right-side preview with a discard control */}
-
-              {experiences && experiences.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
-                  {experiences.map((exp) => (
-                    <div key={exp.id} style={{ position: 'relative', background: '#f6f7f8', padding: 16, borderRadius: 8 }}>
-                      <div style={{ position: 'absolute', right: 12, top: 12, cursor: 'pointer' }} onClick={() => removeExperience(exp.id)}>
-                        <DeleteOutlined style={{ color: '#e11d48' }} />
-                      </div>
-                      <div style={{ fontWeight: 700, fontSize: 15 }}>{(exp as any).position || (exp as any).title}</div>
-                      <div style={{ fontSize: 13, color: '#18485e', fontWeight: 500 }}>{exp.organization}</div>
-                      <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 6 }}>{(exp as any).startYear} - {((exp as any).isPresent ?? (exp as any).isCurrent) ? 'Present' : (exp as any).endYear}</div>
-                      {(exp as any).description && <div style={{ marginTop: 8, color: '#374151', fontSize: 13 }}>{(exp as any).description}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* top preview removed: timeline preview remains on the right side */}
 
               <div style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 24 }}>
                 <Row gutter={12}>

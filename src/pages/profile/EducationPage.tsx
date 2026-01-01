@@ -4,19 +4,20 @@ import { useState, useEffect } from "react"
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons"
 import { Card, Form, Input, Button, Row, Col } from "antd"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchProfile, fetchEducationByStaff, addEducation as addEducationThunk, updateEducation, deleteEducation } from "@/store/slices/profileSlice"
+import { fetchphoto, fetchEducationByStaff, addEducation as addEducationThunk, updateEducation, deleteEducation } from "@/store/slices/profileSlice"
 
 interface EducationEntry {
   id: string
   degree: string
   institution: string
-  year: number
+  year?: number
+  yearCompleted?: number
   description?: string
 }
 
 export default function EducationPage() {
   const dispatch = useAppDispatch()
-  const { data: storedProfile } = useAppSelector((s) => s.profile)
+  const { data: storedphoto } = useAppSelector((s) => s.photo)
   const [education, setEducation] = useState<EducationEntry[]>([])
   const [pendingEducationList, setPendingEducationList] = useState<Array<Omit<EducationEntry, "id">>>([])
 
@@ -27,35 +28,44 @@ export default function EducationPage() {
     description: "",
   })
 
-  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id ?? 'mjha85820014hq1q386by383'
+  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id 
 
   useEffect(() => {
-    if (profileId) {
-      dispatch(fetchProfile(profileId))
-      dispatch(fetchEducationByStaff(profileId))
+    if (photo) {
+      dispatch(fetchphoto(photo))
+      dispatch(fetchEducationByStaff(photo))
     }
-  }, [dispatch, profileId])
+  }, [dispatch, photo])
 
   useEffect(() => {
-    if (storedProfile) {
-      if (Array.isArray(storedProfile.education)) setEducation(storedProfile.education)
+    if (storedphoto) {
+      if (Array.isArray(storedphoto.education)) setEducation(storedphoto.education)
     }
-  }, [storedProfile])
+  }, [storedphoto])
 
   const handleSave = () => {
     if (pendingEducationList.length > 0) {
       // Persist all pending education entries
       pendingEducationList.forEach((item) => {
-        dispatch(addEducationThunk({ staffId: profileId, data: item }))
+        // map local `year` to `yearCompleted` for backend
+        const payload = { ...item, yearCompleted: (item as any).year }
+        delete (payload as any).year
+        dispatch(addEducationThunk({ staffId: photo, data: payload }))
       })
       setPendingEducationList([])
       return
     }
     if (!newEducation.degree || !newEducation.institution) return
     if (!education || education.length === 0) {
-      dispatch(addEducationThunk({ staffId: profileId, data: newEducation }))
+      const payload = { ...newEducation, yearCompleted: (newEducation as any).year }
+      delete (payload as any).year
+      dispatch(addEducationThunk({ staffId: photo, data: payload }))
     } else {
-      if (profileId) dispatch(updateEducation({ staffId: profileId, data: newEducation }))
+      if (photo) {
+        const payload = { ...newEducation, yearCompleted: (newEducation as any).year }
+        delete (payload as any).year
+        dispatch(updateEducation({ staffId: photo, data: payload }))
+      }
     }
     setNewEducation({ degree: "", institution: "", year: new Date().getFullYear(), description: "" })
   }
@@ -100,7 +110,7 @@ export default function EducationPage() {
                       </div>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{ed.degree}</div>
                       <div style={{ fontSize: 13, color: '#18485e', fontWeight: 500 }}>{ed.institution}</div>
-                      <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 6 }}>{ed.year}</div>
+                      <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 6 }}>{(ed as any).year ?? (ed as any).yearCompleted}</div>
                     </div>
                   ))}
                 </div>
@@ -153,7 +163,7 @@ export default function EducationPage() {
                             )}
                             <div style={{ fontWeight: 700, fontSize: 15 }}>{edu.degree}</div>
                             <div style={{ fontSize: 13, color: '#18485e', fontWeight: 500 }}>{edu.institution}</div>
-                            <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 2 }}>{edu.year}</div>
+                            <div style={{ fontSize: 12, color: '#17A2B8', marginTop: 2 }}>{(edu as any).year ?? (edu as any).yearCompleted}</div>
                             {edu.description && <div style={{ marginTop: 6, color: '#374151', fontSize: 13 }}>{edu.description}</div>}
                           </div>
                         </div>

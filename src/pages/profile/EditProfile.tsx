@@ -1,14 +1,15 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, Form, Input, Select, Button, Upload, Row, Col } from "antd"
-import { UploadOutlined, DownloadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined } from "@ant-design/icons"
+import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin } from "antd"
+import { UploadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined, DownloadOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { UpdateProfile, fetchProfile, createProfile } from "@/store/slices/profileSlice"
-import { uploadCV, uploadPhoto } from "@/store/slices/staffSlice"
-import axiosInstance from "@/utils/axios"
+import { fetchphoto, createphoto, fetchExperiences } from "@/store/slices/profileSlice"
+import { uploadCV, uploadPhoto, updateStaff } from "@/store/slices/staffSlice"
+// Import directly to ensure the action is available immediately
+import { fetchDepartments } from "@/store/slices/departmentSlice"
 
-interface ProfileFormData {
+interface photoFormData {
   fullName: string
   title: string
   department: string
@@ -16,14 +17,21 @@ interface ProfileFormData {
   officeLocation: string
   email: string
   phone: string
-  profileImage: string | null
-  cv: string | null
-  description?: string
+  photo: string | null
+  cv?: string | null
+  about?: string
+  researchAreas?: string[]
 }
 
-export default function Profile() {
-  const { items: departments } = useAppSelector((s) => s.departments)
-  const [formData, setFormData] = useState<ProfileFormData>({
+export default function photo() {
+  const dispatch = useAppDispatch()
+  
+  // Access departments and loading state
+  const { items: departments, loading: depsLoading } = useAppSelector((s) => s.departments)
+  const { data: storedphoto, loading: photoLoading } = useAppSelector((s) => s.photo)
+  const { user } = useAppSelector((s) => s.auth)
+
+  const [formData, setFormData] = useState<photoFormData>({
     fullName: "",
     title: "",
     department: "",
@@ -31,72 +39,76 @@ export default function Profile() {
     officeLocation: "",
     email: "",
     phone: "",
-    profileImage: null,
+    photo: null,
     cv: null,
-    description: "",
+    about: "",
+    researchAreas: [],
   })
-  const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
+
+  const [photoFile, setphotoFile] = useState<File | null>(null)
   const [cvFile, setCvFile] = useState<File | null>(null)
-  const handleChange = (name: keyof ProfileFormData, value: any) => {
+
+  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id 
+  const experiences = (storedphoto as any)?.experiences || []
+  const lastAddedExperience = useAppSelector((s) => (s.photo as any)?.lastAddedExperience)
+
+  // 1. Fetch Departments on mount
+  useEffect(() => {
+    dispatch(fetchDepartments())
+  }, [dispatch])
+
+  // 2. Fetch photo if ID exists
+  useEffect(() => {
+    if (photo) {
+      dispatch(fetchphoto(photo))
+      // fetch experiences for preview
+      dispatch(fetchExperiences(photo))
+    }
+  }, [dispatch, photo])
+
+  // 3. Sync form data when photo is loaded
+  useEffect(() => {
+    if (storedphoto) {
+      setFormData({
+        fullName: storedphoto.displayName || "",
+        title: storedphoto.title || "",
+        department: storedphoto.departmentId || "",
+        role: storedphoto.role || "",
+        email: storedphoto.email || "",
+        phone: storedphoto.phone || "",
+        officeLocation: storedphoto.officeLocation || "",
+        // Normalize to only `photo` and `cv` fields (prefer URL, then raw value)
+        photo: (storedphoto.photo as string) || (storedphoto.photo as string) || null,
+        cv: (storedphoto.cv as string) || null,
+        about: storedphoto.biography?.description || "",
+        researchAreas: storedphoto.researchAreas || [],
+      })
+    }
+  }, [storedphoto])
+
+  const handleChange = (name: keyof photoFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const dispatch = useAppDispatch()
-  const { data: storedProfile } = useAppSelector((s) => s.profile)
-  const { user } = useAppSelector((s) => s.auth)
-  // fallback to localStorage when auth.user isn't ready
-  const _stored = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
-  const _parsed = _stored ? JSON.parse(_stored) : null
-  const currentUser = user || _parsed
-
-  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id 
-
-  useEffect(() => {
-    if (profileId) dispatch(fetchProfile(profileId))
-  }, [dispatch, profileId])
-
-  useEffect(() => {
-    const load = async () => {
-      const mod = await import("@/store/slices/departmentSlice")
-      dispatch(mod.fetchDepartments())
-    }
-    load()
-  }, [dispatch])
-
-  useEffect(() => {
-    console.log("EditProfile - auth user id:", currentUser?.id, "profile id:", profileId)
-  }, [currentUser, profileId])
-
-  useEffect(() => {
-    if (storedProfile) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: storedProfile.displayName || "",
-        title: storedProfile.title || "",
-        department: storedProfile.departmentId || "",
-        role: storedProfile.role || prev.role || "",
-        email: storedProfile.email || "",
-        phone: storedProfile.phone || "",
-        officeLocation: storedProfile.officeLocation || "",
-        profileImage: (storedProfile.photoUrl as string) || prev.profileImage || null,
-        cv: (storedProfile.cvUrl as string) || prev.cv || null,
-        description: storedProfile.biography?.description || "",
-      }))
-    }
-  }, [storedProfile])
-  const handleImageUpload = ({ file }: any) => {
+  const handleImageUpload = async (file: any) => {
     const f = file.originFileObj || file
-    setProfileImageFile(f)
+    setphotoFile(f)
     const reader = new FileReader()
-    reader.onloadend = () => setFormData((p) => ({ ...p, profileImage: reader.result as string }))
+    reader.onloadend = () => {
+      setFormData((p) => ({ ...p, photo: reader.result as string }))
+    }
     reader.readAsDataURL(f)
     return false
   }
 
-  const handleCvUpload = ({ file }: any) => {
+  const handleCvUpload = async (file: any) => {
     const f = file.originFileObj || file
     setCvFile(f)
-    setFormData((p) => ({ ...p, cv: f.name }))
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setFormData((p) => ({ ...p, cv: reader.result as string }))
+    }
+    reader.readAsDataURL(f)
     return false
   }
 
@@ -108,55 +120,55 @@ export default function Profile() {
       email: formData.email,
       phone: formData.phone,
       officeLocation: formData.officeLocation,
-      researchAreas: [],
-      biography: { description: formData.description || "" },
-      photoId: null,
-      cvId: null,
+      researchAreas: formData.researchAreas || [],
+      biography: { description: formData.about || "" },
     }
 
-    const id = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+    // Resolve staffId from stored photo or localStorage/auth_user payload
+    const staffIdFromAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
+    const staffAuth = staffIdFromAuthRaw ? JSON.parse(staffIdFromAuthRaw) : null
+    const staffIdFromAuth = staffAuth ? (staffAuth.staffId || staffAuth.staff_id || staffAuth.id) : null
+    const staffIdKey = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
+    const staffId = (storedphoto as any)?.id || (storedphoto as any)?._id || staffIdFromAuth || staffIdKey || null
 
     try {
-      // If profile exists, upload files to that staff record first
-      if (id) {
+      if (staffId) {
+        // For existing staff: upload files to that staff record first, then PUT update with ids only
         if (cvFile) {
-          const res: any = await dispatch(uploadCV({ id, file: cvFile }) as any).unwrap()
-          if (res) {
-            payload.cvId = res.cvId || res.id || null
-            payload.cvUrl = res.cvUrl || res.cvUrl || null
-          }
+          const res: any = await dispatch(uploadCV({ id: staffId, file: cvFile }) as any).unwrap()
+          const cv = res?.id || res?.cv || null
+          if (cv) payload.cv = cv
         }
-        if (profileImageFile) {
-          const res: any = await dispatch(uploadPhoto({ id, file: profileImageFile }) as any).unwrap()
-          if (res) {
-            payload.photoId = res.photoId || res.id || null
-            payload.photoUrl = res.photoUrl || res.photoUrl || null
-          }
+        if (photoFile) {
+          const res: any = await dispatch(uploadPhoto({ id: staffId, file: photoFile }) as any).unwrap()
+          const photo = res?.id || res?.photoId || null
+          if (photo) payload.photo = photo
         }
-
-        await dispatch(UpdateProfile({ id, data: payload }))
+        // send only the allowed fields (no base64 photo/cv)
+        await dispatch(updateStaff({ id: staffId, data: payload }))
       } else {
-        // create profile first
-        const userId = currentUser?.id || (currentUser?._id as string) || ''
-        const created: any = await dispatch(createProfile({ userId, data: payload }) as any).unwrap()
+        // No staffId: create new photo (POST). Include userId in body.
+        const userId = user?.id || ''
+        const created: any = await dispatch(createphoto({ userId, data: payload }) as any).unwrap()
         const createdId = created?.id || created?._id
         if (createdId) {
+          // store created id to localStorage for subsequent checks
+          try { if (typeof window !== 'undefined') { localStorage.setItem('staffId', String(createdId)); localStorage.setItem('staff_id', String(createdId)) } } catch {}
+          // upload files after creation and update photo with returned ids
           if (cvFile) {
             const res: any = await dispatch(uploadCV({ id: createdId, file: cvFile }) as any).unwrap()
-            if (res) {
-              await dispatch(UpdateProfile({ id: createdId, data: { cvId: res.cvId || res.id || null, cvUrl: res.cvUrl || res.cvUrl || null } }))
-            }
+            const cv = res?.id || res?.cv || null
+            if (cv) await dispatch(updateStaff({ id: createdId, data: { cv } }))
           }
-          if (profileImageFile) {
-            const res: any = await dispatch(uploadPhoto({ id: createdId, file: profileImageFile }) as any).unwrap()
-            if (res) {
-              await dispatch(UpdateProfile({ id: createdId, data: { photoId: res.photoId || res.id || null, photoUrl: res.photoUrl || res.photoUrl || null } }))
-            }
+          if (photoFile) {
+            const res: any = await dispatch(uploadPhoto({ id: createdId, file: photoFile }) as any).unwrap()
+            const photo = res?.id || res?.photoId || null
+            if (photo) await dispatch(updateStaff({ id: createdId, data: { photo } }))
           }
         }
       }
     } catch (e) {
-      console.error("Failed to save profile or upload files", e)
+      console.error("Save failed", e)
     }
   }
 
@@ -164,153 +176,155 @@ export default function Profile() {
     <div className="p-4 lg:p-8 min-h-screen bg-[#fafcfd]">
       <Row gutter={32}>
         <Col xs={24} md={14}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
-            <div className="p-8">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-                <h2 className="font-bold text-base" style={{ color: '#18485e', margin: 0, fontWeight: 600, letterSpacing: 0.2 }}>Edit Profile</h2>
-                <div>
-                  <Button
-                    type="primary"
-                    size="small"
-                    style={{ background: '#17A2B8', borderRadius: 6, fontWeight: 500 }}
-                    onClick={handleSave}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
-              <Form layout="vertical">
-                <Form.Item label="Full Name">
-                  <Input
-                    size="large"
-                    value={formData.fullName}
-                    placeholder={storedProfile?.displayName || "Full Name"}
-                    onChange={(e) => handleChange("fullName", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Title Rank">
-                  <Input
-                    size="large"
-                    value={formData.title}
-                    placeholder={storedProfile?.title || "Title"}
-                    onChange={(e) => handleChange("title", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Department">
-                  <Select
-                    size="large"
-                    value={formData.department}
-                    placeholder={
-                      // show stored profile department name when available
-                      (departments.find((d) => d.id === (storedProfile as any)?.departmentId)?.name as string) || "Select department"
-                    }
-                    onChange={(v) => handleChange("department", v)}
-                    showSearch
-                    optionFilterProp="children"
-                  >
-                    {departments.map((d) => (
-                      <Select.Option key={d.id} value={d.id}>
-                        {d.name}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="Role">
-                  <Input
-                    size="large"
-                    value={formData.role}
-                    placeholder={storedProfile?.role || "Role"}
-                    onChange={(e) => handleChange("role", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Office Location">
-                  <Input
-                    size="large"
-                    value={formData.officeLocation}
-                    placeholder={storedProfile?.officeLocation || "Office location"}
-                    onChange={(e) => handleChange("officeLocation", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Email">
-                  <Input
-                    size="large"
-                    type="email"
-                    value={formData.email}
-                    placeholder={storedProfile?.email || "email@example.com"}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Phone">
-                  <Input
-                    size="large"
-                    value={formData.phone}
-                    placeholder={storedProfile?.phone || "Phone number"}
-                    onChange={(e) => handleChange("phone", e.target.value)}
-                  />
-                </Form.Item>
-                <Form.Item label="Profile Image">
-                  <Upload beforeUpload={handleImageUpload} showUploadList={false} accept="image/*">
-                    <div style={{ width: '525px', border: '1.5px dashed #17A2B8', borderRadius: 8, padding: 24, textAlign: 'center', background: '#fafdfe', cursor: 'pointer' }}>
-                      <UploadOutlined style={{ fontSize: 28, color: '#17A2B8' }} />
-                      <div className="mt-2 text-[#17A2B8] text-sm">clickToUploadProfileImage</div>
-                    </div>
-                  </Upload>
-                </Form.Item>
-                <Form.Item label="cvPdf">
-                  <Upload beforeUpload={handleCvUpload} showUploadList={false} accept=".pdf">
-                    <div style={{ width: '525px', border: '1.5px dashed #17A2B8', borderRadius: 8, padding: 24, textAlign: 'center', background: '#fafdfe', cursor: 'pointer' }}>
-                      <UploadOutlined style={{ fontSize: 28, color: '#17A2B8' }} />
-                      <div className="mt-2 text-[#17A2B8] text-sm">clickToUploadCV</div>
-                    </div>
-                  </Upload>
-                </Form.Item>
-              </Form>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-bold text-[#18485e] m-0">Edit photo</h2>
+              <Button
+                type="primary"
+                loading={photoLoading}
+                className="bg-[#17A2B8] rounded-md"
+                onClick={handleSave}
+              >
+                Save Changes
+              </Button>
             </div>
+
+            <Form layout="vertical">
+              <Form.Item label="Full Name">
+                <Input size="large" value={formData.fullName} onChange={(e) => handleChange("fullName", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Department">
+                <Select
+                  size="large"
+                  loading={depsLoading}
+                  value={formData.department || undefined}
+                  placeholder="Select a department"
+                  onChange={(v) => handleChange("department", v)}
+                  showSearch
+                  optionFilterProp="label"
+                  options={departments.map(d => ({
+                    value: d.id,
+                    label: d.name
+                  }))}
+                />
+              </Form.Item>
+
+              <Form.Item label="Title Rank">
+                <Input size="large" value={formData.title} onChange={(e) => handleChange("title", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Email">
+                <Input size="large" value={formData.email} onChange={(e) => handleChange("email", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Phone">
+                <Input size="large" value={formData.phone} onChange={(e) => handleChange("phone", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Office Location">
+                <Input size="large" value={formData.officeLocation} onChange={(e) => handleChange("officeLocation", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Research Areas">
+                <Select mode="tags" size="large" value={formData.researchAreas} placeholder="Add research areas" onChange={(v) => handleChange("researchAreas", v)} tokenSeparators={[","]} />
+              </Form.Item>
+
+              {/* Other form items... */}
+              <Form.Item label="cvPdf">
+                <Upload beforeUpload={handleCvUpload} showUploadList={false} accept=".pdf">
+                  <div className="w-full border-2 border-dashed border-[#17A2B8] rounded-lg p-6 text-center bg-[#fafdfe] cursor-pointer">
+                    <UploadOutlined className="text-2xl text-[#17A2B8]" />
+                    <div className="mt-2 text-[#17A2B8] text-sm">Click to upload CV (PDF)</div>
+                  </div>
+                </Upload>
+              </Form.Item>
+
+              <Form.Item label="About">
+                <Input.TextArea rows={4} value={formData.about} onChange={(e) => handleChange("about", e.target.value)} placeholder={storedphoto?.biography?.description || "Brief biography"} />
+              </Form.Item>
+
+              <Form.Item label="photo Image">
+                <Upload beforeUpload={handleImageUpload} showUploadList={false} accept="image/*">
+                  <div className="w-full border-2 border-dashed border-[#17A2B8] rounded-lg p-6 text-center bg-[#fafdfe] cursor-pointer">
+                    <UploadOutlined className="text-2xl text-[#17A2B8]" />
+                    <div className="mt-2 text-[#17A2B8] text-sm">Click to upload photo Image</div>
+                  </div>
+                </Upload>
+              </Form.Item>
+            </Form>
           </Card>
         </Col>
+
         <Col xs={24} md={10}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
-            <div className="p-8">
-              <h2 className="font-bold text-lg mb-6" style={{ color: '#18485e' }}>Preview</h2>
-              <div style={{ background: '#eaf4f7', borderRadius: 12, minHeight: 140, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 32 }}>
-                <div style={{ marginTop: 24, marginBottom: 24 }}>
-                  {formData.profileImage ? (
-                    <img src={formData.profileImage} alt="Profile" style={{ width: 88, height: 88, borderRadius: '50%', border: '4px solid #fff' }} />
-                  ) : (
-                    <div style={{ width: 88, height: 88, borderRadius: '50%', background: '#17A2B8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <UserOutlined style={{ fontSize: 48, color: '#fff' }} />
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
+              <h2 className="font-bold text-lg mb-6 text-[#18485e]">Preview</h2>
+              {lastAddedExperience && (
+                <div className="mb-4">
+                  <div className="font-semibold text-[#18485e] mb-2">Recent Experience</div>
+                  <div className="space-y-2">
+                    <div key={lastAddedExperience.id || lastAddedExperience._id} className="p-3 bg-white rounded shadow-sm">
+                      <div className="font-medium">{lastAddedExperience.position || lastAddedExperience.title || lastAddedExperience.role || "Untitled"}</div>
+                      <div className="text-sm text-gray-500">{lastAddedExperience.organization || lastAddedExperience.company || lastAddedExperience.institution || ""}</div>
                     </div>
-                  )}
+                  </div>
                 </div>
+              )}
+            <div className="flex flex-col items-center p-6 bg-[#eaf4f7] rounded-xl mb-6">
+              {formData.photo ? (
+                <img src={formData.photo} alt="Preview" className="w-24 h-24 rounded-full border-4 border-white object-cover" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-[#17A2B8] flex items-center justify-center">
+                  <UserOutlined className="text-4xl text-white" />
+                </div>
+              )}
+              <div className="mt-4 text-center">
+                <div className="font-bold text-xl text-[#18485e]">{formData.fullName || "Your Name"}</div>
+                <div className="text-gray-500">{formData.title}</div>
               </div>
-              <div className="space-y-2">
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontWeight: 700, fontSize: 18, color: '#18485e' }}>{formData.fullName || (storedProfile as any)?.displayName || 'Full Name'}</div>
-                  <div style={{ color: '#6b7280' }}>{formData.title || (storedProfile as any)?.title || ''}</div>
-                </div>
+            </div>
+            
+            <div className="space-y-3">
+               {/* About appears before Department */}
+               {formData.about ? (
+                 <div className="text-sm text-[#374151]">{formData.about}</div>
+               ) : null}
 
-                <div className="font-semibold" style={{ color: '#18485e' }}>
-                  {(departments.find((d) => d.id === formData.department)?.name) || (departments.find((d) => d.id === (storedProfile as any)?.departmentId)?.name) || formData.department || (storedProfile as any)?.departmentId || ''}
-                </div>
-                <div className="font-semibold" style={{ color: '#18485e' }}>{formData.role || (storedProfile as any)?.role || ''}</div>
+               <div className="font-semibold text-[#18485e]">
+                 {departments.find(d => d.id === formData.department)?.name || "No Department Selected"}
+               </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#18485e', marginTop: 16 }}>
-                  <EnvironmentOutlined style={{ color: '#17A2B8' }} />
-                  <span>{formData.officeLocation || (storedProfile as any)?.officeLocation || ''}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#18485e', marginTop: 8 }}>
-                  <MailOutlined style={{ color: '#17A2B8' }} />
-                  <span>{formData.email || (storedProfile as any)?.email || ''}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#18485e', marginTop: 8 }}>
-                  <PhoneOutlined style={{ color: '#17A2B8' }} />
-                  <span>{formData.phone || (storedProfile as any)?.phone || ''}</span>
-                </div>
+               {/* Office */}
+               {formData.officeLocation ? (
+                 <div className="flex items-center gap-2 text-[#18485e]">
+                   <EnvironmentOutlined className="text-[#17A2B8]" />
+                   <span>{formData.officeLocation}</span>
+                 </div>
+               ) : null}
 
-                {(formData.description || (storedProfile as any)?.biography?.description) && (
-                  <div style={{ marginTop: 12, color: '#374151' }}>{formData.description || (storedProfile as any)?.biography?.description}</div>
-                )}
-              </div>
+               <div className="flex items-center gap-2 text-[#18485e]">
+                 <MailOutlined className="text-[#17A2B8]" />
+                 <span>{formData.email}</span>
+               </div>
+               <div className="flex items-center gap-2 text-[#18485e]">
+                 <PhoneOutlined className="text-[#17A2B8]" />
+                 <span>{formData.phone}</span>
+               </div>
+
+               {/* CV download centered */}
+               {(formData.cv || (storedphoto as any)?.cvUrl) && (
+                 <div className="mt-6 text-center">
+                   <a
+                     href={formData.cv || (storedphoto as any)?.cvUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="inline-flex items-center gap-2 text-[#17A2B8]"
+                   >
+                     <DownloadOutlined />
+                     <span>downloadCv</span>
+                   </a>
+                 </div>
+               )}
             </div>
           </Card>
         </Col>

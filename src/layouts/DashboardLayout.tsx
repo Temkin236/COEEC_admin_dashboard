@@ -48,7 +48,6 @@ import RoleFormPage from "@/pages/roles/RoleFormPage"
 import UsersPage from "@/pages/users/UsersPage"
 // Profile pages
 import EditProfile from "@/pages/profile/EditProfile"
-import ExpertisePage from "@/pages/profile/ExpertisePage"
 import ExperiencePage from "@/pages/profile/ExperiencePage"
 import EducationPage from "@/pages/profile/EducationPage"
 import ConnectPage from "@/pages/profile/Connect"
@@ -80,7 +79,7 @@ const DashboardLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const notifications = [
-    { id: 1, title: "New staff member added", description: "A new staff profile was created." },
+    { id: 1, title: "New staff member added", description: "A new staff photo was created." },
     { id: 2, title: "Pending content approval", description: "There are pages awaiting review." },
   ]
 
@@ -102,7 +101,7 @@ const DashboardLayout = () => {
 
   const userMenu: MenuProps = {
     items: [
-      { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => navigate("/settings/profile") },
+      { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => navigate("/profile") },
       { key: "settings", icon: <SettingOutlined />, label: "Settings", onClick: () => navigate("/settings") },
       { type: "divider" },
       { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: handleLogout, danger: true },
@@ -345,7 +344,6 @@ const DashboardLayout = () => {
             <Route path="/profile/edit" element={<EditProfile />} />
             <Route path="/profile/experience" element={<ExperiencePage />} />
             <Route path="/profile/education" element={<EducationPage />} />
-            <Route path="/profile/expertise" element={<ExpertisePage />} />
             <Route path="/profile/connect" element={<ConnectPage />} />
           </Routes>
         </Content>

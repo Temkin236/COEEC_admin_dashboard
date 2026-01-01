@@ -141,7 +141,7 @@ const StaffListPage = () => {
       key: "cv",
       width: 80,
       render: (_: any, record: any) => {
-        const hasCv = record.cvUrl || record.cvId
+        const hasCv = record.cvUrl || record.cv
         return hasCv ? (
           <Button 
             type="link" 

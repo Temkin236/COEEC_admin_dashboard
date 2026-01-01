@@ -12,7 +12,7 @@ import roleReducer from "./slices/roleSlice"
 import permissionReducer from "./slices/permissionSlice"
 import researchProjectsReducer from "./slices/researchProjectsSlice"
 import usersReducer from "./slices/usersSlice"
-import profileReducer from "./slices/profileSlice"
+import photoReducer from "./slices/profileSlice"
 
 export const store = configureStore({
   reducer: {
@@ -29,7 +29,7 @@ export const store = configureStore({
     role: roleReducer,
     permission: permissionReducer,
     users: usersReducer,
-    profile: profileReducer,
+    photo: photoReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

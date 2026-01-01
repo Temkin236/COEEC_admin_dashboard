@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
 import axiosInstance from "@/utils/axios"
 
-interface ProfileState {
+interface photoState {
   data: {
     id?: string
     displayName?: string
@@ -11,12 +11,10 @@ interface ProfileState {
     email?: string
     phone?: string
     officeLocation?: string
-    photoUrl?: string
-    cvUrl?: string
+    photo?: string
+    cv?: string
     researchAreas?: string[]
     biography?: any
-    photoId?: string
-    cvId?: string
     socialLinks?: any[]
     links?: any[]
     experiences?: any[]
@@ -27,36 +25,38 @@ interface ProfileState {
   error: string | null
   experiencesLoading?: boolean
   experiencesError?: string | null
+  lastAddedExperience?: any | null
   educationLoading?: boolean
   educationError?: string | null
 }
 
-const initialState: ProfileState = {
+const initialState: photoState = {
   data: null,
   loading: false,
   error: null,
   experiencesLoading: false,
   experiencesError: null,
+  lastAddedExperience: null,
   educationLoading: false,
   educationError: null,
 }
 
-export type UpdateProfilePayload = { id: string; data: any }
+export type UpdatephotoPayload = { id: string; data: any }
 
-export const UpdateProfile = createAsyncThunk<any, UpdateProfilePayload, { rejectValue: string }>(
+export const Updatephoto = createAsyncThunk<any, UpdatephotoPayload, { rejectValue: string }>(
   "profile/save",
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      // If the backend expects PUT when updating an existing profile, adapt accordingly.
-      const response = await axiosInstance.put(`/staff/${id}`, data)
-      return response.data
+      // This function now only updates local profile state
+      // The actual API call should be handled by updateStaff from staffSlice
+      return { id, ...data }
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || "Failed to save profile")
+      return rejectWithValue(err?.response?.data?.message || "Failed to save photo")
     }
   },
 )
 
-export const createProfile = createAsyncThunk<any, { userId: string; data: any }, { rejectValue: string }>(
+export const createphoto = createAsyncThunk<any, { userId: string; data: any }, { rejectValue: string }>(
   "profile/create",
   async ({ userId, data }, { rejectWithValue }) => {
     try {
@@ -65,19 +65,19 @@ export const createProfile = createAsyncThunk<any, { userId: string; data: any }
       const response = await axiosInstance.post(`/staff`, payload)
       return response.data
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || "Failed to create profile")
+      return rejectWithValue(err?.response?.data?.message || "Failed to create photo")
     }
   },
 )
 
-export const fetchProfile = createAsyncThunk<any, string, { rejectValue: string }>(
+export const fetchphoto = createAsyncThunk<any, string, { rejectValue: string }>(
   "profile/fetch",
   async (id, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(`/staff/${id}`)
       return response.data
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || "Failed to fetch profile")
+      return rejectWithValue(err?.response?.data?.message || "Failed to fetch photo")
     }
   },
 )
@@ -122,7 +122,7 @@ export const deleteExperience = createAsyncThunk<string, string, { rejectValue: 
   "profile/deleteExperience",
   async (id, { rejectWithValue }) => {
     try {
-      await axiosInstance.delete(`/profiles/experiences/experiences/${id}`)
+      await axiosInstance.delete(`/profile/experiences/experiences/${id}`)
       return id
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message || "Failed to delete experience")
@@ -131,7 +131,7 @@ export const deleteExperience = createAsyncThunk<string, string, { rejectValue: 
 )
 
 export const getMyEducation = createAsyncThunk<any[], void, { rejectValue: string }>(
-  "profile/getMyEducation",
+  "profiles/getMyEducation",
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(`/profiles/education/me`)
@@ -143,7 +143,7 @@ export const getMyEducation = createAsyncThunk<any[], void, { rejectValue: strin
 )
 
 export const fetchEducationByStaff = createAsyncThunk<any[], string, { rejectValue: string }>(
-  "profile/fetchEducationByStaff",
+  "profiles/fetchEducationByStaff",
   async (staffId, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(`/profiles/education/${staffId}`)
@@ -155,7 +155,7 @@ export const fetchEducationByStaff = createAsyncThunk<any[], string, { rejectVal
 )
 
 export const updateEducation = createAsyncThunk<any, { staffId: string; data: any }, { rejectValue: string }>(
-  "profile/updateEducation",
+  "profiles/updateEducation",
   async ({ staffId, data }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.put(`/profiles/education/${staffId}`, data)
@@ -167,7 +167,7 @@ export const updateEducation = createAsyncThunk<any, { staffId: string; data: an
 )
 
 export const deleteEducation = createAsyncThunk<string, string, { rejectValue: string }>(
-  "profile/deleteEducation",
+  "profiles/deleteEducation",
   async (staffId, { rejectWithValue }) => {
     try {
       await axiosInstance.delete(`/profiles/education/${staffId}`)
@@ -179,7 +179,7 @@ export const deleteEducation = createAsyncThunk<string, string, { rejectValue: s
 )
 
 export const addEducation = createAsyncThunk<any, { staffId: string; data: any }, { rejectValue: string }>(
-  "profile/addEducation",
+  "profiles/addEducation",
   async ({ staffId, data }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post(`/profiles/education`, data)
@@ -190,52 +190,63 @@ export const addEducation = createAsyncThunk<any, { staffId: string; data: any }
   },
 )
 
-const profileSlice = createSlice({
-  name: "profile",
+const photoSlice = createSlice({
+  name: "photo",
   initialState,
   reducers: {
-    setProfile: (state, action: PayloadAction<any>) => {
+    setphoto: (state, action: PayloadAction<any>) => {
       state.data = action.payload
     },
-    clearProfileError: (state) => {
+    clearphotoError: (state) => {
       state.error = null
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(UpdateProfile.pending, (state) => {
+      .addCase(Updatephoto.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(UpdateProfile.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(Updatephoto.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false
         state.data = action.payload
       })
-      .addCase(UpdateProfile.rejected, (state, action) => {
+      .addCase(Updatephoto.rejected, (state, action) => {
         state.loading = false
         state.error = (action.payload as string) ?? "Save failed"
       })
-      .addCase(createProfile.pending, (state) => {
+      .addCase(createphoto.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(createProfile.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(createphoto.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false
         state.data = action.payload
+        try {
+          if (typeof window !== 'undefined' && action.payload) {
+            const id = (action.payload as any).id || (action.payload as any)._id
+            if (id) {
+              localStorage.setItem('staff_id', String(id))
+              localStorage.setItem('staffId', String(id))
+            }
+          }
+        } catch (e) {
+          // ignore localStorage errors
+        }
       })
-      .addCase(createProfile.rejected, (state, action) => {
+      .addCase(createphoto.rejected, (state, action) => {
         state.loading = false
-        state.error = (action.payload as string) ?? "Create profile failed"
+        state.error = (action.payload as string) ?? "Create photo failed"
       })
-      .addCase(fetchProfile.pending, (state) => {
+      .addCase(fetchphoto.pending, (state) => {
         state.loading = true
         state.error = null
       })
-      .addCase(fetchProfile.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(fetchphoto.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false
         state.data = action.payload
       })
-      .addCase(fetchProfile.rejected, (state, action) => {
+      .addCase(fetchphoto.rejected, (state, action) => {
         state.loading = false
         state.error = (action.payload as string) ?? "Fetch failed"
       })
@@ -259,7 +270,8 @@ const profileSlice = createSlice({
       .addCase(addExperience.fulfilled, (state, action: PayloadAction<any>) => {
         state.experiencesLoading = false
         ;(state.data as any) = (state.data as any) || {}
-        ;(state.data as any).experiences = ((state.data as any).experiences || []).concat(action.payload)
+        ;(state.data as any).experiences = [action.payload].concat((state.data as any).experiences || [])
+        state.lastAddedExperience = action.payload
       })
       .addCase(addExperience.rejected, (state, action) => {
         state.experiencesLoading = false
@@ -349,5 +361,5 @@ const profileSlice = createSlice({
   },
 })
 
-export const { setProfile, clearProfileError } = profileSlice.actions
-export default profileSlice.reducer
+export const { setphoto, clearphotoError } = photoSlice.actions
+export default photoSlice.reducer

@@ -28,7 +28,7 @@ export const fetchDepartments = createAsyncThunk<Department[], void, { rejectVal
   "departments/fetchDepartments",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get("/departments")
+      const response = await axiosInstance.get("/departments?all=false")
       return response.data
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || "Failed to fetch departments")

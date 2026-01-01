@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons"
 import { Card, Form, Input, Button, Tag, Row, Col } from "antd"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import { fetchProfile } from "@/store/slices/profileSlice"
+import { fetchphoto } from "@/store/slices/profileSlice"
 
 const PRESET_EXPERTISE = [
   "Machine Learning",
@@ -28,23 +28,23 @@ const PRESET_EXPERTISE = [
 
 export default function AreasOfExpertise() {
   const dispatch = useAppDispatch()
-  const { data: storedProfile } = useAppSelector((s) => s.profile)
+  const { data: storedphoto } = useAppSelector((s) => s.photo)
   const [expertise, setExpertise] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [filteredOptions, setFilteredOptions] = useState<string[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
 
-  const profileId = (storedProfile as any)?.id ?? (storedProfile as any)?._id
+  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id
 
   useEffect(() => {
-    if (profileId) dispatch(fetchProfile(profileId))
-  }, [dispatch, profileId])
+    if (photo) dispatch(fetchphoto(photo))
+  }, [dispatch, photo])
 
   useEffect(() => {
-    if (storedProfile) {
-      setExpertise(Array.isArray(storedProfile.researchAreas) ? storedProfile.researchAreas : [])
+    if (storedphoto) {
+      setExpertise(Array.isArray(storedphoto.researchAreas) ? storedphoto.researchAreas : [])
     }
-  }, [storedProfile])
+  }, [storedphoto])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value

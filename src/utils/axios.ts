@@ -21,6 +21,18 @@ axiosInstance.interceptors.request.use(
     const language = localStorage.getItem("language") || "en"
     ;(config.headers as any)["Accept-Language"] = language
 
+    // If sending a FormData payload, remove the default JSON Content-Type
+    // so the browser/axios can set the proper multipart boundary header.
+    if (config.data && typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      try {
+        if ((config.headers as any)['Content-Type']) {
+          delete (config.headers as any)['Content-Type']
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     return config
   },
   (error) => Promise.reject(error),
