@@ -1,98 +1,41 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
-import axiosInstance from "@/utils/axios"
-
-export interface StaffItem {
-  id: string
-  userId?: string
-  displayName: string
-  title: string
-  departmentId?: string
-  photoId?: string | null
-  researchAreas?: string[]
-  biography?: any
-  email: string
-  phone?: string
-  officeLocation?: string
-  cvId?: string | null
-  createdAt?: string
-  updatedAt?: string
-  department?: {
-    id: string
-    name: string
-    slug: string
-    description: string
-    headId: string | null
-    pageId: string | null
-    createdAt: string
-    updatedAt: string
-    isDisabled: boolean
-  }
-  photo?: string | null
-  cvUrl?: string
-}
+import { staffApi, mediaApi, StaffItem } from "@/api/staffApi"
 
 export const fetchStaff = createAsyncThunk<{ items: StaffItem[]; total: number; page: number; limit: number }, { page?: number; limit?: number; filters?: Record<string, any> }>(
   "staff/fetchStaff",
-  async ({ page = 1, limit = 10, filters = {} }) => {
-    const params = new URLSearchParams({ page: String(page), limit: String(limit), ...filters as any })
-    const response = await axiosInstance.get(`/staff?${params}`)
-    return response.data
+  async (params) => {
+    return await staffApi.fetchStaff(params)
   },
 )
 
 export const fetchStaffById = createAsyncThunk<StaffItem | null, string>("staff/fetchStaffById", async (id) => {
-  const response = await axiosInstance.get(`/staff/${id}`)
-  return response.data
+  return await staffApi.fetchStaffById(id)
 })
 
 export const createStaff = createAsyncThunk<StaffItem, any>("staff/createStaff", async (data) => {
-  // Prepare data according to API structure - userId will come from token
-  const payload = {
-    displayName: data.displayName,
-    title: data.title,
-    departmentId: data.departmentId,
-    email: data.email,
-    phone: data.phone,
-    officeLocation: data.officeLocation,
-    researchAreas: data.researchAreas || [],
-    biography: data.biography || {},
-    photoId: data.photoId,
-    cvId: data.cvId
-  }
-  const response = await axiosInstance.post("/staff", payload)
-  return response.data
+  return await staffApi.createStaff(data)
 })
 
-export const updateStaff = createAsyncThunk<StaffItem, { id: string; data: any }>("staff/updateStaff", async ({ id, data }) => {
-  // Prepare data for PUT request (excluding computed fields)
-  const payload = {
-    displayName: data.displayName,
-    title: data.title,
-    biography: data.biography || {},
-    researchAreas: data.researchAreas || [],
-    email: data.email,
-    phone: data.phone,
-    officeLocation: data.officeLocation
-  }
-  const response = await axiosInstance.put(`/staff/${id}`, payload)
-  return response.data
+export const updateStaff = createAsyncThunk<StaffItem, { id: string; data: any }>("staff/updateStaff", async (params) => {
+  return await staffApi.updateStaff(params)
 })
 
 export const deleteStaff = createAsyncThunk<string, string>("staff/deleteStaff", async (id) => {
-  await axiosInstance.delete(`/staff/${id}`)
-  return id
+  return await staffApi.deleteStaff(id)
 })
 
 export const uploadCV = createAsyncThunk<{ id: string; cvUrl: string }, { id: string; file: File }>(
   "staff/uploadCV",
-  async ({ id, file }) => {
-    const formData = new FormData()
-    formData.append("file", file)
-    const response = await axiosInstance.post(`/staff/${id}/cv`, formData, { 
-      headers: { "Content-Type": "multipart/form-data" } 
-    })
-    return response.data
+  async (params) => {
+    return await mediaApi.uploadCV(params)
   },
+)
+
+export const uploadPhoto = createAsyncThunk<{ id: string; photoUrl: string } , { id: string; file: File }>(
+  "staff/uploadPhoto",
+  async (params) => {
+    return await mediaApi.uploadPhoto(params)
+  }
 )
 
 interface StaffState {
@@ -136,7 +79,20 @@ const staffSlice = createSlice({
       })
       .addCase(fetchStaff.rejected, (state, action) => { state.loading = false; state.error = action.error.message || null })
       .addCase(fetchStaffById.fulfilled, (state, action: PayloadAction<StaffItem | null>) => { state.currentStaff = action.payload })
-      .addCase(createStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => { state.items.unshift(action.payload); state.total += 1 })
+      .addCase(createStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => {
+        state.items.unshift(action.payload); state.total += 1
+        try {
+          if (typeof window !== 'undefined' && action.payload) {
+            const id = (action.payload as any).id || (action.payload as any)._id
+            if (id) {
+              localStorage.setItem('staff_id', String(id))
+              localStorage.setItem('staffId', String(id))
+            }
+          }
+        } catch (e) {
+          // ignore localStorage errors
+        }
+      })
       .addCase(updateStaff.fulfilled, (state, action: PayloadAction<StaffItem>) => {
         const index = state.items.findIndex((item) => item.id === action.payload.id)
         if (index !== -1) state.items[index] = action.payload
@@ -144,6 +100,7 @@ const staffSlice = createSlice({
       })
       .addCase(deleteStaff.fulfilled, (state, action: PayloadAction<string>) => { state.items = state.items.filter((item) => item.id !== action.payload); state.total -= 1 })
       .addCase(uploadCV.fulfilled, (state, action: PayloadAction<{ id: string; cvUrl: string }>) => { if (state.currentStaff && state.currentStaff.id === action.payload.id) state.currentStaff.cvUrl = action.payload.cvUrl })
+      .addCase(uploadPhoto.fulfilled, (state, action: PayloadAction<{ id: string; photoUrl: string }>) => { if (state.currentStaff && state.currentStaff.id === action.payload.id) state.currentStaff.photo = action.payload.photoUrl })
   },
 })
 

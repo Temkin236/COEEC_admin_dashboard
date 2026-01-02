@@ -62,6 +62,12 @@ import UsersPage from "@/pages/users/UsersPage";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import NewsPage from "@/pages/news/newsPage";
 import EventsPage from "@/pages/events/eventsPage";
+import EditProfile from "@/pages/profile/EditProfile"
+import ExperiencePage from "@/pages/profile/ExperiencePage"
+import EducationPage from "@/pages/profile/EducationPage"
+import ConnectPage from "@/pages/profile/Connect"
+import ProfileTabs from "@/pages/profile/ProfileTabs"
+
 
 const { Header, Sider, Content } = Layout;
 
@@ -219,6 +225,13 @@ const DashboardLayout = () => {
         });
       }
     }
+
+    // Profile (personal) - visible to all authenticated users
+    items.push({
+      key: "/profile",
+      icon: <UserOutlined />,
+      label: <Link to="/profile">Profile</Link>,
+    });
 
     // Roles Management
     if (
@@ -738,6 +751,12 @@ const DashboardLayout = () => {
 
             {/* Settings - accessible to all authenticated users for profile */}
             <Route path="/settings/*" element={<SettingsPage />} />
+            {/* Profile pages */}
+            <Route path="/profile" element={<ProfileTabs />} />
+            <Route path="/profile/edit" element={<EditProfile />} />
+            <Route path="/profile/experience" element={<ExperiencePage />} />
+            <Route path="/profile/education" element={<EducationPage />} />
+            <Route path="/profile/connect" element={<ConnectPage />} />
           </Routes>
         </Content>
       </Layout>

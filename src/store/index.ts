@@ -10,6 +10,7 @@ import departmentReducer from "./slices/departmentSlice"
 import downloadReducer from "./slices/downloadSlice"
 import eventsReducer from "./slices/eventsSlice"
 import permissionReducer from "./slices/permissionSlice"
+import profileReducer from "./slices/profileSlice"
 import programsReducer from "./slices/programsSlice"
 import researchProjectsReducer from "./slices/researchProjectsSlice"
 import roleReducer from "./slices/roleSlice"
@@ -38,6 +39,7 @@ export const store = configureStore({
     events: eventsReducer,
     role: roleReducer,
     permission: permissionReducer,
+    profile: profileReducer,
     users: usersReducer,
     media: mediaReducer
   },
