@@ -104,7 +104,11 @@ export default function ExperiencePage() {
   ]
 
   if (loading || experiencesLoading) {
-    return <Loading />
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loading />
+      </div>
+    )
   }
 
   return (

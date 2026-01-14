@@ -1,0 +1,3 @@
+Line 99: if (loading || educationLoading) {
+Line 100:     return <Loading />
+Line 101:   }

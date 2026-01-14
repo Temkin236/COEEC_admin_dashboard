@@ -72,7 +72,11 @@ function profileTabs() {
   }, [])
 
   if (checkingProfile) {
-    return <Loading />
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loading />
+      </div>
+    )
   }
 
   return (

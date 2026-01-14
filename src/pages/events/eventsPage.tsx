@@ -27,6 +27,19 @@ const { confirm } = Modal
 const generateSlug = (text: string) =>
   text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")
 
+const extractTextFromDoc = (doc: any): string => {
+  if (!doc) return ''
+  if (typeof doc === 'string') return doc
+  if (typeof doc === 'object' && doc.content) {
+    return doc.content.map((node: any) => {
+      if (node.text) return node.text
+      if (node.content) return extractTextFromDoc(node)
+      return ''
+    }).join(' ')
+  }
+  return ''
+}
+
 const EventsPage = () => {
   const dispatch = useAppDispatch()
   const { items, loading } = useAppSelector((state) => state.events)
@@ -275,11 +288,7 @@ const EventsPage = () => {
             )}
             <Descriptions.Item label="Description" span={2}>
               <div className="whitespace-pre-wrap">
-                {selectedEvent.description 
-                  ? (typeof selectedEvent.description === 'object' && selectedEvent.description?.content 
-                    ? selectedEvent.description.content 
-                    : (typeof selectedEvent.description === 'string' ? selectedEvent.description : 'No description'))
-                  : 'No description'}
+                {extractTextFromDoc(selectedEvent.description) || 'No description'}
               </div>
             </Descriptions.Item>
             <Descriptions.Item label="Tags" span={2}>

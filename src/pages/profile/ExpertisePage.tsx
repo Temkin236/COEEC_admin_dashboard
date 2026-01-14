@@ -48,7 +48,11 @@ export default function AreasOfExpertise() {
   }, [storedphoto])
 
   if (loading) {
-    return <Loading />
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loading />
+      </div>
+    )
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
