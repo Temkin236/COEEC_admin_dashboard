@@ -101,9 +101,6 @@ const RoleFormPage = () => {
         ).filter(Boolean)
       }
       
-      console.log('Role data:', currentRole)
-      console.log('Extracted permission IDs:', permIds)
-      console.log('Available permissions:', permissions.map(p => ({id: p.id, action: p.action, resource: p.resource})))
       setSelectedPermissions(permIds)
     } else if (!isEditMode) {
       form.resetFields()
@@ -149,6 +146,14 @@ const RoleFormPage = () => {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -172,11 +177,6 @@ const RoleFormPage = () => {
           </p>
         </div>
 
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <Spin size="large" />
-        </div>
-      ) : (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Form Section */}
           <Card className="xl:col-span-1 order-2 xl:order-1">
@@ -297,7 +297,6 @@ const RoleFormPage = () => {
             />
           </Card>
         </div>
-      )}
       </div>
     </div>
   )

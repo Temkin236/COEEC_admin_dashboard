@@ -1,5 +1,4 @@
 import axiosInstance from "@/utils/axios"
-import axios from 'axios'
 
 export interface StaffItem {
   id: string
@@ -79,7 +78,8 @@ export const staffApi = {
       departmentId: data.departmentId,
       // Use photo and cv, not photoId and cvId
       photo: data.photo || data.photoId || null,
-      cv: data.cv || data.cvId || null
+      cv: data.cv || data.cvId || null,
+      socialLinks: data.socialLinks || []
     }
     const response = await axiosInstance.put(`/staff/${id}`, payload)
     return response.data
@@ -100,17 +100,23 @@ export const mediaApi = {
     const formData = new FormData()
     formData.append("files", file)
     formData.append('visibility', 'PUBLIC')
-    const token = localStorage.getItem("token");
 
-    const response = await axios.post('https://coeec.onrender.com/api/media/upload', formData, {
+    const response = await axiosInstance.post('/media/upload', formData, {
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'
       }
     })
-    const returnedId = response?.data?.id ?? response?.data ?? null
-    const returnedUrl = response?.data?.url ?? response?.data?.cvUrl ?? response?.data ?? ''
-    return { id: String(returnedId), cvUrl: String(returnedUrl) }
+    
+    // After uploading, link the media to the staff profile
+    const mediaId = response?.data?.id || response?.data?.[0]?.id
+    const mediaUrl = response?.data?.url || response?.data?.[0]?.url
+    
+    if (mediaId && id) {
+      // Update staff with CV reference
+      await axiosInstance.put(`/staff/${id}`, { cvId: mediaId })
+    }
+    
+    return { id: mediaId, cvUrl: mediaUrl }
   },
 
   // Upload Photo
@@ -119,16 +125,22 @@ export const mediaApi = {
     const formData = new FormData()
     formData.append("files", file)
     formData.append('visibility', 'PUBLIC')
-    const token = localStorage.getItem("token");
 
-    const response = await axios.post('https://coeec.onrender.com/api/media/upload', formData, {
+    const response = await axiosInstance.post('/media/upload', formData, {
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data'
       }
     })
-    const returnedId = response?.data?.id ?? response?.data ?? null
-    const returnedUrl = response?.data?.url ?? response?.data?.photoUrl ?? response?.data ?? ''
-    return { id: String(returnedId), photoUrl: String(returnedUrl) }
+    
+    // After uploading, link the media to the staff profile
+    const mediaId = response?.data?.id || response?.data?.[0]?.id
+    const mediaUrl = response?.data?.url || response?.data?.[0]?.url
+    
+    if (mediaId && id) {
+      // Update staff with photo reference
+      await axiosInstance.put(`/staff/${id}`, { photoId: mediaId })
+    }
+    
+    return { id: mediaId, photoUrl: mediaUrl }
   },
 }

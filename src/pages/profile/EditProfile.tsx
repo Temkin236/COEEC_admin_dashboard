@@ -1,10 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin } from "antd"
+import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin, message } from "antd"
 import { UploadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined, DownloadOutlined } from "@ant-design/icons"
+import Loading from "@/components/common/Loading"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
-import axios from "axios"
+import { staffApi } from "@/api/staffApi"
+import axiosInstance from "@/utils/axios"
 import { fetchProfile, createProfile, fetchExperiences, setProfile } from "@/store/slices/profileSlice"
 import { uploadCV, uploadPhoto, updateStaff } from "@/store/slices/staffSlice"
 // Import directly to ensure the action is available immediately
@@ -65,42 +67,88 @@ export default function photo() {
     dispatch(fetchDepartments())
   }, [dispatch])
 
-  // 2. Fetch photo if ID exists
+  // 2. Fetch staff profile by ID from token on mount
   useEffect(() => {
-    if (photo) {
-      dispatch(fetchProfile(photo))
-      // fetch experiences for preview
-      dispatch(fetchExperiences(photo))
-    }
-  }, [dispatch, photo])
-
-  // 2b. Attempt to fetch staff data from the dev backend and populate preview/placeholders
-  useEffect(() => {
-    const fetchDevStaff = async () => {
+    const fetchStaffProfile = async () => {
       try {
-        const fallbackId = "cmjmhl7x2000eh41qovi3n1jo"
-        const localId = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
-        const staffIdToFetch = localId || photo || fallbackId
-        if (!staffIdToFetch) return
-        const url = `https://coeec-dev-backend.onrender.com/api/staff/${staffIdToFetch}`
-        const res = await axios.get(url, { headers: { accept: "application/json" } })
-        if (res?.data) {
-          // update redux and form state so preview + placeholders use the fetched data
-          dispatch(setProfile(res.data))
-          // fetch experiences for preview as well
-          dispatch(fetchExperiences(staffIdToFetch))
+        // Extract staffId from JWT token (primary source)
+        const authUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
+        const parsedAuth = authUser ? JSON.parse(authUser) : null
+        const staffIdFromToken = parsedAuth?.staffId || parsedAuth?.staff_id
+        const staffIdFromStorage = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
+        const staffIdToFetch = staffIdFromToken || staffIdFromStorage
+        
+        // Only fetch if we have a valid staff ID from token or storage
+        if (!staffIdToFetch) {
+          console.log('No staffId found in token or storage')
+          return
         }
-      } catch (err) {
-        // do not break the UI on fetch failure
-        console.debug("Dev staff fetch failed:", err)
+        
+        console.log('Fetching staff profile for ID:', staffIdToFetch)
+        
+        // Make GET request to fetch staff by ID using staffApi
+        const data = await staffApi.fetchStaffById(staffIdToFetch)
+        if (data) {
+          console.log('Staff profile fetched:', data)
+          // Update Redux store with fetched profile data
+          dispatch(setProfile(data))
+          // Fetch experiences for this staff
+          dispatch(fetchExperiences(staffIdToFetch))
+          // Store staff ID in localStorage for future use
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('staffId', String(staffIdToFetch))
+            localStorage.setItem('staff_id', String(staffIdToFetch))
+          }
+        }
+      } catch (err: any) {
+        console.log('Staff profile fetch error:', err?.response?.status)
+        // Staff profile doesn't exist yet - normal for new users setting up profile
+        if (err?.response?.status === 404) {
+          console.log('Staff profile not found - user needs to set up profile')
+        }
       }
     }
-    fetchDevStaff()
-  }, [dispatch, photo])
+    fetchStaffProfile()
+  }, [dispatch])
 
-  // 3. Sync form data when photo is loaded
+  // 3. Sync form data when profile is loaded into Redux
   useEffect(() => {
-    if (storedphoto) {
+    if (storedphoto && Object.keys(storedphoto).length > 0) {
+      // Get photo URL - can be in photoUrl, photo.url, or direct URL string
+      let photoUrl = (storedphoto as any).photoUrl || 
+                     (storedphoto as any).photo?.url || 
+                     (typeof (storedphoto as any).photo === 'string' ? (storedphoto as any).photo : null)
+      
+      // Get CV URL - can be in cvUrl, cv.url, or direct URL string
+      let cvUrl = (storedphoto as any).cvUrl || 
+                  (storedphoto as any).cv?.url || 
+                  (typeof (storedphoto as any).cv === 'string' ? (storedphoto as any).cv : null)
+      
+      console.log('Original photo URL:', photoUrl, 'cv:', cvUrl)
+      
+      // Replace localhost URLs with backend base URL (uploads are served from root, not /api)
+      if (photoUrl && (photoUrl.includes('localhost') || photoUrl.includes('127.0.0.1'))) {
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+        if (apiBaseUrl) {
+          // Remove /api suffix to get the root backend URL
+          const backendBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+          // Replace localhost with backend base URL
+          photoUrl = photoUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, backendBaseUrl)
+          console.log('Converted photo URL:', photoUrl)
+        }
+      }
+      
+      if (cvUrl && (cvUrl.includes('localhost') || cvUrl.includes('127.0.0.1'))) {
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+        if (apiBaseUrl) {
+          // Remove /api suffix to get the root backend URL
+          const backendBaseUrl = apiBaseUrl.replace(/\/api\/?$/, '')
+          // Replace localhost with backend base URL
+          cvUrl = cvUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, backendBaseUrl)
+          console.log('Converted CV URL:', cvUrl)
+        }
+      }
+      
       setFormData({
         fullName: storedphoto.displayName || "",
         title: storedphoto.title || "",
@@ -109,9 +157,8 @@ export default function photo() {
         email: storedphoto.email || "",
         phone: storedphoto.phone || "",
         officeLocation: storedphoto.officeLocation || "",
-        // Normalize to only `photo` and `cv` fields (prefer URL, then raw value)
-        photo: (storedphoto.photo as string) || (storedphoto.photo as string) || null,
-        cv: (storedphoto.cv as string) || null,
+        photo: photoUrl,
+        cv: cvUrl,
         about: storedphoto.biography?.description || "",
         researchAreas: storedphoto.researchAreas || [],
       })
@@ -163,37 +210,64 @@ export default function photo() {
     const staffIdKey = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
     const staffId = (storedphoto as any)?.id || (storedphoto as any)?._id || staffIdFromAuth || staffIdKey || null
 
-    console.log('Save debug:', { 
-      storedphoto: storedphoto, 
-      staffIdFromAuth, 
-      staffIdKey, 
-      finalStaffId: staffId 
-    })
-
     try {
-      if (staffId) {
-        console.log('Making PUT request with staffId:', staffId)
-        // User has staffId - make PUT request
-        await dispatch(updateStaff({ id: staffId, data: payload }))
+      // Check if we have a loaded profile in Redux (this means it was successfully fetched from backend)
+      const hasLoadedProfile = !!(storedphoto && Object.keys(storedphoto).length > 0)
+      
+      let finalStaffId = staffId
+      
+      if (hasLoadedProfile && staffId) {
+        // We have a profile loaded from backend - use PUT to update
+        await dispatch(updateStaff({ id: staffId, data: payload })).unwrap()
+        console.log('Profile updated successfully')
       } else {
-        console.log('Making POST request - no staffId found')
-        // No staffId - make POST request
+        // No profile loaded (first time) - use POST to create
         const userId = user?.id || ''
         const created: any = await dispatch(createProfile({ userId, data: payload }) as any).unwrap()
         const createdId = created?.id || created?._id
         if (createdId) {
-          // Store created id to localStorage for future reference
+          finalStaffId = createdId
           try { 
             if (typeof window !== 'undefined') { 
               localStorage.setItem('staffId', String(createdId))
               localStorage.setItem('staff_id', String(createdId))
             }
           } catch {}
+          console.log('Profile created successfully with ID:', createdId)
         }
       }
-    } catch (e) {
+      
+      // Upload photo if user selected one
+      if (photoFile && finalStaffId) {
+        console.log('Uploading photo...')
+        await dispatch(uploadPhoto({ id: finalStaffId, file: photoFile })).unwrap()
+        console.log('Photo uploaded successfully')
+      }
+      
+      // Upload CV if user selected one
+      if (cvFile && finalStaffId) {
+        console.log('Uploading CV...')
+        await dispatch(uploadCV({ id: finalStaffId, file: cvFile })).unwrap()
+        console.log('CV uploaded successfully')
+      }
+      
+      // Refresh the profile data to show the uploaded files
+      if (finalStaffId) {
+        const refreshedData = await staffApi.fetchStaffById(finalStaffId)
+        if (refreshedData) {
+          dispatch(setProfile(refreshedData))
+        }
+      }
+      
+      message.success('Profile saved successfully!')
+    } catch (e: any) {
       console.error("Save failed", e)
+      message.error(e?.message || 'Failed to save profile. Please try again.')
     }
+  }
+
+  if (photoLoading && !storedphoto) {
+    return <Loading />
   }
 
   return (
@@ -259,9 +333,14 @@ export default function photo() {
                 <Upload beforeUpload={handleCvUpload} showUploadList={false} accept=".pdf">
                   <div className="w-full border-2 border-dashed border-[#17A2B8] rounded-lg p-6 text-center bg-[#fafdfe] cursor-pointer">
                     <UploadOutlined className="text-2xl text-[#17A2B8]" />
-                    <div className="mt-2 text-[#17A2B8] text-sm">Click to upload CV (PDF)</div>
+                    <div className="mt-2 text-[#17A2B8] text-sm">
+                      {cvFile ? `Selected: ${cvFile.name}` : (formData.cv ? 'CV uploaded - Click to change' : 'Click to upload CV (PDF)')}
+                    </div>
                   </div>
                 </Upload>
+                {formData.cv && !cvFile && (
+                  <div className="mt-2 text-xs text-gray-500">Current CV is available for download in preview</div>
+                )}
               </Form.Item>
 
               <Form.Item label="About">
@@ -272,9 +351,14 @@ export default function photo() {
                 <Upload beforeUpload={handleImageUpload} showUploadList={false} accept="image/*">
                   <div className="w-full border-2 border-dashed border-[#17A2B8] rounded-lg p-6 text-center bg-[#fafdfe] cursor-pointer">
                     <UploadOutlined className="text-2xl text-[#17A2B8]" />
-                    <div className="mt-2 text-[#17A2B8] text-sm">Click to upload photo Image</div>
+                    <div className="mt-2 text-[#17A2B8] text-sm">
+                      {photoFile ? `Selected: ${photoFile.name}` : (formData.photo ? 'Photo uploaded - Click to change' : 'Click to upload photo Image')}
+                    </div>
                   </div>
                 </Upload>
+                {formData.photo && !photoFile && (
+                  <div className="mt-2 text-xs text-gray-500">Current photo is displayed in preview</div>
+                )}
               </Form.Item>
             </Form>
           </Card>
@@ -296,12 +380,25 @@ export default function photo() {
               )}
             <div className="flex flex-col items-center p-6 bg-[#eaf4f7] rounded-xl mb-6">
               {formData.photo ? (
-                <img src={formData.photo} alt="Preview" className="w-24 h-24 rounded-full border-4 border-white object-cover" />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-[#17A2B8] flex items-center justify-center">
-                  <UserOutlined className="text-4xl text-white" />
-                </div>
-              )}
+                <img 
+                  src={formData.photo} 
+                  alt={formData.fullName || "Profile"}
+                  className="w-24 h-24 rounded-full border-4 border-white object-cover" 
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    console.error('Failed to load photo:', formData.photo)
+                    e.currentTarget.style.display = 'none'
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                    if (fallback) fallback.style.display = 'flex'
+                  }}
+                />
+              ) : null}
+              <div 
+                className="w-24 h-24 rounded-full bg-[#17A2B8] flex items-center justify-center"
+                style={{ display: formData.photo ? 'none' : 'flex' }}
+              >
+                <UserOutlined className="text-4xl text-white" />
+              </div>
               <div className="mt-4 text-center">
                 <div className="font-bold text-xl text-[#18485e]">{formData.fullName || "Your Name"}</div>
                 <div className="text-gray-500">{formData.title}</div>

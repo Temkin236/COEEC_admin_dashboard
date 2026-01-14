@@ -142,11 +142,11 @@ export const fetchEducationByStaff = createAsyncThunk<any[], string, { rejectVal
   },
 )
 
-export const updateEducation = createAsyncThunk<any, { staffId: string; data: any }, { rejectValue: string }>(
+export const updateEducation = createAsyncThunk<any, { id: string; data: any }, { rejectValue: string }>(
   "profiles/updateEducation",
-  async ({ staffId, data }, { rejectWithValue }) => {
+  async ({ id, data }, { rejectWithValue }) => {
     try {
-      return await educationApi.updateEducation({ staffId, data })
+      return await educationApi.updateEducation({ id, data })
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message || "Failed to update education")
     }
@@ -155,16 +155,16 @@ export const updateEducation = createAsyncThunk<any, { staffId: string; data: an
 
 export const deleteEducation = createAsyncThunk<string, string, { rejectValue: string }>(
   "profiles/deleteEducation",
-  async (staffId, { rejectWithValue }) => {
+  async (id, { rejectWithValue }) => {
     try {
-      return await educationApi.deleteEducation(staffId)
+      return await educationApi.deleteEducation(id)
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message || "Failed to delete education")
     }
   },
 )
 
-export const addEducation = createAsyncThunk<any, { staffId: string; data: any }, { rejectValue: string }>(
+export const addEducation = createAsyncThunk<any, { staffId?: string; data: any }, { rejectValue: string }>(
   "profiles/addEducation",
   async ({ staffId, data }, { rejectWithValue }) => {
     try {
@@ -241,7 +241,10 @@ const profileSlice = createSlice({
       })
       .addCase(fetchExperiences.fulfilled, (state, action: PayloadAction<any[]>) => {
         state.experiencesLoading = false
-        ;(state.data as any) = (state.data as any) || {}
+        // Ensure state.data is an object before adding experiences
+        if (!state.data || typeof state.data === 'string') {
+          state.data = {}
+        }
         ;(state.data as any).experiences = action.payload
       })
       .addCase(fetchExperiences.rejected, (state, action) => {
@@ -254,7 +257,10 @@ const profileSlice = createSlice({
       })
       .addCase(addExperience.fulfilled, (state, action: PayloadAction<any>) => {
         state.experiencesLoading = false
-        ;(state.data as any) = (state.data as any) || {}
+        // Ensure state.data is an object before adding experiences
+        if (!state.data || typeof state.data === 'string') {
+          state.data = {}
+        }
         ;(state.data as any).experiences = [action.payload].concat((state.data as any).experiences || [])
         state.lastAddedExperience = action.payload
       })

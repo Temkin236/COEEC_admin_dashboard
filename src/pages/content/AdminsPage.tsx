@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Card, Input, Button, Upload, Form, Space } from "antd";
+import { Card, Input, Button, Upload, Form, Space, Modal } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 
 const { TextArea } = Input;
@@ -34,7 +34,14 @@ const AdminsPage: React.FC = () => {
   };
 
   const removeAdmin = (idx: number) => {
-    setAdmins(admins.filter((_, i) => i !== idx));
+    Modal.confirm({
+      title: "Remove Admin",
+      content: "Are you sure you want to remove this admin card?",
+      okType: "danger",
+      onOk: () => {
+        setAdmins(admins.filter((_, i) => i !== idx));
+      }
+    });
   };
 
   return (

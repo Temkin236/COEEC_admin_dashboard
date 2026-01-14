@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { Card, Table, Tag, Statistic, Row, Col, Empty } from "antd"
+import { Card, Tag, Statistic, Row, Col, Empty } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { usePermissions } from "@/hooks/usePermissions"
 import { UserOutlined, TeamOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
@@ -71,7 +72,7 @@ const StudentsPage = () => {
       </Row>
 
       <Card title="Students by Program">
-        <Table columns={columns as any} dataSource={Array.isArray(mockData) ? mockData : []} loading={!!students.loading} rowKey="id" pagination={false} />
+        <DataTable columns={columns as any} dataSource={Array.isArray(mockData) ? mockData : []} loading={!!students.loading} rowKey="id" pagination={false} />
       </Card>
     </div>
   )

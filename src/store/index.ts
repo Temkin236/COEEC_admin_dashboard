@@ -19,6 +19,7 @@ import studentReducer from "./slices/studentSlice"
 import usersReducer from "./slices/usersSlice"
 import publicationsReducer from "./slices/publicationsSlice"
 import mediaReducer from "./slices/mediaSlice"
+import newsReducer from "./slices/newsSlice"
 
 export const store = configureStore({
   reducer: {
@@ -37,6 +38,7 @@ export const store = configureStore({
     departments: departmentReducer,
     calendar: calendarReducer,
     events: eventsReducer,
+    news: newsReducer,
     role: roleReducer,
     permission: permissionReducer,
     profile: profileReducer,

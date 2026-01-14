@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Button, Space, Tag, Upload, Modal, Form, Input, Select, message } from "antd"
+import { Card, Button, Space, Tag, Upload, Modal, Form, Input, Select, message } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { UploadOutlined, DownloadOutlined, DeleteOutlined, FileOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchDownloads, uploadFile, removeDownload, incrementDownloadCount } from "@/store/slices/downloadSlice"
@@ -121,7 +122,7 @@ const DownloadsPage = () => {
         }
       >
         <div className="overflow-x-auto">
-          <Table
+          <DataTable
             columns={columns as any}
             dataSource={Array.isArray(items) && items.length ? items : mockData}
             loading={!!loading}

@@ -41,10 +41,10 @@ const RolesPage = () => {
   }, [dispatch])
 
   const { canCreate, canView, canUpdate, canDelete } = usePermissions()
-  const hasRoleView = canView("roles")
-  const hasRoleCreate = canCreate("roles")
-  const hasRoleUpdate = canUpdate("roles")
-  const hasRoleDelete = canDelete("roles")
+  const hasRoleView = canView("roles") || canView("role")
+  const hasRoleCreate = canCreate("roles") || canCreate("role")
+  const hasRoleUpdate = canUpdate("roles") || canUpdate("role")
+  const hasRoleDelete = canDelete("roles") || canDelete("role")
 
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [viewingRole, setViewingRole] = useState<Role | null>(null)
@@ -136,6 +136,8 @@ const RolesPage = () => {
             onDelete={onDelete}
             record={record}
             allowEditIfOwner={false}
+            hasUpdate={hasRoleUpdate}
+            hasDelete={hasRoleDelete}
           />
         )
       }
@@ -187,6 +189,13 @@ const RolesPage = () => {
               dataSource={items}
               loading={loading}
               rowKey="id"
+              onRow={(record) => ({
+                onClick: () => {
+                  setViewingRole(record)
+                  setViewModalOpen(true)
+                },
+                style: { cursor: 'pointer' }
+              })}
               pagination={false}
               scroll={{ x: 800 }}
               className="border-0"

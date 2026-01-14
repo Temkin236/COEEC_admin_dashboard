@@ -10,6 +10,7 @@ import { getInitials } from "@/utils/helpers"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
+import DataTable from "@/components/common/DataTable"
 
 const StaffListPage = () => {
   const dispatch = useAppDispatch()
@@ -27,9 +28,6 @@ const StaffListPage = () => {
 
   // Has any action permission
   const hasAnyAction = hasStaffView || hasStaffUpdate || hasStaffDelete
-
-  // Debugging: log permission array and derived booleans
-  console.log("StaffList permissions:", { userPermissions, hasStaffView, hasStaffCreate, hasStaffUpdate, hasStaffDelete })
 
   useEffect(() => {
     dispatch((fetchStaff as any)({ page, limit, filters }))
@@ -68,31 +66,26 @@ const StaffListPage = () => {
       width: 250,
       render: (_: string, record: any) => {
         const fullName = record.displayName || 'N/A'
-
-        // Safely compute photo source: API may return a string (base64 or url) or an object
-        let photoSrc: string | null = null
-        const p = record.photo
-        if (typeof p === 'string') {
-          if (p.startsWith && p.startsWith('data:image')) {
-            photoSrc = p
-          } else if (p.startsWith && (p.startsWith('http') || p.startsWith('//'))) {
-            photoSrc = p
-          } else {
-            // assume base64 string
-            photoSrc = `data:image/*;base64,${p}`
+        let photoUrl = null
+        
+        if (record.photo) {
+          if (typeof record.photo === 'string') {
+            photoUrl = record.photo
+          } else if (record.photo?.url) {
+            photoUrl = record.photo.url
           }
-        } else if (p && typeof p === 'object') {
-          if (typeof p.url === 'string' && p.url) photoSrc = p.url
-          else if (typeof p.path === 'string' && p.path) photoSrc = p.path
-          else if (typeof p.data === 'string' && p.data) {
-            photoSrc = p.data.startsWith && p.data.startsWith('data:image') ? p.data : `data:image/*;base64,${p.data}`
+          
+          // Convert localhost URLs to backend URL
+          if (photoUrl && (photoUrl.includes('localhost') || photoUrl.startsWith('http://localhost'))) {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || ''
+            photoUrl = photoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
           }
         }
 
         return (
           <Space>
-            {photoSrc ? (
-              <Avatar src={photoSrc} style={{ backgroundColor: "#1e3a5f" }} />
+            {photoUrl ? (
+              <Avatar src={photoUrl} style={{ backgroundColor: "#1e3a5f" }} crossOrigin="anonymous" />
             ) : (
               <Avatar style={{ backgroundColor: "#1e3a5f" }}>{getInitials(fullName)}</Avatar>
             )}
@@ -259,11 +252,18 @@ const StaffListPage = () => {
           </Select>
         </div>
 
-        <Table
+        <DataTable
           columns={columns as any}
           dataSource={Array.isArray(items) ? items : []}
           loading={loading as any}
           rowKey="id"
+          onRow={(record) => ({
+            onClick: () => {
+              // Navigate to staff form page for editing
+              navigate(`/staff/${record.id}`)
+            },
+            style: { cursor: 'pointer' }
+          })}
           scroll={{ x: 800 }}
           pagination={{ 
               current: page, 

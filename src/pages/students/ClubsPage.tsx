@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Card, Table, Button, Modal, Form, Input, Space, message, Popconfirm, Tag } from "antd"
-import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, LinkOutlined } from "@ant-design/icons"
+import { Card, Button, Modal, Form, Input, Space, message, Popconfirm, Tag, Descriptions } from "antd"
+import { PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined, LinkOutlined, EyeOutlined } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
+import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchClubs, createClub, updateClub, deleteClub, type Club } from "@/store/slices/studentSlice"
 
@@ -12,12 +13,23 @@ const ClubsPage = () => {
   const dispatch = useAppDispatch()
   const { clubs } = useAppSelector((state) => state.students)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [editingClub, setEditingClub] = useState<Club | null>(null)
+  const [viewingClub, setViewingClub] = useState<Club | null>(null)
   const [form] = Form.useForm()
 
   useEffect(() => {
     dispatch(fetchClubs() as any)
   }, [dispatch])
+
+  const { canCreate, canView, canUpdate, canDelete } = usePermissions()
+
+  const hasClubView = canView("clubs") || canView("studentlife")
+  const hasClubCreate = canCreate("clubs") || canUpdate("studentlife")
+  const hasClubUpdate = canUpdate("clubs") || canUpdate("studentlife")
+  const hasClubDelete = canDelete("clubs") || canUpdate("studentlife")
+
+  const hasAnyAction = hasClubView || hasClubUpdate || hasClubDelete
 
   const columns = [
     {
@@ -61,45 +73,59 @@ const ClubsPage = () => {
       width: 100,
       render: (order: number) => <Tag color="blue" className="font-medium">{order}</Tag>,
     },
-    {
+    ...(hasAnyAction ? [{
       title: "Actions",
       key: "actions",
       width: 120,
       fixed: 'right' as const,
       render: (_: any, record: Club) => (
         <Space size="small" className="flex-nowrap">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-            title="Edit Club"
-          />
-          <Popconfirm
-            title="Are you sure you want to delete this club?"
-            onConfirm={() => handleDelete(record.id)}
-          >
+          {hasClubView && (
             <Button
               type="text"
-              danger
-              icon={<DeleteOutlined />}
+              icon={<EyeOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleView(record)
+              }}
               size="small"
-              title="Delete Club"
+              title="View Club"
             />
-          </Popconfirm>
+          )}
+          {hasClubUpdate && (
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleEdit(record)
+              }}
+              size="small"
+              title="Edit Club"
+            />
+          )}
+          {hasClubDelete && (
+            <Popconfirm
+              title="Are you sure you want to delete this club?"
+              onConfirm={(e) => {
+                e?.stopPropagation()
+                handleDelete(record.id)
+              }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                size="small"
+                title="Delete Club"
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
-    },
+    }] : []),
   ]
-
-  const { canCreate, canView, canUpdate, canDelete } = usePermissions()
-
-  const hasClubView = canView("clubs")
-  const hasClubCreate = canCreate("clubs")
-  const hasClubUpdate = canUpdate("clubs")
-  const hasClubDelete = canDelete("clubs")
-
-  const hasAnyAction = hasClubView || hasClubUpdate || hasClubDelete
 
   const handleAdd = () => {
     setEditingClub(null)
@@ -113,6 +139,11 @@ const ClubsPage = () => {
     const desc = club?.description && typeof club.description === 'object' ? club.description.content : club?.description
     form.setFieldsValue({ ...club, description: desc })
     setIsModalOpen(true)
+  }
+
+  const handleView = (club: Club) => {
+    setViewingClub(club)
+    setIsViewModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -166,7 +197,7 @@ const ClubsPage = () => {
               <TeamOutlined className="text-blue-600" />
               <div>
                 <span className="text-lg font-semibold">Student Clubs Management</span>
-                <div className="text-sm text-gray-500">Manage student clubs and organizations</div>
+                
               </div>
             </div>
             {hasClubCreate && (
@@ -183,7 +214,7 @@ const ClubsPage = () => {
           </div>
         }
       >
-        <Table
+        <DataTable
           columns={columns as any}
           dataSource={clubsArray}
           rowKey="id"
@@ -196,6 +227,14 @@ const ClubsPage = () => {
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} clubs`,
           }}
           className="border-0"
+          rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
+          onRow={(record) => ({
+            onClick: () => {
+              if (hasClubView) {
+                handleView(record)
+              }
+            },
+          })}
         />
       </Card>
 
@@ -269,6 +308,39 @@ const ClubsPage = () => {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal
+        title="Club Details"
+        open={isViewModalOpen}
+        onCancel={() => setIsViewModalOpen(false)}
+        footer={[<Button key="close" onClick={() => setIsViewModalOpen(false)}>Close</Button>]}
+        width={800}
+      >
+        {viewingClub && (
+          <Descriptions bordered column={2} className="mt-4">
+            <Descriptions.Item label="Club Name" span={2}>{viewingClub.name}</Descriptions.Item>
+            <Descriptions.Item label="Website" span={2}>
+              {viewingClub.websiteUrl ? (
+                <a href={viewingClub.websiteUrl} target="_blank" rel="noopener noreferrer">
+                  {viewingClub.websiteUrl}
+                </a>
+              ) : (
+                <span className="text-gray-400">No website</span>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Description" span={2}>
+              <div className="max-h-60 overflow-auto whitespace-pre-wrap">
+                {viewingClub.description
+                  ? (typeof viewingClub.description === 'object' && viewingClub.description?.content 
+                    ? viewingClub.description.content 
+                    : (typeof viewingClub.description === 'string' ? viewingClub.description : 'No description'))
+                  : 'No description'}
+              </div>
+            </Descriptions.Item>
+          </Descriptions>
+        )}
       </Modal>
     </div>
   )

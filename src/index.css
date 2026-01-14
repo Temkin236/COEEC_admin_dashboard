@@ -1,3 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Force Ant Design Message (Toast) to Bottom Right */
+.ant-message {
+  top: auto !important;
+  bottom: 24px !important;
+  left: auto !important;
+  right: 24px !important;
+  width: auto !important;
+  align-items: flex-end !important;
+}
+
+/* Ensure content is left aligned but container is right aligned */
+.ant-message .ant-message-notice {
+  justify-content: flex-end;
+}
+
+/* Add a slide-in animation from right if not present by default for this position */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.ant-message .ant-message-notice {
+  animation: slideInRight 0.3s ease-out !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

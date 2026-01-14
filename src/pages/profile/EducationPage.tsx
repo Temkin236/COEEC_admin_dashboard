@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { getMyEducation } from "@/store/slices/profileSlice"
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons"
-import { Card, Form, Input, Button, Row, Col } from "antd"
+import { Card, Form, Input, Button, Row, Col, Modal } from "antd"
+import Loading from "@/components/common/Loading"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchProfile, fetchEducationByStaff, addEducation as addEducationThunk, updateEducation, deleteEducation } from "@/store/slices/profileSlice"
 
@@ -18,7 +19,7 @@ interface EducationEntry {
 
 export default function EducationPage() {
   const dispatch = useAppDispatch()
-  const { data: storedphoto } = useAppSelector((s) => s.profile)
+  const { data: storedphoto, loading, educationLoading } = useAppSelector((s) => s.profile)
   const [education, setEducation] = useState<EducationEntry[]>([])
   const [pendingEducationList, setPendingEducationList] = useState<Array<Omit<EducationEntry, "id">>>([])
 
@@ -50,30 +51,14 @@ export default function EducationPage() {
     dispatch(getMyEducation())
   }, [dispatch])
 
-  const handleSave = () => {
-    if (pendingEducationList.length > 0) {
-      // Persist all pending education entries
-      pendingEducationList.forEach((item) => {
-        // map local `year` to `yearCompleted` for backend
-        const payload = { ...item, yearCompleted: (item as any).year }
-        delete (payload as any).year
-        dispatch(addEducationThunk({ staffId: photo, data: payload }))
-      })
-      setPendingEducationList([])
-      return
-    }
+  const handlePostEducation = () => {
     if (!newEducation.degree || !newEducation.institution) return
-    if (!education || education.length === 0) {
-      const payload = { ...newEducation, yearCompleted: (newEducation as any).year }
-      delete (payload as any).year
-      dispatch(addEducationThunk({ staffId: photo, data: payload }))
-    } else {
-      if (photo) {
-        const payload = { ...newEducation, yearCompleted: (newEducation as any).year }
-        delete (payload as any).year
-        dispatch(updateEducation({ staffId: photo, data: payload }))
-      }
-    }
+    
+    // Always add new education from the form
+    const payload = { ...newEducation, yearCompleted: (newEducation as any).year }
+    delete (payload as any).year
+    dispatch(addEducationThunk({ staffId: photo, data: payload }))
+    
     setNewEducation({ degree: "", institution: "", year: new Date().getFullYear(), description: "" })
   }
 
@@ -84,16 +69,36 @@ export default function EducationPage() {
   }
 
   const handleDelete = (id: string) => {
-    // delete persisted education entry by id
-    dispatch(deleteEducation(id))
+    Modal.confirm({
+      title: "Delete Education",
+      content: "Are you sure you want to delete this education entry?",
+      okType: "danger",
+      onOk: () => {
+        // delete persisted education entry by id
+        dispatch(deleteEducation(id))
+      }
+    })
   }
 
-  const discardPendingEducation = (index: number) => setPendingEducationList((prev) => prev.filter((_, i) => i !== index))
+  const discardPendingEducation = (index: number) => {
+    Modal.confirm({
+      title: "Discard Draft",
+      content: "Are you sure you want to discard this education draft?",
+      okType: "danger",
+      onOk: () => {
+        setPendingEducationList((prev) => prev.filter((_, i) => i !== index))
+      }
+    })
+  } 
 
   const previewEducation = [
     ...pendingEducationList.map((pe, idx) => ({ id: `preview-${idx}`, ...pe })),
     ...(education || []),
   ]
+
+  if (loading || educationLoading) {
+    return <Loading />
+  }
 
   return (
     <div className="p-4 lg:p-8 min-h-screen bg-[#fafcfd]">
@@ -103,7 +108,7 @@ export default function EducationPage() {
             <div className="p-8">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 className="font-bold text-lg" style={{ color: '#18485e', margin: 0 }}>Edit Education</h2>
-                <Button htmlType="button" size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={handleSave}>Save</Button>
+                <Button htmlType="button" size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={addLocalEducation}>Preview</Button>
               </div>
 
 
@@ -139,7 +144,7 @@ export default function EducationPage() {
                   <Input.TextArea rows={2} value={newEducation.description} placeholder={(education[0] as any)?.description || ''} onChange={(e) => setNewEducation({ ...newEducation, description: e.target.value })} />
                 </Form.Item>
                 <div style={{ marginTop: 12 }}>
-                  <Button htmlType="button" disabled={!newEducation.degree || !newEducation.institution} block style={{ background: '#17A2B8', color: '#fff', borderRadius: 8, height: 48 }} icon={<PlusOutlined />} onClick={addLocalEducation}>Add Education</Button>
+                  <Button htmlType="button" disabled={!newEducation.degree || !newEducation.institution} block style={{ background: '#17A2B8', color: '#fff', borderRadius: 8, height: 48 }} icon={<PlusOutlined />} onClick={handlePostEducation}>Save Education</Button>
                 </div>
               </div>
             </div>

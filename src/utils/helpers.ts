@@ -50,6 +50,58 @@ export const hasPermission = (userRole?: string, requiredRoles?: string[]) => {
   return requiredRoles.includes(userRole || "")
 }
 
+/**
+ * Extract translation from translations array based on language
+ * Falls back to first available translation if language not found
+ */
+export const getTranslation = (item: any, language: string = 'EN') => {
+  if (!item) return null
+  
+  // If already has flat structure (title, description), return as is
+  if (item.title && !item.translations) {
+    return item
+  }
+  
+  // Get translations array
+  const translations = item.translations || []
+  
+  // Find translation for requested language
+  let translation = translations.find((t: any) => t.language === language)
+  
+  // Fallback to English
+  if (!translation) {
+    translation = translations.find((t: any) => t.language === 'EN')
+  }
+  
+  // Fallback to first available
+  if (!translation && translations.length > 0) {
+    translation = translations[0]
+  }
+  
+  // Return merged object with translation fields at top level
+  if (translation) {
+    return {
+      ...item,
+      title: translation.title,
+      slug: translation.slug,
+      description: translation.description,
+      content: translation.description, // Alias for consistency
+      excerpt: translation.excerpt,
+      language: translation.language,
+    }
+  }
+  
+  return item
+}
+
+/**
+ * Transform API response items with translations to flat structure
+ */
+export const transformTranslatedItems = (items: any[], language: string = 'EN') => {
+  if (!Array.isArray(items)) return []
+  return items.map(item => getTranslation(item, language))
+}
+
 // Permission interface matching backend structure
 export interface Permission {
   id: string

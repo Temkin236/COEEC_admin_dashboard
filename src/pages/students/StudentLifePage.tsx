@@ -39,7 +39,11 @@ const StudentLifePage = () => {
   }
 
   if (!studentLife.data || studentLife.loading) {
-    return <div className="flex justify-center py-8"><Spin size="large" /></div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    )
   }
 
   const studentLifeData = studentLife.data

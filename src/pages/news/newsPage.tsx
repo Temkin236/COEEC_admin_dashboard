@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import {
   Card, Button, Table, Space, Tag, Modal, Form,
   Input, Select, DatePicker, message, Descriptions, Typography,
-  Radio, Tabs, Upload, Image
+  Radio, Tabs, Upload, Image, Spin
 } from "antd"
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
@@ -32,8 +32,7 @@ const generateSlug = (text: string) =>
 
 const NewsPage = () => {
   const dispatch = useAppDispatch()
-  const { items, loading } = useAppSelector((state) => state.media)
-  console.log(items)
+  const { items, loading } = useAppSelector((state) => state.news)
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
@@ -257,6 +256,14 @@ const NewsPage = () => {
     },
   ]
 
+  if (loading && items.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    )
+  }
+
   return (
     <div className="p-6">
       <Card
@@ -270,8 +277,12 @@ const NewsPage = () => {
         <Table
           columns={columns}
           dataSource={items}
-          loading={loading}
+          loading={loading && items.length > 0}
           rowKey="id"
+          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}
           locale={{ emptyText: "No news items found." }}
           pagination={{ pageSize: 10 }}
         />

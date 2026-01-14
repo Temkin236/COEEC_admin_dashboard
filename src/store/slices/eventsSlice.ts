@@ -1,5 +1,6 @@
 import axiosInstance from "@/utils/axios"
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { transformTranslatedItems } from "@/utils/helpers"
 
 export interface Event {
   id: string | number
@@ -37,14 +38,15 @@ export const fetchPublicEvents = createAsyncThunk<Event[], void, { rejectValue: 
   "events/fetchPublicEvents",
   async (_, { rejectWithValue }) => {
     try {
-      console.log('Fetching public events...')
       const res = await axiosInstance.get("/events/public")
-      console.log('Public events fetched:', res.data)
       // API returns { data: [...], meta: {...} }, extract the data array
       const events = res.data?.data || res.data
-      return Array.isArray(events) ? events : []
+      const eventsArray = Array.isArray(events) ? events : []
+      // Get current language from localStorage or default to EN
+      const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
+      // Transform items with translations to flat structure
+      return transformTranslatedItems(eventsArray, language)
     } catch (err: any) {
-      console.error('Failed to fetch public events:', err.response?.data || err.message)
       return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch public events")
     }
   }
@@ -55,14 +57,15 @@ export const fetchEvents = createAsyncThunk<Event[], void, { rejectValue: string
   "events/fetchEvents",
   async (_, { rejectWithValue }) => {
     try {
-      console.log('Fetching all events...')
       const res = await axiosInstance.get("/events?all=true")
-      console.log('Events fetched:', res.data)
       // API returns { data: [...], meta: {...} }, extract the data array
       const events = res.data?.data || res.data
-      return Array.isArray(events) ? events : []
+      const eventsArray = Array.isArray(events) ? events : []
+      // Get current language from localStorage or default to EN
+      const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
+      // Transform items with translations to flat structure
+      return transformTranslatedItems(eventsArray, language)
     } catch (err: any) {
-      console.error('Failed to fetch events:', err.response?.data || err.message)
       return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch events")
     }
   }

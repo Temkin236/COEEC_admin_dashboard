@@ -77,15 +77,15 @@ export const getUserFromToken = (token: string): any => {
     
     if (decoded.permissions) {
       if (Array.isArray(decoded.permissions)) {
-        // If permissions are strings like "research.create"
+        // If permissions are strings like "resource.action" (e.g., "studentlife.view")
         if (typeof decoded.permissions[0] === 'string') {
           permissions = decoded.permissions.map((perm: string) => {
-            const [action, resource] = perm.split('.')
+            const [resource, action] = perm.split('.') // Fixed: resource.action format
             const normalize = (s: string | undefined) => (s || '').toString().toLowerCase().trim()
             return {
               id: perm,
-              action: normalize(action) || normalize(perm),
-              resource: normalize(resource) || 'view',
+              resource: normalize(resource) || 'unknown',
+              action: normalize(action) || 'view',
               description: null,
             }
           })
@@ -97,8 +97,6 @@ export const getUserFromToken = (token: string): any => {
     } else if (decoded.perms) {
       permissions = decoded.perms
     }
-    
-    console.log('Parsed user data:', { userId, email, role, name, permissions })
     
     return {
       id: userId,

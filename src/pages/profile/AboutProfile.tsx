@@ -17,24 +17,32 @@ Over the years, I have been involved in numerous research projects, mentored cou
   const handleChange = (value: string) => setFormData({ description: value })
 
   return (
-    <div className="p-4 lg:p-8">
-      <Row gutter={24}>
+    <div className="p-4 lg:p-8 min-h-screen bg-[#fafcfd]">
+      <Row gutter={32}>
         <Col xs={24} md={14}>
-          <Card title="About" extra={<Button type="primary" onClick={() => console.log('Save')}>Save</Button>} bordered className="shadow-sm">
-            <Form layout="vertical">
-              <Form.Item label="About Description">
-                <Input.TextArea rows={10} value={formData.description} onChange={(e) => handleChange(e.target.value)} />
-              </Form.Item>
-              {/* Save moved to Card header */}
-            </Form>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
+            <div className="p-8">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 className="font-bold text-lg" style={{ color: '#18485e', margin: 0 }}>Edit About</h2>
+                <Button type="primary" size="small" style={{ background: '#17A2B8', borderRadius: 6 }} onClick={() => console.log('Save')}>Save</Button>
+              </div>
+              <Form layout="vertical">
+                <Form.Item label="About Description">
+                  <Input.TextArea rows={10} value={formData.description} onChange={(e) => handleChange(e.target.value)} />
+                </Form.Item>
+              </Form>
+            </div>
           </Card>
         </Col>
 
         <Col xs={24} md={10}>
-          <Card title="Preview" bordered className="shadow-sm">
-            <div style={{ background: "#ECF6F8", padding: 20, borderRadius: 6 }}>
-              <h3 style={{ color: "#17A2B8" }}>About</h3>
-              <div style={{ color: "#1A1A1A", whiteSpace: "pre-wrap" }}>{formData.description}</div>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
+            <div className="p-8">
+              <h2 className="font-bold text-lg mb-6" style={{ color: '#18485e' }}>Preview</h2>
+              <div style={{ background: "#eaf4f7", padding: 24, borderRadius: 12 }}>
+                <h3 style={{ color: "#18485e", marginTop: 0, fontWeight: 700 }}>About</h3>
+                <div style={{ color: "#374151", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{formData.description}</div>
+              </div>
             </div>
           </Card>
         </Col>

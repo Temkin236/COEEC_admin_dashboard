@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Tag, Input, Select, Space, Button } from "antd"
+import { Card, Tag, Input, Select, Space, Button } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
 import { SearchOutlined, ExportOutlined } from "@ant-design/icons"
@@ -80,7 +81,7 @@ const AlumniPage = () => {
         }
       >
         <div className="overflow-x-auto">
-          <Table
+          <DataTable
             columns={columns as any}
             dataSource={Array.isArray(mockData) ? mockData : []}
             loading={!!alumni.loading}

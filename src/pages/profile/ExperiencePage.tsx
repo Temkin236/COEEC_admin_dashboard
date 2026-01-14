@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons"
-import { Card, Form, Input, Button, Row, Col, Checkbox } from "antd"
+import { Card, Form, Input, Button, Row, Col, Checkbox, Modal } from "antd"
+import Loading from "@/components/common/Loading"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchProfile, fetchExperiences, addExperience as addExperienceThunk, updateExperience, deleteExperience } from "@/store/slices/profileSlice"
 
@@ -18,7 +19,7 @@ interface ExperienceEntry {
 
 export default function ExperiencePage() {
   const dispatch = useAppDispatch()
-  const { data: storedphoto } = useAppSelector((s) => s.profile)
+  const { data: storedphoto, loading, experiencesLoading } = useAppSelector((s) => s.profile)
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([])
   const [pendingExperienceList, setPendingExperienceList] = useState<Array<Omit<ExperienceEntry, "id">>>([])
 
@@ -51,23 +52,7 @@ export default function ExperiencePage() {
     }
   }, [storedphoto])
 
-  const handleSave = () => {
-    if (pendingExperienceList.length > 0) {
-      pendingExperienceList.forEach((item, idx) => {
-        const payload = {
-          title: item.position,
-          organization: item.organization,
-          startYear: item.startYear,
-          endYear: item.endYear ?? 0,
-          isCurrent: !!item.isPresent,
-          description: item.description || "",
-          order: (experiences?.length || 0) + idx,
-        }
-        dispatch(addExperienceThunk({ staffId: photo, data: payload }))
-      })
-      setPendingExperienceList([])
-      return
-    }
+  const handlePostExperience = () => {
     if (!newExperience.position || !newExperience.organization) return
     const payload = {
       title: newExperience.position,
@@ -79,12 +64,9 @@ export default function ExperiencePage() {
       order: experiences?.length ? experiences.length : 0,
     }
 
-    if (!experiences || experiences.length === 0) {
-      dispatch(addExperienceThunk({ staffId: photo, data: payload }))
-    } else {
-      const existingId = experiences[0].id || (experiences[0] as any)?._id
-      if (existingId) dispatch(updateExperience({ id: existingId, data: payload }))
-    }
+    // Always add new experience from the form
+    dispatch(addExperienceThunk({ staffId: photo, data: payload }))
+    
     setNewExperience({ position: "", organization: "", startYear: new Date().getFullYear(), endYear: null, isPresent: false, description: "" })
   }
 
@@ -97,14 +79,21 @@ export default function ExperiencePage() {
   }
 
   const removeExperience = (id: string) => {
-    // if preview pending item
-    if (typeof id === 'string' && id.startsWith('preview-')) {
-      const idx = Number(id.split('preview-')[1])
-      setPendingExperienceList((prev) => prev.filter((_, i) => i !== idx))
-      return
-    }
-    // delete persisted entry
-    dispatch(deleteExperience(id))
+    Modal.confirm({
+      title: 'Delete Experience',
+      content: 'Are you sure you want to delete this experience entry?',
+      okType: 'danger',
+      onOk: () => {
+        // if preview pending item
+        if (typeof id === 'string' && id.startsWith('preview-')) {
+          const idx = Number(id.split('preview-')[1])
+          setPendingExperienceList((prev) => prev.filter((_, i) => i !== idx))
+          return
+        }
+        // delete persisted entry
+        dispatch(deleteExperience(id))
+      }
+    })
   }
 
   const discardPending = (index: number) => setPendingExperienceList((prev) => prev.filter((_, i) => i !== index))
@@ -114,6 +103,10 @@ export default function ExperiencePage() {
     ...(experiences || []),
   ]
 
+  if (loading || experiencesLoading) {
+    return <Loading />
+  }
+
   return (
     <div className="p-4 lg:p-8 min-h-screen bg-[#fafcfd]">
       <Row gutter={32}>
@@ -122,7 +115,7 @@ export default function ExperiencePage() {
             <div className="p-8">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h2 className="font-bold text-lg" style={{ color: '#18485e', margin: 0 }}>Edit Experience</h2>
-                <Button htmlType="button" size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={handleSave}>Save</Button>
+                <Button htmlType="button" size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={addLocalExperience}>Preview</Button>
               </div>
 
 
@@ -131,24 +124,24 @@ export default function ExperiencePage() {
 
               <div style={{ background: '#fff', padding: 16, borderRadius: 8, marginBottom: 24 }}>
                 <Row gutter={12}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item label="Position Title">
                       <Input value={newExperience.position} placeholder={experiences[0]?.position || ''} onChange={(e) => setNewExperience({ ...newExperience, position: e.target.value })} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item label="Organization">
                       <Input value={newExperience.organization} placeholder={experiences[0]?.organization || ''} onChange={(e) => setNewExperience({ ...newExperience, organization: e.target.value })} />
                     </Form.Item>
                   </Col>
                 </Row>
                 <Row gutter={12}>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item label="Start Year">
                       <Input type="number" value={newExperience.startYear} placeholder={experiences[0]?.startYear?.toString() || ''} onChange={(e) => setNewExperience({ ...newExperience, startYear: Number.parseInt(e.target.value || '0') })} />
                     </Form.Item>
                   </Col>
-                  <Col span={12}>
+                  <Col xs={24} sm={12}>
                     <Form.Item label="End Year">
                       <Input type="number" disabled={newExperience.isPresent} value={newExperience.endYear || ''} placeholder={experiences[0]?.endYear?.toString() || ''} onChange={(e) => setNewExperience({ ...newExperience, endYear: e.target.value ? Number.parseInt(e.target.value) : null })} />
                     </Form.Item>
@@ -161,7 +154,7 @@ export default function ExperiencePage() {
                   <Input.TextArea rows={3} value={newExperience.description} placeholder={experiences[0]?.description || ''} onChange={(e) => setNewExperience({ ...newExperience, description: e.target.value })} />
                 </Form.Item>
                 <div style={{ marginTop: 12 }}>
-                  <Button htmlType="button" disabled={!newExperience.position || !newExperience.organization} block style={{ background: '#17A2B8', color: '#fff', borderRadius: 8, height: 48 }} icon={<PlusOutlined />} onClick={addLocalExperience}>Add Experience</Button>
+                  <Button htmlType="button" disabled={!newExperience.position || !newExperience.organization} block style={{ background: '#17A2B8', color: '#fff', borderRadius: 8, height: 48 }} icon={<PlusOutlined />} onClick={handlePostExperience}>Save Experience</Button>
                 </div>
               </div>
             </div>

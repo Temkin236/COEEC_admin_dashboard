@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Tag, Button, Modal, Form, Input, InputNumber, message, Space } from "antd"
+import { Card, Tag, Button, Modal, Form, Input, InputNumber, message, Space } from "antd"
+import { PlusOutlined } from "@ant-design/icons"
+import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchMyPublications, createPublication, updatePublication, deletePublication, Publication } from "@/store/slices/publicationsSlice"
 import { formatDate } from "@/utils/helpers"
@@ -108,9 +110,36 @@ const PublicationsPage = () => {
   ]
 
   return (
-    <div className="space-y-4">
-      <Card title="My Publications" extra={canCreate('publications') ? <Button type="primary" onClick={handleAdd}>Add Publication</Button> : null}>
-        <Table columns={columns as any} dataSource={items} loading={loading} rowKey="id" pagination={{ pageSize: 10 }} />
+    <div className="p-4 md:p-6 space-y-6">
+      <Card
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="text-lg font-semibold">My Publications</span>
+            {canCreate('publications') && (
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={handleAdd}
+                className="min-w-fit"
+              >
+                <span className="hidden sm:inline">Add Publication</span>
+                <span className="sm:hidden">Add</span>
+              </Button>
+            )}
+          </div>
+        }
+      >
+        <DataTable 
+          columns={columns as any} 
+          dataSource={items} 
+          loading={loading} 
+          rowKey="id" 
+          onRow={(record) => ({
+            onClick: () => handleEdit(record),
+            style: { cursor: 'pointer' }
+          })}
+          pagination={{ pageSize: 10 }} 
+        />
       </Card>
 
       <Modal title={editing ? 'Edit Publication' : 'Add Publication'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()}>

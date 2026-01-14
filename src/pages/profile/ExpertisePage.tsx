@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons"
 import { Card, Form, Input, Button, Tag, Row, Col } from "antd"
+import Loading from "@/components/common/Loading"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchProfile } from "@/store/slices/profileSlice"
 
@@ -28,7 +29,7 @@ const PRESET_EXPERTISE = [
 
 export default function AreasOfExpertise() {
   const dispatch = useAppDispatch()
-  const { data: storedphoto } = useAppSelector((s) => s.profile)
+  const { data: storedphoto, loading } = useAppSelector((s) => s.profile)
   const [expertise, setExpertise] = useState<string[]>([])
   const [inputValue, setInputValue] = useState("")
   const [filteredOptions, setFilteredOptions] = useState<string[]>([])
@@ -45,6 +46,10 @@ export default function AreasOfExpertise() {
       setExpertise(Array.isArray(storedphoto.researchAreas) ? storedphoto.researchAreas : [])
     }
   }, [storedphoto])
+
+  if (loading) {
+    return <Loading />
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value

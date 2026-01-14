@@ -51,7 +51,12 @@ import ResearchPage from "@/pages/research/ResearchPage";
 import PublicationsPage from "@/pages/research/PublicationsPage";
 import AboutPage from "@/pages/content/AboutPage";
 import AboutAdminPage from "@/pages/content/AboutAdminPage";
-/* Students pages removed from layout: /students route and submenu */
+// Students pages
+import StudentsPage from "@/pages/students/StudentsPage";
+import StudentLifePage from "@/pages/students/StudentLifePage";
+import AlumniPage from "@/pages/students/AlumniPage";
+import ClubsPage from "@/pages/students/ClubsPage";
+import CareersPage from "@/pages/students/CareersPage";
 import AcademicPage from "@/pages/academic/AcademicPage";
 import DownloadsPage from "@/pages/downloads/DownloadsPage";
 import ContactPage from "@/pages/contact/ContactPage";
@@ -151,23 +156,6 @@ const DashboardLayout = () => {
   const menuItems: MenuProps["items"] = useMemo(() => {
     const permissions = user?.permissions || [];
     const items: MenuProps["items"] = [];
-
-    // Debug logging - show actual permissions and targeted checks
-    console.log("User info:", {
-      role: user?.role,
-      permissionsCount: permissions.length,
-      permissions: permissions,
-      email: user?.email,
-    });
-    console.log("Permission checks:", {
-      staff_view: checkPermission(permissions, "staff", "view"),
-      departments_view: checkPermission(permissions, "departments", "view"),
-      any_staff_actions: checkAnyPermission(permissions, [
-        ["staff", "view"],
-        ["staff", "create"],
-        ["staff", "update"],
-      ]),
-    });
 
     // Dashboard - always visible
     items.push({
@@ -321,7 +309,64 @@ const DashboardLayout = () => {
       label: <Link to="/content/about">{SIDEBAR_TEXT[currentLanguage].about}</Link>,
     });
 
-    // Students section removed
+    // Students section
+    const studentsPermissions = [
+      ["students", "view"],
+      ["studentlife", "view"],  // Fixed: backend uses "studentlife" not "student_life"
+      ["alumni", "view"],
+      ["clubs", "view"],
+      ["club", "view"],
+      ["careers", "view"],
+      ["career", "view"],
+    ];
+    
+    console.log("Checking students permissions...", { 
+      permissions, 
+      hasAny: checkAnyPermission(permissions, studentsPermissions) 
+    });
+    
+    if (checkAnyPermission(permissions, studentsPermissions)) {
+      const studentsSubMenu = [];
+      if (checkPermission(permissions, "students", "view")) {
+        studentsSubMenu.push({
+          key: "/students",
+          label: <Link to="/students">{SIDEBAR_TEXT[currentLanguage].students || "Students"}</Link>,
+        });
+      }
+      if (checkPermission(permissions, "studentlife", "view")) {  // Fixed: backend uses "studentlife"
+        studentsSubMenu.push({
+          key: "/students/life",
+          label: <Link to="/students/life">{SIDEBAR_TEXT[currentLanguage].studentLife || "Student Life"}</Link>,
+        });
+      }
+      if (checkPermission(permissions, "alumni", "view")) {
+        studentsSubMenu.push({
+          key: "/students/alumni",
+          label: <Link to="/students/alumni">{SIDEBAR_TEXT[currentLanguage].alumni || "Alumni"}</Link>,
+        });
+      }
+      if (checkPermission(permissions, "clubs", "view") || checkPermission(permissions, "club", "view") || checkPermission(permissions, "studentlife", "view") || checkPermission(permissions, "studentlife", "update")) {
+        studentsSubMenu.push({
+          key: "/students/clubs",
+          label: <Link to="/students/clubs">{SIDEBAR_TEXT[currentLanguage].clubs || "Clubs"}</Link>,
+        });
+      }
+      if (checkPermission(permissions, "careers", "view") || checkPermission(permissions, "career", "view") || checkPermission(permissions, "studentlife", "view") || checkPermission(permissions, "studentlife", "update")) {
+        studentsSubMenu.push({
+          key: "/students/careers",
+          label: <Link to="/students/careers">{SIDEBAR_TEXT[currentLanguage].careers || "Careers"}</Link>,
+        });
+      }
+
+      if (studentsSubMenu.length > 0) {
+        items.push({
+          key: "/students-menu",
+          icon: <TeamOutlined />,
+          label: SIDEBAR_TEXT[currentLanguage].students || "Students",
+          children: studentsSubMenu,
+        });
+      }
+    }
 
     // Academic - courses, programs, calendar
     if (
@@ -382,11 +427,13 @@ const DashboardLayout = () => {
     }
 
     // Contact - visible to all (public contact form + admin view inside page)
-    items.push({
-      key: "/contact",
-      icon: <MessageOutlined />,
-      label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link>,
-    });
+    if (checkPermission(permissions, "contact", "view")) {
+      items.push({
+        key: "/contact",
+        icon: <MessageOutlined />,
+        label: <Link to="/contact">{SIDEBAR_TEXT[currentLanguage].contact}</Link>,
+      });
+    }
 
     return items;
   }, [user?.permissions, currentLanguage]);
@@ -624,7 +671,47 @@ const DashboardLayout = () => {
               }
             />
 
-            {/* Students routes removed */}
+            {/* Students routes */}
+            <Route
+              path="/students"
+              element={
+                <ProtectedRoute requiredPermission={["students", "view"]}>
+                  <StudentsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/life"
+              element={
+                <ProtectedRoute requiredPermission={["studentlife", "view"]}>
+                  <StudentLifePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/alumni"
+              element={
+                <ProtectedRoute requiredPermission={["alumni", "view"]}>
+                  <AlumniPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/clubs"
+              element={
+                <ProtectedRoute requiredAnyPermissions={[["clubs", "view"], ["studentlife", "view"], ["studentlife", "update"]]}>
+                  <ClubsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/students/careers"
+              element={
+                <ProtectedRoute requiredAnyPermissions={[["careers", "view"], ["studentlife", "view"], ["studentlife", "update"]]}>
+                  <CareersPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Academic (courses, programs, calendar) */}
             <Route
@@ -685,7 +772,14 @@ const DashboardLayout = () => {
             />
 
             {/* Contact - public page: shows form for public users, admin UI for users with contact.view */}
-            <Route path="/contact" element={<ContactPage />} />
+            <Route
+              path="/contact"
+              element={
+                <ProtectedRoute requiredPermission={["contact", "view"]}>
+                  <ContactPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Public About page (no permission required) */}
             <Route path="/content/about" element={<AboutPage />} />

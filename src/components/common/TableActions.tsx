@@ -21,6 +21,8 @@ interface TableActionsProps {
   allowEditIfOwner?: boolean
   ownerIdField?: string // e.g., 'createdById' or 'createdBy.id'
   forceView?: boolean
+  hasUpdate?: boolean
+  hasDelete?: boolean
 }
 
 const TableActions = ({
@@ -34,14 +36,17 @@ const TableActions = ({
   record,
   allowEditIfOwner = false,
   ownerIdField,
+  forceView = false,
+  hasUpdate: propHasUpdate,
+  hasDelete: propHasDelete,
 }: TableActionsProps) => {
   const { canView, canUpdate, canDelete } = usePermissions()
   const { can } = usePermissions()
   const user = useAppSelector((s: any) => s.auth.user)
 
   const hasView = canView(resource) || !!forceView
-  let hasUpdate = canUpdate(resource)
-  let hasDelete = canDelete(resource)
+  let hasUpdate = propHasUpdate !== undefined ? propHasUpdate : canUpdate(resource)
+  let hasDelete = propHasDelete !== undefined ? propHasDelete : canDelete(resource)
   const hasHandle = (can && can(resource, "handle")) || hasUpdate
 
   // If owner-based override is allowed, enable update/delete for record owner

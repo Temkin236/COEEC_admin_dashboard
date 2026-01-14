@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Tag, Button, Space, Modal, Descriptions, Input, message } from "antd"
+import { Card, Tag, Button, Space, Modal, Descriptions, Input, message } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { CheckOutlined, CloseOutlined, EyeOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -86,7 +87,7 @@ const ApprovalPage = () => {
   return (
     <div className="space-y-4">
       <Card title="Pending Approvals">
-        <Table columns={columns as any} dataSource={mockData} loading={!!loading} rowKey="id" pagination={{ pageSize: 10 }} />
+        <DataTable columns={columns as any} dataSource={mockData} loading={!!loading} rowKey="id" pagination={{ pageSize: 10 }} />
       </Card>
 
       <Modal

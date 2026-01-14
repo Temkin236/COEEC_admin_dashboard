@@ -11,6 +11,7 @@ import {
   Space,
   message,
   Tabs,
+  Descriptions,
 } from "antd"
 import {
   PlusOutlined,
@@ -57,13 +58,7 @@ const ResearchPage = () => {
     dispatch(fetchResearchProjects() as any)
   }, [dispatch])
 
-  useEffect(() => {
-    // ensure activeState stays valid when items change
-    const states = new Set(items.map((it: any) => it.state).filter(Boolean))
-    if (activeState !== 'ALL' && !states.has(activeState)) {
-      setActiveState('ALL')
-    }
-  }, [items])
+
 
   const handleAdd = () => {
     setEditingItem(null)
@@ -229,14 +224,6 @@ const ResearchPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* Tabs by project state (All + distinct states from server) */}
-      <Tabs activeKey={String(activeState)} onChange={(k) => setActiveState(k === 'ALL' ? 'ALL' : String(k))} className="mb-4">
-        <Tabs.TabPane tab={`All (${items.length})`} key="ALL" />
-        {Array.from(new Set(items.map((it: any) => it.state).filter(Boolean))).map((st: any) => (
-          <Tabs.TabPane key={st} tab={`${st} (${items.filter((i: any) => i.state === st).length})`} />
-        ))}
-      </Tabs>
-
       <Card
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -255,11 +242,25 @@ const ResearchPage = () => {
           </div>
         }
       >
+        <Tabs
+          activeKey={activeState}
+          onChange={(k) => setActiveState(k)}
+          items={[
+            { key: "ALL", label: `All Projects (${items.length})` },
+            { key: "PUBLISHED", label: `Published (${items.filter((i) => i.state === "PUBLISHED").length})` },
+            { key: "DRAFT", label: `Drafts (${items.filter((i) => i.state === "DRAFT").length})` },
+          ]}
+          className="mb-4"
+        />
         <Table
           columns={columns as any}
           dataSource={activeState === 'ALL' ? items : items.filter((it: any) => it.state === activeState)}
           rowKey="id"
           loading={loading}
+          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}
           scroll={{ x: 800 }}
           pagination={{
             pageSize: 10,
@@ -346,68 +347,46 @@ const ResearchPage = () => {
             Close
           </Button>
         ]}
-        width={700}
+        width={800}
       >
         {viewingItem && (
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Title</h3>
-                <p className="text-base font-semibold">{viewingItem.title}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Slug</h3>
-                <p className="text-base">{viewingItem.slug}</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                <Tag color={viewingItem.state === "PUBLISHED" ? "green" : "orange"}>
-                  {viewingItem.state}
-                </Tag>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Duration</h3>
-                <p>
-                  {viewingItem.startDate ? dayjs(viewingItem.startDate).format('MMM D, YYYY') : 'N/A'} 
-                  {' - '} 
-                  {viewingItem.endDate ? dayjs(viewingItem.endDate).format('MMM D, YYYY') : 'N/A'}
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Summary</h3>
-              <div className="bg-gray-50 p-3 rounded-md border border-gray-100">
-                {typeof viewingItem.summary === 'object' && viewingItem.summary?.content 
-                  ? viewingItem.summary.content 
+          <Descriptions bordered column={2} className="mt-4">
+            <Descriptions.Item label="Title" span={2}>{viewingItem.title}</Descriptions.Item>
+            <Descriptions.Item label="Slug" span={2}><code>{viewingItem.slug}</code></Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={viewingItem.state === "PUBLISHED" ? "green" : "orange"}>
+                {viewingItem.state}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Duration">
+              {viewingItem.startDate ? dayjs(viewingItem.startDate).format('MMM D, YYYY') : 'N/A'}
+              {' - '}
+              {viewingItem.endDate ? dayjs(viewingItem.endDate).format('MMM D, YYYY') : 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Summary" span={2}>
+              <div className="max-h-60 overflow-auto whitespace-pre-wrap">
+                {typeof viewingItem.summary === 'object' && viewingItem.summary?.content
+                  ? viewingItem.summary.content
                   : (typeof viewingItem.summary === 'string' ? viewingItem.summary : 'No summary available')}
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-1">Members</h3>
-              <div className="flex flex-wrap gap-2">
-                {viewingItem.members && viewingItem.members.length > 0 ? (
-                  viewingItem.members.map((member: any, index: number) => (
-                    <Tag key={index} color="blue">{member.name || member}</Tag>
-                  ))
-                ) : (
-                  <span className="text-gray-400 italic">No members listed</span>
-                )}
-              </div>
-            </div>
-
+            </Descriptions.Item>
+            <Descriptions.Item label="Members" span={2}>
+              {viewingItem.members && viewingItem.members.length > 0 ? (
+                viewingItem.members.map((member: any, index: number) => (
+                  <Tag key={index} color="blue">{member.name || member}</Tag>
+                ))
+              ) : (
+                <span className="text-gray-400 italic">No members listed</span>
+              )}
+            </Descriptions.Item>
             {viewingItem.documentIds && viewingItem.documentIds.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Documents</h3>
-                <div className="flex flex-wrap gap-2">
-                  {viewingItem.documentIds.map((docId: string, index: number) => (
-                    <Tag key={index} icon={<FileTextOutlined />}>{docId}</Tag>
-                  ))}
-                </div>
-              </div>
+              <Descriptions.Item label="Documents" span={2}>
+                {viewingItem.documentIds.map((docId: string, index: number) => (
+                  <Tag key={index} icon={<FileTextOutlined />}>{docId}</Tag>
+                ))}
+              </Descriptions.Item>
             )}
-          </div>
+          </Descriptions>
         )}
       </Modal>
     </div>

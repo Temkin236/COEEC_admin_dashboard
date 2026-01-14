@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Button, Tabs, Form, Input, Upload, message, Modal, Table, Space, Select } from "antd"
+import { Card, Button, Tabs, Form, Input, Upload, message, Modal, Space, Select } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { SaveOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchContent, createContent, updateContent, deleteContent } from "@/store/slices/contentSlice"

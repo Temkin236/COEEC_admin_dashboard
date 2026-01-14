@@ -12,6 +12,7 @@ import {
   message,
   Typography,
   Tooltip,
+  Descriptions,
 } from "antd"
 import {
   PlusOutlined,
@@ -19,6 +20,7 @@ import {
   DeleteOutlined,
   CopyOutlined,
   UserOutlined,
+  EyeOutlined,
 } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {
@@ -43,7 +45,9 @@ const UsersPage = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<User | null>(null)
+  const [viewingItem, setViewingItem] = useState<User | null>(null)
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -83,6 +87,11 @@ const UsersPage = () => {
     setEditingItem(record)
     dispatch(fetchUserById(record.id) as any)
     setIsModalOpen(true)
+  }
+
+  const handleView = (record: User) => {
+    setViewingItem(record)
+    setIsViewModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -160,18 +169,32 @@ const UsersPage = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 150,
       render: (_: any, record: User) => (
         <Space size="small">
           <Button
+            icon={<EyeOutlined />}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleView(record)
+            }}
+            title="View"
+          />
+          <Button
             icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleEdit(record)
+            }}
             title="Edit"
           />
           <Button
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDelete(record.id)
+            }}
             title="Delete"
           />
         </Space>
@@ -200,6 +223,10 @@ const UsersPage = () => {
           dataSource={items}
           rowKey="id"
           loading={loading}
+          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}
           pagination={{ pageSize: 10 }}
         />
       </Card>
@@ -210,7 +237,7 @@ const UsersPage = () => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        destroyOnHidden
+        destroyOnClose
       >
         <Form
           form={form}
@@ -262,6 +289,36 @@ const UsersPage = () => {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* View User Details Modal */}
+      <Modal
+        title="User Details"
+        open={isViewModalOpen}
+        onCancel={() => setIsViewModalOpen(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsViewModalOpen(false)}>
+            Close
+          </Button>,
+        ]}
+        width={800}
+      >
+        {viewingItem && (
+          <Descriptions bordered column={2} className="mt-4">
+            <Descriptions.Item label="Display Name" span={2}>{viewingItem.displayName}</Descriptions.Item>
+            <Descriptions.Item label="Email" span={2}>{viewingItem.email}</Descriptions.Item>
+            <Descriptions.Item label="Roles" span={2}>
+              {viewingItem.roles?.map((roleItem: any) => {
+                const role = roleItem.role || roleItem
+                return (
+                  <Tag color={role.system ? "gold" : "blue"} key={roleItem.id || role.id}>
+                    {role.name}
+                  </Tag>
+                )
+              })}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
       </Modal>
 
       {/* Invite Token Modal */}

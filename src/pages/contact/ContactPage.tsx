@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Table, Tag, Button, Space, Modal, Descriptions, Tabs, message, Tooltip } from "antd"
+import { Card, Tag, Button, Space, Modal, Descriptions, Tabs, message, Tooltip } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { EyeOutlined, CheckOutlined, DeleteOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchContacts, fetchContactById, deleteContact, handleContact } from "@/store/slices/contactSlice"
@@ -15,12 +16,12 @@ const ContactPage = () => {
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("new")
 
-  const { canView, canUpdate, can } = usePermissions()
+  const { canView, canUpdate, canDelete } = usePermissions()
 
   const hasContactView = canView("contact")
   const hasContactUpdate = canUpdate("contact")
-  const hasContactHandle = can && can("contact", "handle")
-  const hasContactDelete = can && can("contact", "delete")
+  const hasContactHandle = canUpdate("contact")
+  const hasContactDelete = canDelete("contact")
 
   useEffect(() => {
     dispatch(fetchContacts({ page: 1, limit: 10 }) as any)
@@ -85,11 +86,13 @@ const ContactPage = () => {
       key: "actions",
       render: (_: any, record: any) => (
         <Space>
-          <Tooltip title="View">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          </Tooltip>
+          {hasContactView && (
+            <Tooltip title="View">
+              <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
+            </Tooltip>
+          )}
 
-          {!record.handledAt ? (
+          {hasContactHandle && !record.handledAt ? (
             <Tooltip title="Mark handled">
               <span>
                 <Button
@@ -101,37 +104,50 @@ const ContactPage = () => {
             </Tooltip>
           ) : null}
 
-          <Tooltip title="Delete">
-            <span>
-              <Button
-                type="text"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => handleDelete(record.id)}
-              />
-            </span>
-          </Tooltip>
+          {hasContactDelete && (
+            <Tooltip title="Delete">
+              <span>
+                <Button
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDelete(record.id)}
+                />
+              </span>
+            </Tooltip>
+          )}
         </Space>
       ),
     },
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 md:p-6 space-y-6">
       <Card
-        title="Contact & Feedback"
-        extra={
-          <Tabs activeKey={activeTab} onChange={(k) => setActiveTab(k)}>
-            <Tabs.TabPane tab={`New (${newItems.length})`} key="new" />
-            <Tabs.TabPane tab={`Handled (${handledItems.length})`} key="handled" />
-          </Tabs>
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="text-lg font-semibold">Contact & Feedback</span>
+          </div>
         }
       >
-        <Table
+        <Tabs
+          activeKey={activeTab}
+          onChange={(k) => setActiveTab(k)}
+          items={[
+            { key: "new", label: `New (${newItems.length})` },
+            { key: "handled", label: `Handled (${handledItems.length})` },
+          ]}
+          className="mb-4"
+        />
+        <DataTable
           columns={columns}
           dataSource={activeTab === "new" ? newItems : handledItems}
           loading={loading}
           rowKey="id"
+          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}
           pagination={{ pageSize: 10 }}
         />
       </Card>
@@ -146,11 +162,17 @@ const ContactPage = () => {
             Close
           </Button>,
           <Button
-            key="respond"
+            key="handle"
             type="primary"
-            onClick={() => message.info("Respond feature coming soon")}
+            disabled={!!selected?.handledAt}
+            onClick={async () => {
+              if (selected && !selected.handledAt) {
+                await handleStatusUpdate(selected.id)
+                setViewModalOpen(false)
+              }
+            }}
           >
-            Respond
+            {selected?.handledAt ? 'Already Handled' : 'Mark as Handled'}
           </Button>,
         ]}
       >

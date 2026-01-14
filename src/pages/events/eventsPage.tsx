@@ -179,8 +179,10 @@ const EventsPage = () => {
           columns={columns}
           dataSource={items}
           loading={loading}
-          rowKey="id"
-          locale={{ emptyText: "No events scheduled." }}
+          rowKey="id"          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}          locale={{ emptyText: "No events scheduled." }}
           pagination={{ pageSize: 10 }}
         />
       </Card>
@@ -272,10 +274,28 @@ const EventsPage = () => {
               </Descriptions.Item>
             )}
             <Descriptions.Item label="Description" span={2}>
-              <div className="whitespace-pre-wrap">{selectedEvent.description}</div>
+              <div className="whitespace-pre-wrap">
+                {selectedEvent.description 
+                  ? (typeof selectedEvent.description === 'object' && selectedEvent.description?.content 
+                    ? selectedEvent.description.content 
+                    : (typeof selectedEvent.description === 'string' ? selectedEvent.description : 'No description'))
+                  : 'No description'}
+              </div>
             </Descriptions.Item>
             <Descriptions.Item label="Tags" span={2}>
-              {selectedEvent.tags?.map((t: string) => <Tag key={t}>{t}</Tag>)}
+              {selectedEvent.tags && Array.isArray(selectedEvent.tags) && selectedEvent.tags.length > 0 ? (
+                selectedEvent.tags.map((t: any, idx: number) => {
+                  if (typeof t === 'string') {
+                    return <Tag key={idx}>{t}</Tag>
+                  } else if (typeof t === 'object' && t !== null) {
+                    const tagText = t.content || t.name || t.label || JSON.stringify(t)
+                    return <Tag key={idx}>{tagText}</Tag>
+                  }
+                  return <Tag key={idx}>{String(t)}</Tag>
+                })
+              ) : (
+                <span className="text-gray-400">No tags</span>
+              )}
             </Descriptions.Item>
           </Descriptions>
         )}

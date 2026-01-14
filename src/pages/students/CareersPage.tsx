@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Card, Table, Button, Modal, Form, Input, Space, message, Popconfirm, Tag } from "antd"
-import { PlusOutlined, EditOutlined, DeleteOutlined, BankOutlined, LinkOutlined } from "@ant-design/icons"
+import { Card, Button, Modal, Form, Input, Space, message, Popconfirm, Tag, Descriptions } from "antd"
+import { PlusOutlined, EditOutlined, DeleteOutlined, BankOutlined, LinkOutlined, EyeOutlined } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
+import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchCareers, createCareer, updateCareer, deleteCareer, type Career } from "@/store/slices/studentSlice"
 
@@ -12,7 +13,9 @@ const CareersPage = () => {
   const dispatch = useAppDispatch()
   const { careers } = useAppSelector((state) => state.students)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
   const [editingCareer, setEditingCareer] = useState<Career | null>(null)
+  const [viewingCareer, setViewingCareer] = useState<Career | null>(null)
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -20,10 +23,11 @@ const CareersPage = () => {
   }, [dispatch])
 
   const { canCreate, canView, canUpdate, canDelete } = usePermissions()
-  const hasCareerView = canView("careers")
-  const hasCareerCreate = canCreate("careers")
-  const hasCareerUpdate = canUpdate("careers")
-  const hasCareerDelete = canDelete("careers")
+  
+  const hasCareerView = canView("careers") || canView("studentlife")
+  const hasCareerCreate = canCreate("careers") || canUpdate("studentlife")
+  const hasCareerUpdate = canUpdate("careers") || canUpdate("studentlife")
+  const hasCareerDelete = canDelete("careers") || canUpdate("studentlife")
   const hasAnyAction = hasCareerView || hasCareerUpdate || hasCareerDelete
 
   const columns = [
@@ -73,15 +77,51 @@ const CareersPage = () => {
       width: 120,
       fixed: 'right' as const,
       render: (_: any, record: Career) => (
-        <TableActions
-          resource="careers"
-          onView={() => handleEdit(record)}
-          onEdit={() => handleEdit(record)}
-          onDelete={() => handleDelete(record.id)}
-          deleteConfirmTitle="Delete Career?"
-          deleteConfirmDescription={`Are you sure you want to delete ${record.title}?`}
-          record={record}
-        />
+        <Space size="small" className="flex-nowrap">
+          {hasCareerView && (
+            <Button
+              type="text"
+              icon={<EyeOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleView(record)
+              }}
+              size="small"
+              title="View Details"
+            />
+          )}
+          {hasCareerUpdate && (
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleEdit(record)
+              }}
+              size="small"
+              title="Edit"
+            />
+          )}
+          {hasCareerDelete && (
+            <Popconfirm
+              title="Delete Career?"
+              description={`Are you sure you want to delete ${record.title}?`}
+              onConfirm={(e) => {
+                e?.stopPropagation()
+                handleDelete(record.id)
+              }}
+            >
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                size="small"
+                title="Delete"
+              />
+            </Popconfirm>
+          )}
+        </Space>
       ),
     }] : []),
   ]
@@ -96,6 +136,11 @@ const CareersPage = () => {
     setEditingCareer(career)
     form.setFieldsValue(career)
     setIsModalOpen(true)
+  }
+
+  const handleView = (career: Career) => {
+    setViewingCareer(career)
+    setIsViewModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -146,7 +191,7 @@ const CareersPage = () => {
               <BankOutlined className="text-green-600" />
               <div>
                 <span className="text-lg font-semibold">Career Opportunities Management</span>
-                <div className="text-sm text-gray-500">Manage career opportunities and job postings for students</div>
+                
               </div>
             </div>
             {hasCareerCreate && (
@@ -163,7 +208,7 @@ const CareersPage = () => {
           </div>
         }
       >
-        <Table
+        <DataTable
           columns={columns as any}
           dataSource={careersArray}
           rowKey="id"
@@ -176,6 +221,14 @@ const CareersPage = () => {
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} opportunities`,
           }}
           className="border-0"
+          rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
+          onRow={(record) => ({
+            onClick: () => {
+              if (hasCareerView) {
+                handleView(record)
+              }
+            },
+          })}
         />
       </Card>
 
@@ -249,6 +302,35 @@ const CareersPage = () => {
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal
+        title="Career Opportunity Details"
+        open={isViewModalOpen}
+        onCancel={() => setIsViewModalOpen(false)}
+        footer={[<Button key="close" onClick={() => setIsViewModalOpen(false)}>Close</Button>]}
+        width={800}
+      >
+        {viewingCareer && (
+          <Descriptions bordered column={2} className="mt-4">
+            <Descriptions.Item label="Title" span={2}>{viewingCareer.title}</Descriptions.Item>
+            <Descriptions.Item label="Application Link" span={2}>
+              {viewingCareer.link ? (
+                <a href={viewingCareer.link} target="_blank" rel="noopener noreferrer">
+                  {viewingCareer.link}
+                </a>
+              ) : (
+                <span className="text-gray-400">No link provided</span>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Description" span={2}>
+              <div className="max-h-60 overflow-auto whitespace-pre-wrap">
+                {viewingCareer.description || 'No description'}
+              </div>
+            </Descriptions.Item>
+          </Descriptions>
+        )}
       </Modal>
     </div>
   )

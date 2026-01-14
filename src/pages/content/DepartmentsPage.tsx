@@ -25,6 +25,7 @@ import {
 } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
+import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import {
   fetchDepartments,
@@ -306,11 +307,15 @@ const DepartmentsPage = () => {
           ]}
           className="mb-4"
         />
-        <Table
+        <DataTable
           columns={columns as any}
           dataSource={filteredItems}
           loading={loading}
           rowKey="id"
+          onRow={(record) => ({
+            onClick: () => handleView(record),
+            style: { cursor: 'pointer' }
+          })}
           pagination={{ 
             pageSize: 10,
             showSizeChanger: true,

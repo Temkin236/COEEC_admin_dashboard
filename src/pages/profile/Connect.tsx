@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { LinkedinOutlined, GlobalOutlined, BookOutlined, MailOutlined, InstagramOutlined, TwitterOutlined, FacebookOutlined, YoutubeOutlined } from "@ant-design/icons"
-import { Card, Button } from "antd"
+import { Card, Button, Row, Col, Input, Select, message, Modal } from "antd"
+import Loading from "@/components/common/Loading"
 import type React from "react"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchProfile } from "@/store/slices/profileSlice"
+import { updateStaff } from "@/store/slices/staffSlice"
 
 type PlatformKey = "linkedin" | "googleScholar" | "researchGate" | "personalWebsite" | "instagram" | "twitter" | "facebook" | "youtube"
 
@@ -59,100 +61,176 @@ interface SocialLink { platform: PlatformKey; url: string }
 
 export default function Connect() {
   const dispatch = useAppDispatch()
-  const { data: storedphoto } = useAppSelector((s) => s.profile)
+  const { data: profileData, loading } = useAppSelector((s) => s.profile)
   const [links, setLinks] = useState<SocialLink[]>([])
   const [newPlatform, setNewPlatform] = useState<PlatformKey>("instagram")
   const [newUrl, setNewUrl] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSave = () => {
-    // TODO: wire to backend save action
-    console.log('Save links', links)
+  useEffect(() => {
+    if (profileData) {
+      const social = profileData.socialLinks && profileData.socialLinks.length > 0
+        ? profileData.socialLinks
+        : (profileData.links || [])
+      setLinks(social)
+    }
+  }, [profileData])
+
+  const handlePostLink = () => {
+    if (!newUrl) return
+    
+    if (!profileData?.id) {
+      message.error("Profile not found")
+      return
+    }
+
+    setIsSubmitting(true)
+    const updatedLinks = [...links, { platform: newPlatform, url: newUrl }]
+    
+    // Save to backend immediately
+    dispatch(updateStaff({ id: profileData.id, data: { socialLinks: updatedLinks } }))
+      .unwrap()
+      .then(() => {
+         setLinks(updatedLinks)
+         setNewUrl("")
+         message.success("Link added successfully")
+         dispatch(fetchProfile(profileData.id!))
+      })
+      .catch((err) => {
+        console.error("Failed to save link", err)
+        message.error("Failed to save link")
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
-  const addLink = () => {
+  const addPreviewLink = () => {
     if (!newUrl) return
     setLinks((prev) => [...prev, { platform: newPlatform, url: newUrl }])
     setNewUrl("")
+    message.info("Link added to preview")
   }
-  const deleteLink = (idx: number) => setLinks((prev) => prev.filter((_, i) => i !== idx))
+  
+  const deleteLink = (idx: number) => {
+    Modal.confirm({
+      title: "Remove Link",
+      content: "Are you sure you want to remove this social link?",
+      okType: "danger",
+      onOk: () => {
+        const updatedLinks = links.filter((_, i) => i !== idx)
+        
+        if (profileData?.id) {
+           setIsSubmitting(true)
+           dispatch(updateStaff({ id: profileData.id, data: { socialLinks: updatedLinks } }))
+            .unwrap()
+            .then(() => {
+              setLinks(updatedLinks)
+              message.success("Link removed")
+            })
+            .catch(() => {
+              message.error("Failed to remove link")
+            })
+            .finally(() => {
+              setIsSubmitting(false)
+            })
+        } else {
+           setLinks(updatedLinks)
+        }
+      }
+    })
+  }
 
-  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id
-
-  useEffect(() => {
-    if (photo) dispatch(fetchProfile(photo))
-  }, [dispatch, photo])
-
-  useEffect(() => {
-    if (storedphoto) {
-      const social = Array.isArray(storedphoto.socialLinks)
-        ? storedphoto.socialLinks
-        : (storedphoto.links || [])
-      setLinks(social)
-    }
-  }, [storedphoto])
+  if (loading && !profileData) {
+    return <Loading />
+  }
 
   return (
-    <div className="p-4 lg:p-8 min-h-screen">
-      {/* Two-column side-by-side layout on small screens and up */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-        {/* Left Side - Form */}
-        <Card title="Edit Links" extra={<Button size="small" style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} onClick={handleSave}>Save</Button>} bordered className="shadow-sm">
-          <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <select className="form-input " value={newPlatform} onChange={(e) => setNewPlatform(e.target.value as PlatformKey)}>
-                {PLATFORM_OPTIONS.map((opt) => (
-                  <option key={opt.key} value={opt.key}>{opt.label}</option>
-                ))}
-              </select>
-              <input type="url" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} className="form-input md:col-span-2" placeholder="https://..." />
-              <Button style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} className="w-full md:w-auto" onClick={addLink}>Add</Button>
-            </div>
+    <div className="p-4 lg:p-8 min-h-screen bg-[#fafcfd]">
+      <Row gutter={32}>
+        <Col xs={24} md={14}>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
+            <div className="p-8">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <h2 className="font-bold text-lg" style={{ color: '#18485e', margin: 0 }}>Edit Links</h2>
+                <Button 
+                  size="small" 
+                  style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} 
+                  onClick={addPreviewLink}
+                >
+                  Preview
+                </Button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <Select 
+                    value={newPlatform} 
+                    onChange={(val) => setNewPlatform(val as PlatformKey)}
+                    style={{ width: '100%' }}
+                    options={PLATFORM_OPTIONS.map(opt => ({ value: opt.key, label: opt.label }))}
+                  />
+                  <Input 
+                    value={newUrl} 
+                    onChange={(e) => setNewUrl(e.target.value)} 
+                    className="md:col-span-2" 
+                    placeholder="https://..." 
+                  />
+                  <Button 
+                    loading={isSubmitting}
+                    style={{ background: '#17A2B8', color: '#fff', borderRadius: 6 }} 
+                    className="w-full md:w-auto" 
+                    onClick={handlePostLink}
+                  >
+                    Add Link
+                  </Button>
+                </div>
 
-            <div className="space-y-3">
-              {links.map((l, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: '#eef6f7' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm" style={{ color: '#17A2B8' }}>
-                      {PLATFORM_ICON[l.platform]({ size: 18 })}
+                <div className="space-y-3">
+                  {links.map((l, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 rounded border" style={{ borderColor: '#eef6f7' }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm" style={{ color: '#17A2B8' }}>
+                          {PLATFORM_ICON[l.platform]({ size: 18 })}
+                        </div>
+                        <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline" style={{ color: '#18485e' }}>
+                          {l.url}
+                        </a>
+                      </div>
+                      <a onClick={() => deleteLink(idx)} style={{ color: '#17A2B8', cursor: 'pointer' }}>Remove</a>
                     </div>
-                    <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline" style={{ color: '#18485e' }}>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={10}>
+          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)", padding: 0 }}>
+            <div className="p-8">
+              <h2 className="font-bold text-lg mb-6" style={{ color: '#18485e' }}>Connect With Me</h2>
+              <div className="rounded-lg p-8" style={{ background: '#eaf4f7' }}>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  {links.map((l, idx) => (
+                    <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-12 h-12 rounded-full bg-white transition-colors shadow-lg" style={{ color: '#17A2B8' }}>
+                      {PLATFORM_ICON[l.platform]({ size: 24 })}
+                    </a>
+                  ))}
+                </div>
+
+                <div className="mt-8 pt-8 space-y-2" style={{ borderTop: '1px solid #dbeff1' }}>
+                  {links.map((l, idx) => (
+                    <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="block text-sm truncate" style={{ color: '#18485e' }}>
                       {l.url}
                     </a>
-                  </div>
-                  <a onClick={() => deleteLink(idx)} style={{ color: '#17A2B8', cursor: 'pointer' }}>Remove</a>
+                  ))}
                 </div>
-              ))}
-
+              </div>
             </div>
-
-            {/* Save moved to Card header */}
-          </div>
-        </Card>
-
-        {/* Right Side - Preview */}
-        <div className="bg-white p-4 lg:p-8 rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
-          <h2 className="text-xl font-bold mb-6" style={{ color: 'var(--primary-dark)' }}>{"Connect With Me"}</h2>
-          <div className="rounded-lg p-8" style={{ background: '#eaf4f7' }}>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-              {links.map((l, idx) => (
-                <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-12 h-12 rounded-full bg-white transition-colors shadow-lg" style={{ color: 'var(--primary)' }}>
-                  {PLATFORM_ICON[l.platform]({ size: 24 })}
-                </a>
-              ))}
-            </div>
-
-            <div className="mt-8 pt-8 space-y-2" style={{ borderTop: '1px solid #dbeff1' }}>
-              {links.map((l, idx) => (
-                <a key={idx} href={l.url} target="_blank" rel="noopener noreferrer" className="block text-sm truncate" style={{ color: 'var(--primary-dark)' }}>
-                  {l.url}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+          </Card>
+        </Col>
+      </Row>
     </div>
   )
 }
-
-

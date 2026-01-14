@@ -38,6 +38,32 @@ const { Title } = Typography
 
   useEffect(() => {
     if (currentStaff && isEdit) {
+      // Extract photo URL from photo object
+      let photoUrl = null
+      if (currentStaff.photo) {
+        if (typeof currentStaff.photo === 'string') {
+          photoUrl = currentStaff.photo
+        } else if ((currentStaff.photo as any)?.url) {
+          photoUrl = (currentStaff.photo as any).url
+        }
+        
+        // Convert localhost URLs to backend URL
+        if (photoUrl && (photoUrl.includes('localhost') || photoUrl.startsWith('http://localhost'))) {
+          const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || ''
+          photoUrl = photoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
+        }
+      }
+      
+      // Extract biography text from biography object
+      let biographyText = ''
+      if (currentStaff.biography) {
+        if (typeof currentStaff.biography === 'string') {
+          biographyText = currentStaff.biography
+        } else if (typeof currentStaff.biography === 'object') {
+          biographyText = (currentStaff.biography as any)?.content || (currentStaff.biography as any)?.description || ''
+        }
+      }
+      
       const formData = {
         displayName: currentStaff.displayName,
         title: currentStaff.title,
@@ -45,11 +71,11 @@ const { Title } = Typography
         phone: currentStaff.phone,
         officeLocation: currentStaff.officeLocation,
         researchAreas: currentStaff.researchAreas || [],
-        biography: currentStaff.biography || {},
+        biography: biographyText,
         departmentId: currentStaff.departmentId
       }
       form.setFieldsValue(formData)
-      setPhotoPreview(currentStaff.photo)
+      setPhotoPreview(photoUrl)
       setPreviewValues(formData)
     }
   }, [currentStaff, form, isEdit])
@@ -64,7 +90,7 @@ const { Title } = Typography
         officeLocation: values.officeLocation?.trim(),
         departmentId: values.departmentId,
         researchAreas: values.researchAreas || [],
-        biography: values.biography || {},
+        biography: values.biography?.trim() || '',
         photoId: values.photoId,
         cvId: values.cvId
       }
@@ -209,7 +235,7 @@ const { Title } = Typography
                   <Form.Item name="biography" label="Biography">
                     <TextArea rows={4} placeholder="Brief professional biography" />
                   </Form.Item>
-                  <Form.Item name="photo" label="Photo">
+                  <Form.Item label="Photo">
                     <Upload
                       accept="image/*"
                       showUploadList={false}
@@ -265,7 +291,11 @@ const { Title } = Typography
                   </div>
 
                   {previewValues.biography && (
-                    <div className="text-sm text-gray-700 mb-4">{previewValues.biography}</div>
+                    <div className="text-sm text-gray-700 mb-4">
+                      {typeof previewValues.biography === 'object' 
+                        ? previewValues.biography?.description || '' 
+                        : previewValues.biography}
+                    </div>
                   )}
 
                   <Divider className="my-2" />

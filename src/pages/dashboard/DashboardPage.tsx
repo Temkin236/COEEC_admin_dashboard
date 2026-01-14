@@ -2,7 +2,8 @@
 
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Row, Col, Card, Statistic, Table, Tag, Typography, Spin } from "antd"
+import { Row, Col, Card, Statistic, Tag, Typography, Spin } from "antd"
+import DataTable from "@/components/common/DataTable"
 import { UserOutlined, TeamOutlined, ExperimentOutlined, FileTextOutlined, ArrowUpOutlined } from "@ant-design/icons"
 import {
   LineChart,
@@ -212,7 +213,7 @@ const DashboardPage = () => {
       {/* Recent Activity with horizontal scroll on mobile */}
       <Card title="Recent Activity" variant="outlined">
         <div className="overflow-x-auto">
-          <Table
+          <DataTable
             columns={recentColumns as any}
             dataSource={recentActivity}
             pagination={{ pageSize: 5 }}
