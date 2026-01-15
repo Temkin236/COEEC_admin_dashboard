@@ -1,4 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit"
+import { persistStore, persistReducer } from "redux-persist"
+import storage from "redux-persist/lib/storage"
 import academicReducer from "./slices/academicSlice"
 import analyticsReducer from "./slices/analyticsSlice"
 import approvalReducer from "./slices/approvalSlice"
@@ -21,9 +23,18 @@ import publicationsReducer from "./slices/publicationsSlice"
 import mediaReducer from "./slices/mediaSlice"
 import newsReducer from "./slices/newsSlice"
 
+// Persist configuration for auth slice
+const authPersistConfig = {
+  key: "auth",
+  storage,
+  whitelist: ["user", "isAuthenticated"], // Only persist user data and auth status
+}
+
+const persistedAuthReducer = persistReducer(authPersistConfig, authReducer)
+
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
+    auth: persistedAuthReducer,
     content: contentReducer,
     staff: staffReducer,
     researchProjects: researchProjectsReducer,
@@ -48,10 +59,17 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ["staff/uploadFile", "downloads/uploadFile"],
+        ignoredActions: [
+          "staff/uploadFile", 
+          "downloads/uploadFile",
+          "persist/PERSIST",
+          "persist/REHYDRATE",
+        ],
       },
     }),
 })
+
+export const persistor = persistStore(store)
 
 // typed helpers
 export type RootState = ReturnType<typeof store.getState>

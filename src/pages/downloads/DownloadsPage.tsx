@@ -327,48 +327,25 @@ const DownloadsPage = () => {
             )}
 
             {uploading && (
-              <div className="mt-3">
+              <div className="mt-2">
                 <Progress 
                   percent={uploadProgress} 
                   status="active"
-                  strokeColor={{
-                    '0%': '#1890ff',
-                    '100%': '#52c41a',
-                  }}
+                  strokeColor="#1890ff"
                 />
-                <div className="flex items-center justify-center mt-2 text-gray-600">
-                  <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} />
-                  <span className="ml-2 text-sm">Uploading file to server...</span>
-                </div>
               </div>
             )}
 
             {uploadedFileId && !uploading && fileToUpload && (
-              <div className="mt-3">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center flex-1">
-                      <CheckCircleOutlined className="text-blue-600 text-xl mr-3" />
-                      <div className="flex-1">
-                        <div className="text-blue-900 font-medium">File uploaded successfully!</div>
-                        <div className="text-blue-700 text-sm mt-1 break-all">{fileToUpload.name}</div>
-                        <div className="text-blue-600 text-xs mt-1">
-                          {(fileToUpload.size / 1024).toFixed(2)} KB
-                        </div>
-                      </div>
-                    </div>
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<CloseCircleOutlined />}
-                      onClick={handleRemoveUploadedFile}
-                      className="ml-2"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-gray-700">{fileToUpload.name}</span>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<CloseCircleOutlined />}
+                  onClick={handleRemoveUploadedFile}
+                />
               </div>
             )}
           </Form.Item>

@@ -44,16 +44,9 @@ export const login = createAsyncThunk<LoginResponse, LoginCredentials, { rejectV
       // Use user from response if available, otherwise use decoded token
       const user = response.data.user || userFromToken
       
+      // Only store tokens, not user data
       localStorage.setItem("token", accessToken)
       localStorage.setItem("refreshToken", refreshToken)
-      
-      if (user) {
-        localStorage.setItem("auth_user", JSON.stringify(user))
-        // Store permissions separately for easy access
-        if (user.permissions) {
-          localStorage.setItem("user_permissions", JSON.stringify(user.permissions))
-        }
-      }
       
       return { accessToken, refreshToken, user }
     } catch (error: any) {
@@ -66,13 +59,9 @@ export const validateToken = createAsyncThunk<AuthUser, void, { rejectValue: str
   "auth/validateToken",
   async (_, { rejectWithValue }) => {
     try {
-      // First try to get user from API
+      // Try to get user from API
       const response = await axiosInstance.get("/auth/me")
       const user = response.data as AuthUser
-      localStorage.setItem("auth_user", JSON.stringify(user))
-      if (user.permissions) {
-        localStorage.setItem("user_permissions", JSON.stringify(user.permissions))
-      }
       return user
     } catch (error: any) {
       // Fallback: decode token to get user info
@@ -81,10 +70,6 @@ export const validateToken = createAsyncThunk<AuthUser, void, { rejectValue: str
         const userFromToken = getUserFromToken(token)
         console.log("Decoded user from token (fallback):", userFromToken)
         if (userFromToken) {
-          localStorage.setItem("auth_user", JSON.stringify(userFromToken))
-          if (userFromToken.permissions) {
-            localStorage.setItem("user_permissions", JSON.stringify(userFromToken.permissions))
-          }
           return userFromToken
         }
       }
@@ -115,30 +100,9 @@ interface AuthState {
 }
 
 const getUserFromStorage = () => {
-  try {
-    // First try to get from localStorage
-    const stored = localStorage.getItem("auth_user")
-    if (stored && stored !== "undefined" && stored !== "null") {
-      const user = JSON.parse(stored)
-      if (user && user.role) return user
-    }
-    
-    // Fallback: decode token if available
-    const token = localStorage.getItem("token")
-    if (token) {
-      const userFromToken = getUserFromToken(token)
-      if (userFromToken && userFromToken.role) {
-        console.log("User from token on init:", userFromToken)
-        localStorage.setItem("auth_user", JSON.stringify(userFromToken))
-        return userFromToken
-      }
-    }
-    
-    return null
-  } catch (error) {
-    console.error("Error getting user from storage:", error)
-    return null
-  }
+  // No longer store user in localStorage
+  // User will be fetched via validateToken on app load
+  return null
 }
 
 const initialState: AuthState = {
@@ -161,7 +125,6 @@ const authSlice = createSlice({
       state.isAuthenticated = false
       localStorage.removeItem("token")
       localStorage.removeItem("refreshToken")
-      localStorage.removeItem("auth_user")
     },
     clearError: (state) => {
       state.error = null

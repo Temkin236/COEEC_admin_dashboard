@@ -1,10 +1,11 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
 import { Provider } from "react-redux"
+import { PersistGate } from "redux-persist/integration/react"
 import { BrowserRouter } from "react-router-dom"
-import { ConfigProvider, ThemeConfig } from "antd"
+import { ConfigProvider, ThemeConfig, Spin } from "antd"
 import App from "./App"
-import { store } from "./store"
+import { store, persistor } from "./store"
 import "./index.css"
 import { LanguageProvider } from "./contexts/LanguageContext"
 
@@ -61,13 +62,15 @@ const theme: ThemeConfig = {
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <Provider store={store}>
-      <LanguageProvider>
-        <BrowserRouter>
-          <ConfigProvider theme={theme}>
-            <App />
-          </ConfigProvider>
-        </BrowserRouter>
-      </LanguageProvider>
+      <PersistGate loading={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>} persistor={persistor}>
+        <LanguageProvider>
+          <BrowserRouter>
+            <ConfigProvider theme={theme}>
+              <App />
+            </ConfigProvider>
+          </BrowserRouter>
+        </LanguageProvider>
+      </PersistGate>
     </Provider>
   </React.StrictMode>,
 )
