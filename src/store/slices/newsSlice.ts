@@ -2,18 +2,31 @@ import { createSlice, createAsyncThunk, PayloadAction, isAnyOf } from "@reduxjs/
 import axiosInstance from "@/utils/axios"
 import { transformTranslatedItems } from "@/utils/helpers"
 
-export interface NewsItem {
-  id: string
+export interface NewsTranslation {
+  id?: string
+  language: "EN" | "AM" | "OM"
   title: string
   slug: string
   excerpt?: string
   content: any
+}
+
+export interface NewsItem {
+  id: string
   featuredImageId?: string
-  tags?: string[]
+  authorId?: string
+  state: "DRAFT" | "NEEDS_REVIEW" | "PUBLISHED" | "ARCHIVED" | "DELETED"
   publishAt?: string
-  state: "DRAFT" | "PUBLISHED" | "ARCHIVED"
-  language: "EN" | "AM" | "AR" | string
+  tags?: string[]
   createdAt?: string
+  updatedAt?: string
+  translations: NewsTranslation[]
+  // These are for the flattened view in the list, though the backend returns translations
+  title?: string
+  slug?: string
+  excerpt?: string
+  content?: any
+  language?: string
 }
 
 interface NewsState {
@@ -32,28 +45,30 @@ const initialState: NewsState = {
   error: null,
 }
 
-export const fetchNews = createAsyncThunk<{ items: NewsItem[]; total: number }, { page?: number; limit?: number }>(
+export const fetchNews = createAsyncThunk<{ items: NewsItem[]; total: number }, { page?: number; limit?: number; state?: string }>(
   "news/fetchNews",
-  async ({ page = 1, limit = 10 }) => {
-    const response = await axiosInstance.get(`/news?page=${page}&limit=${limit}`)
+  async ({ page = 1, limit = 10, state }) => {
+    let url = `/news?page=${page}&limit=${limit}`
+    if (state && state !== 'ALL') {
+      url += `&state=${state}`
+    }
+    const response = await axiosInstance.get(url)
     const data = response.data
 
     // Get current language from localStorage or default to EN
     const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
 
-    // If your response structure is { data: [...], meta: { total: 3 } }
     if (data.data && Array.isArray(data.data)) {
-        const transformedItems = transformTranslatedItems(data.data, language)
-        return { items: transformedItems, total: data.meta?.total || data.data.length }
+      const transformedItems = transformTranslatedItems(data.data, language)
+      return { items: transformedItems, total: data.meta?.total || data.data.length }
     }
 
-    // If your response is just the array with metadata attached
     if (Array.isArray(data)) {
-        const transformedItems = transformTranslatedItems(data, language)
-        return { items: transformedItems, total: data.length }
+      const transformedItems = transformTranslatedItems(data, language)
+      return { items: transformedItems, total: data.length }
     }
 
-    return data // Fallback to the object itself
+    return data
   }
 )
 

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
-import { profileApi, experienceApi, educationApi } from "@/api/profileApi"
+import { profileApi, experienceApi, educationApi, connectionsApi } from "@/api/profileApi"
 
 interface ProfileState {
   data: {
@@ -20,6 +20,7 @@ interface ProfileState {
     experiences?: any[]
     experience?: any[]
     education?: any[]
+    connections?: any[]
   } | null
   loading: boolean
   error: string | null
@@ -28,6 +29,7 @@ interface ProfileState {
   lastAddedExperience?: any | null
   educationLoading?: boolean
   educationError?: string | null
+  connectionsLoading?: boolean
 }
 
 const initialState: ProfileState = {
@@ -175,6 +177,51 @@ export const addEducation = createAsyncThunk<any, { staffId?: string; data: any 
   },
 )
 
+// Connections Thunks
+export const getMyConnections = createAsyncThunk<any[], void, { rejectValue: string }>(
+  "profiles/getMyConnections",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await connectionsApi.getMyConnections()
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message || "Failed to fetch connections")
+    }
+  },
+)
+
+export const createConnection = createAsyncThunk<any, any, { rejectValue: string }>(
+  "profiles/createConnection",
+  async (data, { rejectWithValue }) => {
+    try {
+      return await connectionsApi.createConnection(data)
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message || "Failed to create connection")
+    }
+  },
+)
+
+export const updateConnection = createAsyncThunk<any, { id: string; data: any }, { rejectValue: string }>(
+  "profiles/updateConnection",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      return await connectionsApi.updateConnection({ id, data })
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message || "Failed to update connection")
+    }
+  },
+)
+
+export const deleteConnection = createAsyncThunk<string, string, { rejectValue: string }>(
+  "profiles/deleteConnection",
+  async (id, { rejectWithValue }) => {
+    try {
+      return await connectionsApi.deleteConnection(id)
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message || "Failed to delete connection")
+    }
+  },
+)
+
 const profileSlice = createSlice({
   name: "profile",
   initialState,
@@ -245,7 +292,7 @@ const profileSlice = createSlice({
         if (!state.data || typeof state.data === 'string') {
           state.data = {}
         }
-        ;(state.data as any).experiences = action.payload
+        ; (state.data as any).experiences = action.payload
       })
       .addCase(fetchExperiences.rejected, (state, action) => {
         state.experiencesLoading = false
@@ -261,7 +308,7 @@ const profileSlice = createSlice({
         if (!state.data || typeof state.data === 'string') {
           state.data = {}
         }
-        ;(state.data as any).experiences = [action.payload].concat((state.data as any).experiences || [])
+        ; (state.data as any).experiences = [action.payload].concat((state.data as any).experiences || [])
         state.lastAddedExperience = action.payload
       })
       .addCase(addExperience.rejected, (state, action) => {
@@ -276,7 +323,7 @@ const profileSlice = createSlice({
         state.experiencesLoading = false
         const updated = action.payload
         const list = (state.data as any)?.experiences || []
-        ;(state.data as any).experiences = list.map((it: any) => (it.id === updated.id || it._id === updated._id ? updated : it))
+          ; (state.data as any).experiences = list.map((it: any) => (it.id === updated.id || it._id === updated._id ? updated : it))
       })
       .addCase(updateExperience.rejected, (state, action) => {
         state.experiencesLoading = false
@@ -289,7 +336,7 @@ const profileSlice = createSlice({
       .addCase(deleteExperience.fulfilled, (state, action: PayloadAction<string>) => {
         state.experiencesLoading = false
         const id = action.payload
-        ;(state.data as any).experiences = ((state.data as any).experiences || []).filter((it: any) => it.id !== id && it._id !== id)
+          ; (state.data as any).experiences = ((state.data as any).experiences || []).filter((it: any) => it.id !== id && it._id !== id)
       })
       .addCase(deleteExperience.rejected, (state, action) => {
         state.experiencesLoading = false
@@ -301,8 +348,8 @@ const profileSlice = createSlice({
       })
       .addCase(getMyEducation.fulfilled, (state, action: PayloadAction<any[]>) => {
         state.educationLoading = false
-        ;(state.data as any) = (state.data as any) || {}
-        ;(state.data as any).education = action.payload
+          ; (state.data as any) = (state.data as any) || {}
+          ; (state.data as any).education = action.payload
       })
       .addCase(getMyEducation.rejected, (state, action) => {
         state.educationLoading = false
@@ -314,8 +361,8 @@ const profileSlice = createSlice({
       })
       .addCase(fetchEducationByStaff.fulfilled, (state, action: PayloadAction<any[]>) => {
         state.educationLoading = false
-        ;(state.data as any) = (state.data as any) || {}
-        ;(state.data as any).education = action.payload
+          ; (state.data as any) = (state.data as any) || {}
+          ; (state.data as any).education = action.payload
       })
       .addCase(fetchEducationByStaff.rejected, (state, action) => {
         state.educationLoading = false
@@ -328,9 +375,9 @@ const profileSlice = createSlice({
       .addCase(updateEducation.fulfilled, (state, action: PayloadAction<any>) => {
         state.educationLoading = false
         const updated = action.payload
-        ;(state.data as any) = (state.data as any) || {}
+          ; (state.data as any) = (state.data as any) || {}
         const list = (state.data as any).education || []
-        ;(state.data as any).education = list.map((it: any) => (it.id === updated.id || it._id === updated._id ? updated : it))
+          ; (state.data as any).education = list.map((it: any) => (it.id === updated.id || it._id === updated._id ? updated : it))
       })
       .addCase(updateEducation.rejected, (state, action) => {
         state.educationLoading = false
@@ -343,11 +390,42 @@ const profileSlice = createSlice({
       .addCase(deleteEducation.fulfilled, (state, action: PayloadAction<string>) => {
         state.educationLoading = false
         const id = action.payload
-        ;(state.data as any).education = ((state.data as any).education || []).filter((it: any) => it.id !== id && it._id !== id)
+          ; (state.data as any).education = ((state.data as any).education || []).filter((it: any) => it.id !== id && it._id !== id)
       })
       .addCase(deleteEducation.rejected, (state, action) => {
         state.educationLoading = false
         state.educationError = (action.payload as string) ?? "Delete education failed"
+      })
+      // Connections extraReducers
+      .addCase(getMyConnections.pending, (state) => {
+        state.connectionsLoading = true
+      })
+      .addCase(getMyConnections.fulfilled, (state, action: PayloadAction<any[]>) => {
+        state.connectionsLoading = false
+        if (state.data) {
+          state.data.connections = action.payload
+        }
+      })
+      .addCase(getMyConnections.rejected, (state) => {
+        state.connectionsLoading = false
+      })
+      .addCase(createConnection.fulfilled, (state, action: PayloadAction<any>) => {
+        if (state.data) {
+          state.data.connections = [action.payload, ...(state.data.connections || [])]
+        }
+      })
+      .addCase(updateConnection.fulfilled, (state, action: PayloadAction<any>) => {
+        if (state.data && state.data.connections) {
+          const index = state.data.connections.findIndex(c => c.id === action.payload.id || c._id === action.payload.id)
+          if (index !== -1) {
+            state.data.connections[index] = action.payload
+          }
+        }
+      })
+      .addCase(deleteConnection.fulfilled, (state, action: PayloadAction<string>) => {
+        if (state.data && state.data.connections) {
+          state.data.connections = state.data.connections.filter(c => c.id !== action.payload && c._id !== action.payload)
+        }
       })
   },
 })

@@ -9,7 +9,7 @@ export const profileApi = {
   },
 
   // Create new profile
-  createProfile: async (data: { userId: string; [key: string]: any }) => {
+  createProfile: async (data: { userId: string;[key: string]: any }) => {
     // Create staff profile - ensure proper payload structure
     const payload = {
       userId: data.userId,
@@ -29,7 +29,7 @@ export const profileApi = {
   },
 
   // Update profile (local state only)
-  updateProfile: async (data: { id: string; [key: string]: any }) => {
+  updateProfile: async (data: { id: string;[key: string]: any }) => {
     // This function only returns data for local state updates
     // Actual API calls should be handled by staff API
     return { id: data.id, ...data }
@@ -72,23 +72,12 @@ export const educationApi = {
   },
 
   // Fetch education by staff ID
-  // Note: The backend might not support listing by staff ID directly if not "me".
-  // We'll assume a similar pattern to experience or fallback to "me" if needed.
-  // For now, we'll try the pattern /profiles/education/staff/{staffId} if it exists,
-  // or keep it as is but fix the other methods.
   fetchEducationByStaff: async (staffId: string) => {
-    // If the backend follows the experience pattern:
-    // return axiosInstance.get(`/profiles/education/staff/${staffId}`)
-    // But based on current code, it was /profiles/education/${staffId} which might be get-by-id.
-    // Let's try to use the "me" endpoint if the staffId matches the current user, 
-    // or assume there's a list endpoint. 
-    // Given the user wants "staff page like profile", maybe we should use:
     try {
-       const response = await axiosInstance.get(`/profiles/education/staff/${staffId}`)
-       return response.data
+      const response = await axiosInstance.get(`/profiles/education/staff/${staffId}`)
+      return response.data
     } catch (e) {
-       // Fallback or return empty if not found
-       return []
+      return []
     }
   },
 
@@ -106,11 +95,34 @@ export const educationApi = {
 
   // Add education
   addEducation: async (data: { staffId?: string; data: any }) => {
-    // The endpoint is POST /profiles/education
-    // It likely infers user from token. If we need to add for another staff, 
-    // we might need a different endpoint or impersonation.
-    // For now, we use the standard endpoint.
     const response = await axiosInstance.post(`/profiles/education`, data.data)
     return response.data
+  },
+}
+
+// Connections API endpoints
+export const connectionsApi = {
+  // List my connections
+  getMyConnections: async () => {
+    const response = await axiosInstance.get("/profiles/connections/me")
+    return response.data
+  },
+
+  // Create a connection
+  createConnection: async (data: any) => {
+    const response = await axiosInstance.post("/profiles/connections", data)
+    return response.data
+  },
+
+  // Update a connection
+  updateConnection: async (params: { id: string; data: any }) => {
+    const response = await axiosInstance.put(`/profiles/connections/${params.id}`, params.data)
+    return response.data
+  },
+
+  // Delete a connection
+  deleteConnection: async (id: string) => {
+    await axiosInstance.delete(`/profiles/connections/${id}`)
+    return id
   },
 }
