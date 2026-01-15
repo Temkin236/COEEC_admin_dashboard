@@ -10,6 +10,23 @@ export interface DownloadItem {
   url: string
   downloadCount: number
   description?: string
+  // Full file object from API
+  file?: {
+    id: string
+    filename: string
+    originalName: string
+    mimeType: string
+    size: number
+    url: string
+    storage: string
+    resourceType: string
+    visibility: string
+  }
+  // For backward compatibility
+  fileId?: string
+  uploadedAt?: string
+  visibility?: string
+  version?: string
 }
 
 interface FetchArgs {
@@ -35,7 +52,17 @@ export const fetchDownloads = createAsyncThunk<{ items: DownloadItem[]; total: n
       // support APIs that return { data: [...], meta: { total } }
       const body = response.data
       if (body && Array.isArray(body.data)) {
-        return { items: body.data as DownloadItem[], total: (body.meta && body.meta.total) || body.data.length }
+        // Map API response to include file object and flatten needed properties
+        const items = body.data.map((item: any) => ({
+          ...item,
+          // Keep the nested file object for access to file.url
+          file: item.file,
+          // Also set top-level url for backward compatibility
+          url: item.file?.url || item.url || "#",
+          size: item.file?.size || item.size || 0,
+          downloadCount: item.downloadCount || 0,
+        }))
+        return { items, total: (body.meta && body.meta.total) || body.data.length }
       }
       return response.data
     } catch (e) {

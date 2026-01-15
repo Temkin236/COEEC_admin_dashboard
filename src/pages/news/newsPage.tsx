@@ -13,6 +13,7 @@ import {
 } from "@ant-design/icons"
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface'
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
+import DataTable from "@/components/common/DataTable"
 import {
   fetchNews,
   createNews,
@@ -238,6 +239,7 @@ const NewsPage = () => {
       title: "Actions",
       key: "actions",
       width: 200,
+      fixed: 'right' as const,
       render: (_: any, record: any) => (
         <Space size="small">
           <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
@@ -265,16 +267,24 @@ const NewsPage = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 space-y-6">
       <Card
-        title="News & Announcements"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            Create News
-          </Button>
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <span className="text-lg font-semibold">News & Announcements</span>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              className="min-w-fit"
+            >
+              <span className="hidden sm:inline">Create News</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
         }
       >
-        <Table
+        <DataTable
           columns={columns}
           dataSource={items}
           loading={loading && items.length > 0}
@@ -283,8 +293,15 @@ const NewsPage = () => {
             onClick: () => handleView(record),
             style: { cursor: 'pointer' }
           })}
-          locale={{ emptyText: "No news items found." }}
-          pagination={{ pageSize: 10 }}
+          scroll={{ x: 800 }}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} news items`,
+          }}
+          className="border-0"
+          rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
         />
       </Card>
 

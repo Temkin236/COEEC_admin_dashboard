@@ -167,6 +167,7 @@ const ProgramsTab = () => {
     {
       title: "Actions",
       key: "actions",
+      fixed: 'right' as const,
       render: (_: any, record: any) => {
         const currentState = record.state || record.status || 'DRAFT'
         return (

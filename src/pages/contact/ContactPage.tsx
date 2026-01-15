@@ -60,20 +60,14 @@ const ContactPage = () => {
 
   const columns = [
     { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Subject", dataIndex: "subject", key: "subject", ellipsis: true },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
-        const colors: Record<string, string> = {
-          new: "blue",
-          read: "default",
-          responded: "green",
-          archived: "default",
-        }
-        return <Tag color={colors[status]}>{status}</Tag>
-      },
+    { title: "Name", dataIndex: "name", key: "name" },
+    { 
+      title: "Category", 
+      dataIndex: "category", 
+      key: "category",
+      render: (category: string) => category ? (
+        <Tag color="cyan">{category}</Tag>
+      ) : null
     },
     {
       title: "Received",

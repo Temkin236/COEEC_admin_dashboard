@@ -369,87 +369,127 @@ export default function photo() {
         </Col>
 
         <Col xs={24} md={10}>
-          <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
-              <h2 className="font-bold text-lg mb-6 text-[#18485e]">Preview</h2>
-              {lastAddedExperience && (
-                <div className="mb-4">
-                  <div className="font-semibold text-[#18485e] mb-2">Recent Experience</div>
-                  <div className="space-y-2">
-                    <div key={lastAddedExperience.id || lastAddedExperience._id} className="p-3 bg-white rounded shadow-sm">
-                      <div className="font-medium">{lastAddedExperience.position || lastAddedExperience.title || lastAddedExperience.role || "Untitled"}</div>
-                      <div className="text-sm text-gray-500">{lastAddedExperience.organization || lastAddedExperience.company || lastAddedExperience.institution || ""}</div>
+          <Card 
+            bordered={false} 
+            style={{ 
+              borderRadius: 16, 
+              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+              overflow: "hidden"
+            }}
+          >
+            <div className="relative">
+              {/* Header with gradient background */}
+              <div 
+                className="h-32 bg-gradient-to-br from-cyan-500 via-teal-500 to-blue-600"
+                style={{
+                  background: "linear-gradient(135deg, #17A2B8 0%, #14919B 50%, #0E7C86 100%)"
+                }}
+              />
+              
+              {/* Profile Photo - positioned to overlap header */}
+              <div className="absolute left-1/2 transform -translate-x-1/2" style={{ top: '64px' }}>
+                {formData.photo ? (
+                  <img 
+                    src={formData.photo} 
+                    alt={formData.fullName || "Profile"}
+                    className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg" 
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      console.error('Failed to load photo:', formData.photo)
+                      e.currentTarget.style.display = 'none'
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                      if (fallback) fallback.style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center border-4 border-white shadow-lg"
+                  style={{ display: formData.photo ? 'none' : 'flex' }}
+                >
+                  <UserOutlined className="text-5xl text-white" />
+                </div>
+              </div>
+
+              {/* Profile Info */}
+              <div className="pt-20 pb-6 px-6">
+                <div className="text-center mb-6">
+                  <h2 className="font-bold text-2xl text-gray-800 mb-1">
+                    {formData.fullName || "Your Name"}
+                  </h2>
+                  <p className="text-cyan-600 font-medium text-sm">
+                    {formData.title || "Title"}
+                  </p>
+                  <p className="text-gray-600 font-medium mt-1">
+                    {departments.find(d => d.id === formData.department)?.name || "Department"}
+                  </p>
+                </div>
+
+                {/* About Section */}
+                {formData.about && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-700 leading-relaxed">{formData.about}</p>
+                  </div>
+                )}
+
+                {/* Contact Info */}
+                <div className="space-y-3 mt-6">
+                  {formData.officeLocation && (
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                        <EnvironmentOutlined className="text-white text-lg" />
+                      </div>
+                      <span className="text-gray-700 font-medium">{formData.officeLocation}</span>
                     </div>
+                  )}
+                  
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                      <MailOutlined className="text-white text-lg" />
+                    </div>
+                    <span className="text-gray-700 font-medium truncate">{formData.email || "email@example.com"}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                      <PhoneOutlined className="text-white text-lg" />
+                    </div>
+                    <span className="text-gray-700 font-medium">{formData.phone || "Phone"}</span>
                   </div>
                 </div>
-              )}
-            <div className="flex flex-col items-center p-6 bg-[#eaf4f7] rounded-xl mb-6">
-              {formData.photo ? (
-                <img 
-                  src={formData.photo} 
-                  alt={formData.fullName || "Profile"}
-                  className="w-24 h-24 rounded-full border-4 border-white object-cover" 
-                  crossOrigin="anonymous"
-                  onError={(e) => {
-                    console.error('Failed to load photo:', formData.photo)
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                    if (fallback) fallback.style.display = 'flex'
-                  }}
-                />
-              ) : null}
-              <div 
-                className="w-24 h-24 rounded-full bg-[#17A2B8] flex items-center justify-center"
-                style={{ display: formData.photo ? 'none' : 'flex' }}
-              >
-                <UserOutlined className="text-4xl text-white" />
+
+                {/* CV Download Button */}
+                {(formData.cv || (storedphoto as any)?.cvUrl) && (
+                  <div className="mt-6">
+                    <a
+                      href={formData.cv || (storedphoto as any)?.cvUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-md hover:shadow-lg"
+                    >
+                      <DownloadOutlined className="text-lg" />
+                      <span>Download CV</span>
+                    </a>
+                  </div>
+                )}
+
+                {/* Recent Experience Badge */}
+                {lastAddedExperience && (
+                  <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-l-4 border-green-500">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
+                      <div className="flex-1">
+                        <div className="text-xs text-green-600 font-semibold mb-1">LATEST EXPERIENCE</div>
+                        <div className="font-semibold text-gray-800">
+                          {lastAddedExperience.position || lastAddedExperience.title || lastAddedExperience.role || "Position"}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {lastAddedExperience.organization || lastAddedExperience.company || lastAddedExperience.institution || "Organization"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="mt-4 text-center">
-                <div className="font-bold text-xl text-[#18485e]">{formData.fullName || "Your Name"}</div>
-                <div className="text-gray-500">{formData.title}</div>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-               {/* About appears before Department */}
-               {formData.about ? (
-                 <div className="text-sm text-[#374151]">{formData.about}</div>
-               ) : null}
-
-               <div className="font-semibold text-[#18485e]">
-                 {departments.find(d => d.id === formData.department)?.name || "No Department Selected"}
-               </div>
-
-               {/* Office */}
-               {formData.officeLocation ? (
-                 <div className="flex items-center gap-2 text-[#18485e]">
-                   <EnvironmentOutlined className="text-[#17A2B8]" />
-                   <span>{formData.officeLocation}</span>
-                 </div>
-               ) : null}
-
-               <div className="flex items-center gap-2 text-[#18485e]">
-                 <MailOutlined className="text-[#17A2B8]" />
-                 <span>{formData.email}</span>
-               </div>
-               <div className="flex items-center gap-2 text-[#18485e]">
-                 <PhoneOutlined className="text-[#17A2B8]" />
-                 <span>{formData.phone}</span>
-               </div>
-
-               {/* CV download centered */}
-               {(formData.cv || (storedphoto as any)?.cvUrl) && (
-                 <div className="mt-6 text-center">
-                   <a
-                     href={formData.cv || (storedphoto as any)?.cvUrl}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="inline-flex items-center gap-2 text-[#17A2B8]"
-                   >
-                     <DownloadOutlined />
-                     <span>downloadCv</span>
-                   </a>
-                 </div>
-               )}
             </div>
           </Card>
         </Col>
