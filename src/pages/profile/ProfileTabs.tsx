@@ -15,9 +15,8 @@ const { TabPane } = Tabs
 function profileTabs() {
   const { user } = useAppSelector((s) => s.auth)
   const profileData = useAppSelector((s) => s.profile?.data)
-  const storedAuthUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
-  const parsedAuthUser = storedAuthUser ? JSON.parse(storedAuthUser) : null
-  const currentUser = user || parsedAuthUser
+  const currentUserStaffId = user?.staffId // Get staffId from Redux auth state
+  const currentUser = user
   
   const [activeKey, setActiveKey] = useState<string>("edit")
   const [showSetupModal, setShowSetupModal] = useState(false)
@@ -27,10 +26,8 @@ function profileTabs() {
   useEffect(() => {
     const checkProfileExists = async () => {
       try {
-        // Get staffId from token first (primary source)
-        const staffIdFromToken = parsedAuthUser?.staffId || parsedAuthUser?.staff_id
-        const staffIdFromStorage = localStorage.getItem('staffId') || localStorage.getItem('staff_id')
-        const staffId = staffIdFromToken || staffIdFromStorage
+        // Use staffId from Redux auth state (already decoded from token)
+        const staffId = currentUserStaffId
         
         if (staffId) {
           // We have a staff ID - verify the profile exists in backend
@@ -40,11 +37,6 @@ function profileTabs() {
               console.log('Profile exists for staffId:', staffId)
               // Profile exists! Don't show setup modal
               setShowSetupModal(false)
-              // Store staff ID for future use
-              if (staffIdFromToken && typeof window !== 'undefined') {
-                localStorage.setItem('staffId', staffId)
-                localStorage.setItem('staff_id', staffId)
-              }
             }
           } catch (error: any) {
             console.log('Profile check error:', error?.response?.status)
@@ -69,7 +61,7 @@ function profileTabs() {
     }
     
     checkProfileExists()
-  }, [])
+  }, [currentUserStaffId])
 
   if (checkingProfile) {
     return (

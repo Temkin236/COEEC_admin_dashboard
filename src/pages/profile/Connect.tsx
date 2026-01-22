@@ -62,6 +62,8 @@ interface SocialLink { platform: PlatformKey; url: string }
 export default function Connect() {
   const dispatch = useAppDispatch()
   const { data: profileData, loading } = useAppSelector((s) => s.profile)
+  const { user } = useAppSelector((s) => s.auth)
+  const currentUserStaffId = user?.staffId // Get staffId from Redux auth state
   const [links, setLinks] = useState<SocialLink[]>([])
   const [newPlatform, setNewPlatform] = useState<PlatformKey>("instagram")
   const [newUrl, setNewUrl] = useState("")

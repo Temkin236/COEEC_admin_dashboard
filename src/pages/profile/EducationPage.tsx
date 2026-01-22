@@ -20,6 +20,8 @@ interface EducationEntry {
 export default function EducationPage() {
   const dispatch = useAppDispatch()
   const { data: storedphoto, loading, educationLoading } = useAppSelector((s) => s.profile)
+  const { user } = useAppSelector((s) => s.auth)
+  const currentUserStaffId = user?.staffId // Get staffId from Redux auth state
   const [education, setEducation] = useState<EducationEntry[]>([])
   const [pendingEducationList, setPendingEducationList] = useState<Array<Omit<EducationEntry, "id">>>([])
 
@@ -30,7 +32,7 @@ export default function EducationPage() {
     description: "",
   })
 
-  const photo = (storedphoto as any)?.id ?? (storedphoto as any)?._id 
+  const photo = currentUserStaffId || (storedphoto as any)?.id || (storedphoto as any)?._id || null 
 
   useEffect(() => {
     if (photo) {

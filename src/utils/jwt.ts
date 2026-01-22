@@ -72,20 +72,23 @@ export const getUserFromToken = (token: string): any => {
     
     const name = decoded.name || decoded.displayName || decoded.username || decoded.user_name
     
+    // Extract staffId - might be in different fields
+    const staffId = decoded.staffId || decoded.staff_id || decoded.staff || null
+    
     // Parse permissions - they might be in different formats
     let permissions = []
     
     if (decoded.permissions) {
       if (Array.isArray(decoded.permissions)) {
-        // If permissions are strings like "resource.action" (e.g., "studentlife.view")
+        // If permissions are strings like "action.resource" (e.g., "update.profile", "view.staff")
         if (typeof decoded.permissions[0] === 'string') {
           permissions = decoded.permissions.map((perm: string) => {
-            const [resource, action] = perm.split('.') // Fixed: resource.action format
+            const [action, resource] = perm.split('.') // Format: action.resource
             const normalize = (s: string | undefined) => (s || '').toString().toLowerCase().trim()
             return {
               id: perm,
-              resource: normalize(resource) || 'unknown',
               action: normalize(action) || 'view',
+              resource: normalize(resource) || 'unknown',
               description: null,
             }
           })
@@ -104,6 +107,7 @@ export const getUserFromToken = (token: string): any => {
       role: role,
       name: name,
       permissions: permissions,
+      staffId: staffId,
     }
   } catch (error) {
     console.error('Error extracting user from token:', error)

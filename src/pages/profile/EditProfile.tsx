@@ -1,10 +1,11 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin, message } from "antd"
-import { UploadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined, DownloadOutlined } from "@ant-design/icons"
+import { Card, Form, Input, Select, Button, Upload, Row, Col, Spin, message, Alert } from "antd"
+import { UploadOutlined, EnvironmentOutlined, MailOutlined, PhoneOutlined, UserOutlined, DownloadOutlined, LockOutlined } from "@ant-design/icons"
 import Loading from "@/components/common/Loading"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
+import { useProfilePermissions } from "@/hooks/useProfilePermissions"
 import { staffApi } from "@/api/staffApi"
 import axiosInstance from "@/utils/axios"
 import { fetchProfile, createProfile, fetchExperiences, setProfile } from "@/store/slices/profileSlice"
@@ -40,6 +41,13 @@ export default function photo() {
 
   const authState = useAppSelector((s) => s.auth) || {}
   const user = (authState as any).user
+  const currentUserStaffId = user?.staffId // Get staffId from Redux auth state
+
+  // Get the profile ID we're editing (either from Redux or from current user)
+  const profileIdBeingEdited = (storedphoto as any)?.id || (storedphoto as any)?._id || currentUserStaffId
+  
+  // Check permissions
+  const { canEdit, isOwnProfile, hasProfileUpdate } = useProfilePermissions(profileIdBeingEdited)
 
   const [formData, setFormData] = useState<photoFormData>({
     fullName: "",
@@ -71,16 +79,12 @@ export default function photo() {
   useEffect(() => {
     const fetchStaffProfile = async () => {
       try {
-        // Extract staffId from JWT token (primary source)
-        const authUser = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
-        const parsedAuth = authUser ? JSON.parse(authUser) : null
-        const staffIdFromToken = parsedAuth?.staffId || parsedAuth?.staff_id
-        const staffIdFromStorage = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
-        const staffIdToFetch = staffIdFromToken || staffIdFromStorage
+        // Use staffId from Redux auth state (already decoded from token)
+        const staffIdToFetch = currentUserStaffId
         
-        // Only fetch if we have a valid staff ID from token or storage
+        // Only fetch if we have a valid staff ID from auth state
         if (!staffIdToFetch) {
-          console.log('No staffId found in token or storage')
+          console.log('No staffId found in auth state - user may not have a profile yet')
           return
         }
         
@@ -109,7 +113,7 @@ export default function photo() {
       }
     }
     fetchStaffProfile()
-  }, [dispatch])
+  }, [dispatch, currentUserStaffId])
 
   // 3. Sync form data when profile is loaded into Redux
   useEffect(() => {
@@ -203,12 +207,8 @@ export default function photo() {
       biography: { description: formData.about || "" },
     }
 
-    // Resolve staffId from stored photo or localStorage/auth_user payload
-    const staffIdFromAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
-    const staffAuth = staffIdFromAuthRaw ? JSON.parse(staffIdFromAuthRaw) : null
-    const staffIdFromAuth = staffAuth ? (staffAuth.staffId || staffAuth.staff_id || staffAuth.id) : null
-    const staffIdKey = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
-    const staffId = (storedphoto as any)?.id || (storedphoto as any)?._id || staffIdFromAuth || staffIdKey || null
+    // Use staffId from Redux auth state (primary source) or fallback to stored profile
+    const staffId = currentUserStaffId || (storedphoto as any)?.id || (storedphoto as any)?._id || null
 
     try {
       // Check if we have a loaded profile in Redux (this means it was successfully fetched from backend)
@@ -227,12 +227,6 @@ export default function photo() {
         const createdId = created?.id || created?._id
         if (createdId) {
           finalStaffId = createdId
-          try { 
-            if (typeof window !== 'undefined') { 
-              localStorage.setItem('staffId', String(createdId))
-              localStorage.setItem('staff_id', String(createdId))
-            }
-          } catch {}
           console.log('Profile created successfully with ID:', createdId)
         }
       }
@@ -372,27 +366,27 @@ export default function photo() {
           <Card 
             bordered={false} 
             style={{ 
-              borderRadius: 16, 
-              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+              borderRadius: 12, 
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
               overflow: "hidden"
             }}
           >
             <div className="relative">
-              {/* Header with gradient background */}
+              {/* Faded blue rounded header */}
               <div 
-                className="h-32 bg-gradient-to-br from-cyan-500 via-teal-500 to-blue-600"
+                className="h-48 rounded-t-xl"
                 style={{
-                  background: "linear-gradient(135deg, #17A2B8 0%, #14919B 50%, #0E7C86 100%)"
+                  background: "linear-gradient(135deg, rgba(23, 162, 184, 0.3) 0%, rgba(20, 145, 155, 0.25) 50%, rgba(14, 124, 134, 0.2) 100%)"
                 }}
               />
               
               {/* Profile Photo - positioned to overlap header */}
-              <div className="absolute left-1/2 transform -translate-x-1/2" style={{ top: '64px' }}>
+              <div className="absolute left-1/2 transform -translate-x-1/2" style={{ top: '80px' }}>
                 {formData.photo ? (
                   <img 
                     src={formData.photo} 
                     alt={formData.fullName || "Profile"}
-                    className="w-32 h-32 rounded-full border-4 border-white object-cover shadow-lg" 
+                    className="w-24 h-24 rounded-full border-4 border-white object-cover shadow-md" 
                     crossOrigin="anonymous"
                     onError={(e) => {
                       console.error('Failed to load photo:', formData.photo)
@@ -403,57 +397,57 @@ export default function photo() {
                   />
                 ) : null}
                 <div 
-                  className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center border-4 border-white shadow-lg"
+                  className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center border-4 border-white shadow-md"
                   style={{ display: formData.photo ? 'none' : 'flex' }}
                 >
-                  <UserOutlined className="text-5xl text-white" />
+                  <UserOutlined className="text-4xl text-white" />
                 </div>
               </div>
 
               {/* Profile Info */}
-              <div className="pt-20 pb-6 px-6">
-                <div className="text-center mb-6">
-                  <h2 className="font-bold text-2xl text-gray-800 mb-1">
+              <div className="pt-16 pb-4 px-4">
+                <div className="text-center mb-4">
+                  <h2 className="font-bold text-xl text-gray-800 mb-1">
                     {formData.fullName || "Your Name"}
                   </h2>
                   <p className="text-cyan-600 font-medium text-sm">
                     {formData.title || "Title"}
                   </p>
-                  <p className="text-gray-600 font-medium mt-1">
+                  <p className="text-gray-600 text-sm mt-1">
                     {departments.find(d => d.id === formData.department)?.name || "Department"}
                   </p>
                 </div>
 
                 {/* About Section */}
                 {formData.about && (
-                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700 leading-relaxed">{formData.about}</p>
+                  <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-700 leading-relaxed">{formData.about}</p>
                   </div>
                 )}
 
                 {/* Contact Info */}
-                <div className="space-y-3 mt-6">
+                <div className="space-y-2 mt-4">
                   {formData.officeLocation && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
-                        <EnvironmentOutlined className="text-white text-lg" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                        <EnvironmentOutlined className="text-white text-sm" />
                       </div>
-                      <span className="text-gray-700 font-medium">{formData.officeLocation}</span>
+                      <span className="text-gray-700 text-sm">{formData.officeLocation}</span>
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
-                      <MailOutlined className="text-white text-lg" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                      <MailOutlined className="text-white text-sm" />
                     </div>
-                    <span className="text-gray-700 font-medium truncate">{formData.email || "email@example.com"}</span>
+                    <span className="text-gray-700 text-sm truncate">{formData.email || "email@example.com"}</span>
                   </div>
                   
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
-                      <PhoneOutlined className="text-white text-lg" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                      <PhoneOutlined className="text-white text-sm" />
                     </div>
-                    <span className="text-gray-700 font-medium">{formData.phone || "Phone"}</span>
+                    <span className="text-gray-700 text-sm">{formData.phone || "Phone"}</span>
                   </div>
                 </div>
 

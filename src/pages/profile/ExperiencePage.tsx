@@ -20,6 +20,8 @@ interface ExperienceEntry {
 export default function ExperiencePage() {
   const dispatch = useAppDispatch()
   const { data: storedphoto, loading, experiencesLoading } = useAppSelector((s) => s.profile)
+  const { user } = useAppSelector((s) => s.auth)
+  const currentUserStaffId = user?.staffId // Get staffId from Redux auth state
   const [experiences, setExperiences] = useState<ExperienceEntry[]>([])
   const [pendingExperienceList, setPendingExperienceList] = useState<Array<Omit<ExperienceEntry, "id">>>([])
 
@@ -32,11 +34,7 @@ export default function ExperiencePage() {
     description: "",
   })
 
-  const storedAuthRaw = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null
-  const parsedAuth = storedAuthRaw ? JSON.parse(storedAuthRaw) : null
-  const authStaffId = parsedAuth ? (parsedAuth.staffId || parsedAuth.staff_id || parsedAuth.id) : null
-  const legacyStaffKey = typeof window !== 'undefined' ? (localStorage.getItem('staffId') || localStorage.getItem('staff_id')) : null
-  const photo = (storedphoto as any)?.id || (storedphoto as any)?._id || authStaffId || legacyStaffKey || null
+  const photo = currentUserStaffId || (storedphoto as any)?.id || (storedphoto as any)?._id || null
 
   useEffect(() => {
     if (photo) {
