@@ -128,9 +128,9 @@ const LoginPage = () => {
               <Text type="secondary" className="text-xs">
                 Demo Credentials:
                 <br />
-                Admin: admin@astu.edu.et / Admin@2025
+                Admin: superAdmin@gmail.com / superAdmin@gmail.com
                 <br />
-                Editor: editor / Editor@2025
+                Staff: temari@gmail.com / 12345678
               </Text>
             </div>
           )}

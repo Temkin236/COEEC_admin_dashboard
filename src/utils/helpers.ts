@@ -56,41 +56,41 @@ export const hasPermission = (userRole?: string, requiredRoles?: string[]) => {
  */
 export const getTranslation = (item: any, language: string = 'EN') => {
   if (!item) return null
-  
+
   // If already has flat structure (title, description), return as is
   if (item.title && !item.translations) {
     return item
   }
-  
+
   // Get translations array
   const translations = item.translations || []
-  
+
   // Find translation for requested language
   let translation = translations.find((t: any) => t.language === language)
-  
+
   // Fallback to English
   if (!translation) {
     translation = translations.find((t: any) => t.language === 'EN')
   }
-  
+
   // Fallback to first available
   if (!translation && translations.length > 0) {
     translation = translations[0]
   }
-  
+
   // Return merged object with translation fields at top level
   if (translation) {
     return {
       ...item,
       title: translation.title,
       slug: translation.slug,
-      description: translation.description,
-      content: translation.description, // Alias for consistency
+      description: translation.description || translation.content, // Fallback if needed
+      content: translation.content || translation.description, // Support both
       excerpt: translation.excerpt,
       language: translation.language,
     }
   }
-  
+
   return item
 }
 

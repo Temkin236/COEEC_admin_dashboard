@@ -15,6 +15,7 @@ export interface AuthUser {
   id: string
   email: string
   role: Role
+  roles?: string[] // Array of roles from JWT
   name?: string
   permissions?: Permission[]
   staffId?: string // Staff ID from token for profile management

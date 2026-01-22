@@ -4,12 +4,16 @@ import { useEffect, useState } from "react"
 import {
   Card, Button, Table, Space, Tag, Modal, Form,
   Input, Select, DatePicker, message, Descriptions, Typography,
-  Radio, Tabs, Upload, Image, Spin
+  Radio, Tabs, Upload, Image, Spin,
+  Divider
 } from "antd"
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
   EyeOutlined, ExclamationCircleOutlined, CheckCircleOutlined,
-  UploadOutlined
+  UploadOutlined,
+  FileTextOutlined,
+  InboxOutlined,
+  GlobalOutlined
 } from "@ant-design/icons"
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface'
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
@@ -40,24 +44,30 @@ const NewsPage = () => {
   const [editingNews, setEditingNews] = useState<any>(null)
   const [selectedNews, setSelectedNews] = useState<any>(null)
 
-  const [currentLanguage, setCurrentLanguage] = useState<string>("EN")
+  const [activeTab, setActiveTab] = useState<string>("ALL")
+  const [currentFormLang, setCurrentFormLang] = useState<string>("EN")
+  const [currentViewLang, setCurrentViewLang] = useState<string>("EN")
   const [drafts, setDrafts] = useState<Record<string, any>>({
-    EN: {},
-    AM: {},
-    AR: {},
+    EN: { title: "", slug: "", excerpt: "", content: "" },
+    AM: { title: "", slug: "", excerpt: "", content: "" },
+    OM: { title: "", slug: "", excerpt: "", content: "" },
   })
   const [fileList, setFileList] = useState<UploadFile[]>([])
 
   const [form] = Form.useForm()
 
   useEffect(() => {
-    dispatch(fetchNews({ page: 1, limit: 50 }))
-  }, [dispatch])
+    dispatch(fetchNews({ page: 1, limit: 50, state: activeTab }))
+  }, [dispatch, activeTab])
 
   const handleAdd = () => {
     setEditingNews(null)
-    setDrafts({ EN: {}, AM: {}, AR: {} })
-    setCurrentLanguage("EN")
+    setDrafts({
+      EN: { title: "", slug: "", excerpt: "", content: "" },
+      AM: { title: "", slug: "", excerpt: "", content: "" },
+      OM: { title: "", slug: "", excerpt: "", content: "" },
+    })
+    setCurrentFormLang("EN")
     setFileList([])
     form.resetFields()
     setIsFormModalOpen(true)
@@ -65,36 +75,49 @@ const NewsPage = () => {
 
   const handleEdit = (record: any) => {
     setEditingNews(record)
-    // Assuming record has structure that supports multilingual or we just edit the current record's language
-    // For now, let's load the record data into the current language draft
-    const recordLanguage = record.language || "EN"
-    setCurrentLanguage(recordLanguage)
 
-    // Initialize drafts with the current record data for its language
-    const initialDrafts = { EN: {}, AM: {}, AR: {} }
-    // @ts-ignore
-    initialDrafts[recordLanguage] = {
-      title: record.title,
-      content: record.content,
-      excerpt: record.excerpt,
+    // Initialize drafts from translations if available, otherwise fallback to flattened record
+    const newDrafts: Record<string, any> = {
+      EN: { title: "", slug: "", excerpt: "", content: "" },
+      AM: { title: "", slug: "", excerpt: "", content: "" },
+      OM: { title: "", slug: "", excerpt: "", content: "" },
     }
-    setDrafts(initialDrafts)
+
+    if (record.translations && record.translations.length > 0) {
+      record.translations.forEach((t: any) => {
+        if (newDrafts[t.language]) {
+          newDrafts[t.language] = {
+            title: t.title,
+            slug: t.slug,
+            excerpt: t.excerpt,
+            content: typeof t.content === 'object' ? JSON.stringify(t.content, null, 2) : t.content,
+          }
+        }
+      })
+    } else {
+      // Fallback for legacy data
+      const lang = record.language || "EN"
+      if (newDrafts[lang]) {
+        newDrafts[lang] = {
+          title: record.title,
+          slug: record.slug,
+          excerpt: record.excerpt,
+          content: typeof record.content === 'object' ? JSON.stringify(record.content, null, 2) : record.content,
+        }
+      }
+    }
+
+    setDrafts(newDrafts)
+    setCurrentFormLang("EN")
 
     form.setFieldsValue({
       ...record,
       publishAt: record.publishAt ? dayjs(record.publishAt) : null,
+      ...newDrafts["EN"] // Initial form values for EN
     })
 
-    // Set file list if there is a featured image (mock logic for now if we don't have full media object)
     if (record.featuredImageId) {
-      setFileList([
-        {
-          uid: '-1',
-          name: 'image.png',
-          status: 'done',
-          url: '', // We would need the full URL here
-        }
-      ])
+      setFileList([{ uid: '-1', name: 'image.png', status: 'done', url: '' }])
     } else {
       setFileList([])
     }
@@ -102,25 +125,27 @@ const NewsPage = () => {
     setIsFormModalOpen(true)
   }
 
-  const handleLanguageChange = (newLang: string) => {
+  const handleFormLanguageChange = (newLang: string) => {
     // Save current form values to draft
     const currentValues = form.getFieldsValue()
     setDrafts(prev => ({
       ...prev,
-      [currentLanguage]: {
-        ...prev[currentLanguage],
+      [currentFormLang]: {
+        ...prev[currentFormLang],
         title: currentValues.title,
+        slug: currentValues.slug,
         content: currentValues.content,
         excerpt: currentValues.excerpt,
       }
     }))
 
     // Switch language
-    setCurrentLanguage(newLang)
+    setCurrentFormLang(newLang)
 
     // Load new language draft
     form.setFieldsValue({
       title: drafts[newLang]?.title || "",
+      slug: drafts[newLang]?.slug || "",
       content: drafts[newLang]?.content || "",
       excerpt: drafts[newLang]?.excerpt || "",
     })
@@ -138,22 +163,17 @@ const NewsPage = () => {
   }
 
   const handleChange: UploadProps['onChange'] = (info) => {
-    let newFileList = [...info.fileList];
-    newFileList = newFileList.slice(-1); // Limit to 1 file
-    setFileList(newFileList);
+    let newFileList = [...info.fileList].slice(-1)
+    setFileList(newFileList)
 
-    if (info.file.status === 'done') {
-      // Get the response from the upload
-      const response = info.file.response;
-      if (response && response.id) {
-        // Store the ID in the form
-        form.setFieldValue('featuredImageId', response.id)
-      }
+    if (info.file.status === 'done' && info.file.response?.id) {
+      form.setFieldValue('featuredImageId', info.file.response.id)
     }
-  };
+  }
 
   const handleView = (record: any) => {
     setSelectedNews(record)
+    setCurrentViewLang("EN") // Default view to English
     setIsViewModalOpen(true)
   }
 
@@ -186,10 +206,50 @@ const NewsPage = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      // Final save for current visible tab
+      const finalDrafts = {
+        ...drafts,
+        [currentFormLang]: {
+          title: values.title,
+          slug: values.slug,
+          excerpt: values.excerpt,
+          content: values.content
+        }
+      }
+
+      const languages: Record<string, any> = {}
+
+      Object.entries(finalDrafts).forEach(([lang, data]) => {
+        if (data.title) {
+          let parsedContent = data.content
+          try {
+            // Try to parse as JSON if it's a string from the text area
+            if (typeof data.content === 'string' && data.content.trim().startsWith('{')) {
+              parsedContent = JSON.parse(data.content)
+            } else if (typeof data.content === 'string') {
+              // Wrap plain text in the expected document structure
+              parsedContent = {
+                type: "doc",
+                content: [{ type: "paragraph", content: [{ type: "text", text: data.content }] }]
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to parse content for ${lang}`, e)
+          }
+
+          languages[lang] = {
+            title: data.title,
+            slug: data.slug || generateSlug(data.title),
+            excerpt: data.excerpt,
+            content: parsedContent
+          }
+        }
+      })
+
       const payload = {
-        ...values,
-        language: currentLanguage, // Use the currently selected language
-        slug: values.slug || generateSlug(values.title),
+        languages,
+        tags: values.tags,
+        state: values.state,
         publishAt: values.publishAt?.toISOString(),
         featuredImageId: fileList[0]?.response?.id || editingNews?.featuredImageId,
       }
@@ -209,215 +269,396 @@ const NewsPage = () => {
 
   const columns = [
     {
-      title: "Title",
+      title: "Title (English)",
       dataIndex: "title",
       key: "title",
-      render: (text: string) => <Typography.Text strong>{text}</Typography.Text>
-    },
-    {
-      title: "Language",
-      dataIndex: "language",
-      key: "language",
-      render: (lang: string) => <Tag color="blue">{lang}</Tag>
+      render: (_: string, record: any) => {
+        const enTrans = record.translations?.find((t: any) => t.language === 'EN');
+        return <Typography.Text strong>{enTrans?.title || record.title}</Typography.Text>
+      }
     },
     {
       title: "Status",
       dataIndex: "state",
       key: "state",
       render: (state: string) => {
-        const colors: any = { PUBLISHED: "green", DRAFT: "orange", ARCHIVED: "red" }
+        const colors: any = { PUBLISHED: "green", DRAFT: "orange", ARCHIVED: "red", NEEDS_REVIEW: "volcano" }
         return <Tag color={colors[state] || "default"}>{state}</Tag>
       },
+      width: 120
     },
     {
       title: "Publish Date",
       dataIndex: "publishAt",
       key: "publishAt",
-      render: (date: string) => date ? formatDate(date) : "Not set"
+      render: (date: string) => date ? formatDate(date) : <Tag color="default">Not Scheduled</Tag>,
+      width: 180
     },
     {
       title: "Actions",
       key: "actions",
-      width: 200,
+      width: 150,
       fixed: 'right' as const,
       render: (_: any, record: any) => (
-        <Space size="small">
-          <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+        <Space size="middle">
+          <Button type="text" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); handleView(record); }} />
+          <Button type="text" icon={<EditOutlined />} onClick={(e) => { e.stopPropagation(); handleEdit(record); }} />
           {record.state === "DRAFT" && (
             <Button
               type="text"
               className="text-green-600"
               icon={<CheckCircleOutlined />}
-              onClick={() => handlePublish(record.id)}
+              onClick={(e) => { e.stopPropagation(); handlePublish(record.id); }}
             />
           )}
-          <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
+          <Button type="text" danger icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleDelete(record.id); }} />
         </Space>
       ),
     },
   ]
 
-  if (loading && items.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" />
-      </div>
-    )
+  const languageOptions = [
+    { key: "EN", label: "English" },
+    { key: "AM", label: "Amharic" },
+    { key: "OM", label: "Afaan Oromo" },
+  ]
+
+  const getViewContent = () => {
+    if (!selectedNews) return null;
+    const translation = selectedNews.translations?.find((t: any) => t.language === currentViewLang);
+    if (translation) return translation;
+
+    // Fallback to record itself if viewed language matches record's primary flattened language
+    if (selectedNews.language === currentViewLang) return selectedNews;
+
+    return null;
   }
+
+  const viewContent = getViewContent();
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <Card
-        title={
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <span className="text-lg font-semibold">News & Announcements</span>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-              className="min-w-fit"
-            >
-              <span className="hidden sm:inline">Create News</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-          </div>
-        }
-      >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <Typography.Title level={2} style={{ margin: 0 }}>News & Announcements</Typography.Title>
+          <Typography.Text type="secondary">Manage multi-language news articles and announcements</Typography.Text>
+        </div>
+        <Button
+          type="primary"
+          size="large"
+          icon={<PlusOutlined />}
+          onClick={handleAdd}
+          className="shadow-md"
+        >
+          Create News
+        </Button>
+      </div>
+
+      <Card className="shadow-sm overflow-hidden" bodyStyle={{ padding: 0 }}>
+        <div className="px-6 pt-4 border-b">
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={[
+              { key: "ALL", label: "All News" },
+              { key: "PUBLISHED", label: "Published" },
+              { key: "DRAFT", label: "Drafts" },
+              { key: "NEEDS_REVIEW", label: "Needs Review" },
+              { key: "ARCHIVED", label: "Archived" },
+            ]}
+          />
+        </div>
         <DataTable
           columns={columns}
           dataSource={items}
-          loading={loading && items.length > 0}
+          loading={loading}
           rowKey="id"
           onRow={(record) => ({
             onClick: () => handleView(record),
-            style: { cursor: 'pointer' }
           })}
           scroll={{ x: 800 }}
+          className="p-4"
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} news items`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} articles`,
           }}
-          className="border-0"
-          rowClassName={() => 'cursor-pointer hover:bg-gray-50'}
         />
       </Card>
 
       {/* CREATE / EDIT MODAL */}
       <Modal
-        title={editingNews ? "Edit News" : "Create News"}
+        title={
+          <div className="flex items-center gap-2 py-1">
+            <Typography.Title level={4} style={{ margin: 0 }}>
+              {editingNews ? "Edit News Article" : "Create New Article"}
+            </Typography.Title>
+          </div>
+        }
         open={isFormModalOpen}
         onCancel={() => setIsFormModalOpen(false)}
         onOk={() => form.submit()}
         confirmLoading={loading}
-        width={800}
+        width={1000}
+        centered
+        className="news-modal"
+        okText={editingNews ? "Update Article" : "Create Article"}
       >
-        <div className="mb-4">
-          <Radio.Group
-            value={currentLanguage}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            buttonStyle="solid"
-          >
-            <Radio.Button value="EN">English</Radio.Button>
-            <Radio.Button value="AM">Amharic</Radio.Button>
-            <Radio.Button value="AR">Arabic</Radio.Button>
-          </Radio.Group>
-        </div>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-6">
+          <Form.Item name="featuredImageId" hidden><Input /></Form.Item>
 
-        <Form form={form} layout="vertical" onFinish={handleSubmit} className="mt-4">
-          <Form.Item name="featuredImageId" hidden>
-            <Input />
-          </Form.Item>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+                <div className="bg-gray-50/50 px-4 py-2 border-b border-gray-100">
+                  <Tabs
+                    activeKey={currentFormLang}
+                    onChange={handleFormLanguageChange}
+                    type="line"
+                    size="small"
+                    items={languageOptions.map(opt => ({
+                      key: opt.key,
+                      label: (
+                        <span className="flex items-center gap-2">
+                          <GlobalOutlined className="text-xs" />
+                          {opt.label}
+                        </span>
+                      )
+                    }))}
+                  />
+                </div>
 
-          <div className="grid grid-cols-[2fr_1fr] gap-4">
-            <div className="space-y-4">
-              <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-                <Input onChange={(e) => {
-                  if (!editingNews && currentLanguage === 'EN') {
-                    form.setFieldValue('slug', generateSlug(e.target.value))
-                  }
-                }} />
-              </Form.Item>
-              <Form.Item name="excerpt" label="Excerpt (Brief Summary)">
-                <TextArea rows={2} placeholder="Short summary for list views..." />
-              </Form.Item>
+                <div className="p-5 space-y-5">
+                  <Form.Item
+                    name="title"
+                    label={<span className="font-semibold text-gray-700">Article Title ({currentFormLang})</span>}
+                    rules={[{ required: currentFormLang === "EN", message: 'Please enter a title' }]}
+                  >
+                    <Input
+                      size="large"
+                      placeholder={`Enter the ${currentFormLang} title here...`}
+                      className="rounded-lg"
+                      onChange={(e) => {
+                        if (!editingNews && currentFormLang === 'EN') {
+                          form.setFieldValue('slug', generateSlug(e.target.value))
+                        }
+                      }}
+                    />
+                  </Form.Item>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Form.Item
+                      name="slug"
+                      label={<span className="font-semibold text-gray-700">URL Slug</span>}
+                      rules={[{ required: currentFormLang === "EN" }]}
+                      extra="The unique URL path for this news item"
+                    >
+                      <Input placeholder="e.g. major-breakthrough-ai" className="rounded-lg" />
+                    </Form.Item>
+
+                    <Form.Item
+                      name="publishAt"
+                      label={<span className="font-semibold text-gray-700">Schedule Release</span>}
+                    >
+                      <DatePicker className="w-full rounded-lg" showTime placeholder="Choose publish date/time" />
+                    </Form.Item>
+                  </div>
+
+                  <Form.Item
+                    name="excerpt"
+                    label={<span className="font-semibold text-gray-700">Short Excerpt</span>}
+                    extra="A brief summary shown in lists and social previews"
+                  >
+                    <TextArea rows={3} placeholder="Write a compelling summary..." className="rounded-lg" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="content"
+                    label={<span className="font-semibold text-gray-700">Article Content</span>}
+                    rules={[{ required: currentFormLang === "EN" }]}
+                  >
+                    <TextArea
+                      rows={12}
+                      className="font-mono text-sm rounded-lg"
+                      placeholder="Paste JSON document structure or write plain text article content here..."
+                    />
+                  </Form.Item>
+                </div>
+              </div>
             </div>
-            <div>
-              <Form.Item label="Featured Image">
-                <Upload
-                  customRequest={handleUpload}
-                  onChange={handleChange}
-                  fileList={fileList}
-                  listType="picture-card"
-                  maxCount={1}
+
+            <div className="space-y-6">
+              <Card
+                size="small"
+                title={<span className="text-gray-800 font-bold">Featured Image</span>}
+                className="shadow-sm border-gray-100 rounded-xl overflow-hidden"
+              >
+                <div className="flex justify-center py-2">
+                  <Upload
+                    customRequest={handleUpload}
+                    onChange={handleChange}
+                    fileList={fileList}
+                    listType="picture-card"
+                    maxCount={1}
+                    className="avatar-uploader"
+                  >
+                    {fileList.length < 1 && (
+                      <div className="upload-box">
+                        <div className="flex flex-col items-center">
+                          <PlusOutlined className="text-xl mb-2 text-primary-500" />
+                          <div className="text-xs font-medium">Select Image</div>
+                        </div>
+                      </div>
+                    )}
+                  </Upload>
+                </div>
+                <div className="text-[10px] text-center text-gray-400 mt-2 px-2">
+                  Recommended size: 1200x630px. Max size: 2MB.
+                </div>
+              </Card>
+
+              <Card
+                size="small"
+                title={<span className="text-gray-800 font-bold">Article Settings</span>}
+                className="shadow-sm border-gray-100 rounded-xl overflow-hidden"
+              >
+                <Form.Item
+                  name="state"
+                  label={<span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Publication State</span>}
+                  initialValue="DRAFT"
                 >
-                  {fileList.length < 1 && (
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
-                    </div>
-                  )}
-                </Upload>
-              </Form.Item>
+                  <Select className="w-full">
+                    <Select.Option value="DRAFT">Draft</Select.Option>
+                    <Select.Option value="NEEDS_REVIEW">Needs Review</Select.Option>
+                    <Select.Option value="PUBLISHED">Published</Select.Option>
+                    <Select.Option value="ARCHIVED">Archived</Select.Option>
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="tags"
+                  label={<span className="text-xs font-bold uppercase text-gray-500 tracking-wider">Tags & Categories</span>}
+                >
+                  <Select mode="tags" placeholder="Add relevant tags..." className="w-full" />
+                </Form.Item>
+              </Card>
+
+              <div className="px-2">
+                <Typography.Text type="secondary" className="text-[11px] block">
+                  Created by: {editingNews?.author?.name || 'System Admin'}
+                </Typography.Text>
+                <Typography.Text type="secondary" className="text-[11px] block italic mt-1">
+                  Last updated: {editingNews?.updatedAt ? formatDate(editingNews.updatedAt, "LLL") : 'Never'}
+                </Typography.Text>
+              </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item name="slug" label="Slug" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="publishAt" label="Publish Date">
-              <DatePicker className="w-full" showTime />
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Form.Item name="state" label="State" initialValue="DRAFT">
-              <Select>
-                <Select.Option value="DRAFT">Draft</Select.Option>
-                <Select.Option value="PUBLISHED">Published</Select.Option>
-                <Select.Option value="ARCHIVED">Archived</Select.Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="tags" label="Tags">
-              <Select mode="tags" placeholder="Press enter to add tags" />
-            </Form.Item>
-          </div>
-
-          <Form.Item name="content" label="Content" rules={[{ required: true }]}>
-            <TextArea rows={8} placeholder={`Write your news content in ${currentLanguage === 'EN' ? 'English' : currentLanguage === 'AM' ? 'Amharic' : 'Arabic'}...`} />
-          </Form.Item>
-
         </Form>
       </Modal>
 
       {/* VIEW MODAL */}
       <Modal
-        title="News Details"
+        title={
+          <div className="flex items-center gap-2 py-1">
+            <EyeOutlined className="text-primary-500" />
+            <Typography.Title level={4} style={{ margin: 0 }}>News Article Preview</Typography.Title>
+          </div>
+        }
         open={isViewModalOpen}
         onCancel={() => setIsViewModalOpen(false)}
-        footer={[<Button key="close" onClick={() => setIsViewModalOpen(false)}>Close</Button>]}
-        width={800}
+        footer={[
+          <Button key="close" type="primary" onClick={() => setIsViewModalOpen(false)} className="rounded-lg px-6">
+            Close Preview
+          </Button>
+        ]}
+        width={850}
+        centered
+        className="preview-modal"
       >
         {selectedNews && (
-          <Descriptions bordered column={2} className="mt-4">
-            <Descriptions.Item label="Title" span={2}>{selectedNews.title}</Descriptions.Item>
-            <Descriptions.Item label="Slug" span={2}><code>{selectedNews.slug}</code></Descriptions.Item>
-            <Descriptions.Item label="Language">{selectedNews.language}</Descriptions.Item>
-            <Descriptions.Item label="Status"><Tag color="blue">{selectedNews.state}</Tag></Descriptions.Item>
-            <Descriptions.Item label="Published Date" span={2}>{selectedNews.publishAt ? formatDate(selectedNews.publishAt, "LLL") : "N/A"}</Descriptions.Item>
-            <Descriptions.Item label="Tags" span={2}>
-              {selectedNews.tags?.map((tag: string) => <Tag key={tag}>{tag}</Tag>)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Excerpt" span={2}>{selectedNews.excerpt || "No excerpt provided."}</Descriptions.Item>
-            <Descriptions.Item label="Full Content" span={2}>
-              <div className="max-h-60 overflow-auto whitespace-pre-wrap p-2 bg-gray-50">
-                {typeof selectedNews.content === 'string' ? selectedNews.content : JSON.stringify(selectedNews.content)}
+          <div className="space-y-6 pt-4">
+            <div className="bg-gray-50/80 p-1 rounded-xl border border-gray-100">
+              <Tabs
+                activeKey={currentViewLang}
+                onChange={setCurrentViewLang}
+                type="card"
+                className="language-selector-tabs"
+                items={languageOptions.map(opt => ({
+                  key: opt.key,
+                  label: opt.label,
+                  disabled: !selectedNews.translations?.some((t: any) => t.language === opt.key) && selectedNews.language !== opt.key
+                }))}
+              />
+            </div>
+
+            {viewContent ? (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <header className="space-y-4">
+                  <Typography.Title level={2} className="text-blue-900 !mb-2 leading-tight">
+                    {viewContent.title}
+                  </Typography.Title>
+                  <Space size="middle" split={<Divider type="vertical" />} className="flex-wrap">
+                    <Tag color={
+                      selectedNews.state === 'PUBLISHED' ? "green" :
+                        selectedNews.state === 'DRAFT' ? "orange" :
+                          selectedNews.state === 'ARCHIVED' ? "red" : "blue"
+                    } className="rounded-full px-3 m-0 font-medium">
+                      {selectedNews.state}
+                    </Tag>
+                    <Space size={4}>
+                      <GlobalOutlined className="text-gray-400" />
+                      <Typography.Text strong className="text-primary-600">{currentViewLang}</Typography.Text>
+                    </Space>
+                    <Typography.Text type="secondary">
+                      {selectedNews.publishAt ? formatDate(selectedNews.publishAt, "LLL") : "Not Scheduled"}
+                    </Typography.Text>
+                  </Space>
+                </header>
+
+                <Card size="small" className="bg-blue-50/30 border-blue-100 rounded-2xl shadow-sm">
+                  <Descriptions column={2} className="p-2 custom-descriptions" bordered>
+                    <Descriptions.Item label="URL Slug" span={2}>
+                      <code className="bg-white px-2 py-0.5 rounded border border-blue-200 text-blue-700 text-xs">
+                        {viewContent.slug}
+                      </code>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Category Tags" span={2}>
+                      <Space wrap>
+                        {selectedNews.tags && selectedNews.tags.length > 0 ? (
+                          selectedNews.tags.map((tag: string) => (
+                            <Tag key={tag} className="bg-white border-blue-100 text-blue-600 rounded-md m-0">
+                              #{tag}
+                            </Tag>
+                          ))
+                        ) : (
+                          <span className="text-gray-400 italic text-sm">No tags added</span>
+                        )}
+                      </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Article Excerpt" span={2}>
+                      <div className="text-gray-600 italic leading-relaxed text-base">
+                        "{viewContent.excerpt || 'No summary available for this translation.'}"
+                      </div>
+                    </Descriptions.Item>
+                  </Descriptions>
+                </Card>
+
+
               </div>
-            </Descriptions.Item>
-          </Descriptions>
+            ) : (
+              <div className="py-20 text-center space-y-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <InboxOutlined className="text-5xl text-gray-300" />
+                <div>
+                  <Typography.Text type="secondary" className="block text-lg">
+                    No translation available for {languageOptions.find(o => o.key === currentViewLang)?.label}
+                  </Typography.Text>
+                  <Typography.Text type="secondary" className="text-sm">
+                    Switch to another language or edit this article to add content.
+                  </Typography.Text>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </Modal>
     </div>

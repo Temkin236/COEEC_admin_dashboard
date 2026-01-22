@@ -1,145 +1,114 @@
 import axiosInstance from "@/utils/axios"
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk, PayloadAction, isAnyOf } from "@reduxjs/toolkit"
 import { transformTranslatedItems } from "@/utils/helpers"
 
-export interface Event {
-  id: string | number
+export interface EventTranslation {
+  id?: string
+  language: "EN" | "AM" | "OM"
   title: string
+  slug: string
   description?: string
-  startDate: string
-  endDate: string
   location?: string
-  type?: string
-  state?: string
-  status?: string
+}
+
+export interface Event {
+  id: string
+  featuredImageId?: string
+  authorId?: string
+  state: "DRAFT" | "NEEDS_REVIEW" | "PUBLISHED" | "ARCHIVED" | "DELETED"
+  startAt: string
+  endAt?: string
+  isOnline: boolean
+  eventUrl?: string
+  tags?: string[]
   createdAt?: string
   updatedAt?: string
-  [key: string]: any
+  translations: EventTranslation[]
+  // Flattened fields for UI
+  title?: string
+  slug?: string
+  description?: string
+  location?: string
+  language?: string
 }
 
 interface EventsState {
   items: Event[]
-  publicEvents: Event[]
   currentEvent: Event | null
+  total: number
   loading: boolean
   error: string | null
 }
 
 const initialState: EventsState = {
   items: [],
-  publicEvents: [],
   currentEvent: null,
+  total: 0,
   loading: false,
   error: null,
 }
 
-// Fetch public events
-export const fetchPublicEvents = createAsyncThunk<Event[], void, { rejectValue: string }>(
-  "events/fetchPublicEvents",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.get("/events/public")
-      // API returns { data: [...], meta: {...} }, extract the data array
-      const events = res.data?.data || res.data
-      const eventsArray = Array.isArray(events) ? events : []
-      // Get current language from localStorage or default to EN
-      const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
-      // Transform items with translations to flat structure
-      return transformTranslatedItems(eventsArray, language)
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch public events")
-    }
-  }
-)
-
 // Fetch all events (admin)
-export const fetchEvents = createAsyncThunk<Event[], void, { rejectValue: string }>(
+export const fetchEvents = createAsyncThunk<{ items: Event[]; total: number }, { page?: number; limit?: number; state?: string }>(
   "events/fetchEvents",
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.get("/events?all=true")
-      // API returns { data: [...], meta: {...} }, extract the data array
-      const events = res.data?.data || res.data
-      const eventsArray = Array.isArray(events) ? events : []
-      // Get current language from localStorage or default to EN
-      const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
-      // Transform items with translations to flat structure
-      return transformTranslatedItems(eventsArray, language)
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch events")
+  async ({ page = 1, limit = 10, state }) => {
+    let url = `/events?page=${page}&limit=${limit}`
+    if (state && state !== 'ALL') {
+      url += `&state=${state}`
     }
-  }
-)
+    const response = await axiosInstance.get(url)
+    const data = response.data
 
-// Fetch event by ID
-export const fetchEventById = createAsyncThunk<Event, string | number, { rejectValue: string }>(
-  "events/fetchEventById",
-  async (id, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.get(`/events/${id}`)
-      return res.data
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch event")
+    // Get current language from localStorage or default to EN
+    const language = localStorage.getItem('language')?.toUpperCase() || 'EN'
+
+    if (data.data && Array.isArray(data.data)) {
+      const transformedItems = transformTranslatedItems(data.data, language)
+      return { items: transformedItems, total: data.meta?.total || data.data.length }
     }
+
+    if (Array.isArray(data)) {
+      const transformedItems = transformTranslatedItems(data, language)
+      return { items: transformedItems, total: data.length }
+    }
+
+    return data
   }
 )
 
 // Create new event
-export const createEvent = createAsyncThunk<Event, Partial<Event>, { rejectValue: string }>(
+export const createEvent = createAsyncThunk<Event, any>(
   "events/createEvent",
-  async (payload, { rejectWithValue }) => {
-    try {
-      console.log('Creating event with payload:', payload)
-      const res = await axiosInstance.post("/events", payload)
-      console.log('Event created:', res.data)
-      return res.data
-    } catch (err: any) {
-      console.error('Failed to create event:', err.response?.data || err.message)
-      const errorMsg = err?.response?.data?.message || err?.response?.data?.error || err.message || "Failed to create event"
-      return rejectWithValue(errorMsg)
-    }
+  async (data) => {
+    const response = await axiosInstance.post("/events", data)
+    return response.data
   }
 )
 
 // Update event
-export const updateEvent = createAsyncThunk<Event, { id: string | number; data: Partial<Event> }, { rejectValue: string }>(
+export const updateEvent = createAsyncThunk<Event, { id: string; data: any }>(
   "events/updateEvent",
-  async ({ id, data }, { rejectWithValue }) => {
-    try {
-      const res = await axiosInstance.put(`/events/${id}`, data)
-      return res.data
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to update event")
-    }
-  }
-)
-
-// Delete event
-export const deleteEvent = createAsyncThunk<string | number, string | number, { rejectValue: string }>(
-  "events/deleteEvent",
-  async (id, { rejectWithValue }) => {
-    try {
-      await axiosInstance.delete(`/events/${id}`)
-      return id
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to delete event")
-    }
+  async ({ id, data }) => {
+    const response = await axiosInstance.put(`/events/${id}`, data)
+    return response.data
   }
 )
 
 // Publish event
-export const publishEvent = createAsyncThunk<Event, string | number, { rejectValue: string }>(
+export const publishEvent = createAsyncThunk<Event, string>(
   "events/publishEvent",
-  async (id, { rejectWithValue }) => {
-    try {
-      console.log('Publishing event:', id)
-      const res = await axiosInstance.post(`/events/${id}/publish`)
-      console.log('Event published:', res.data)
-      return res.data
-    } catch (err: any) {
-      console.error('Failed to publish event:', err.response?.data || err.message)
-      return rejectWithValue(err?.response?.data?.message || err.message || "Failed to publish event")
-    }
+  async (id) => {
+    const response = await axiosInstance.post(`/events/${id}/publish`)
+    return response.data
+  }
+)
+
+// Delete event
+export const deleteEvent = createAsyncThunk<string, string>(
+  "events/deleteEvent",
+  async (id) => {
+    await axiosInstance.delete(`/events/${id}`)
+    return id
   }
 )
 
@@ -147,126 +116,51 @@ const eventsSlice = createSlice({
   name: "events",
   initialState,
   reducers: {
-    clearError: (state) => {
-      state.error = null
+    clearEventsError: (state) => { state.error = null },
+    setCurrentEvent: (state, action: PayloadAction<Event | null>) => {
+      state.currentEvent = action.payload
     },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch public events
-      .addCase(fetchPublicEvents.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(fetchPublicEvents.fulfilled, (state, action: PayloadAction<Event[]>) => {
+      .addCase(fetchEvents.fulfilled, (state, action) => {
         state.loading = false
-        state.publicEvents = action.payload
+        state.items = action.payload.items
+        state.total = action.payload.total
       })
-      .addCase(fetchPublicEvents.rejected, (state, action) => {
+      .addCase(createEvent.fulfilled, (state, action) => {
         state.loading = false
-        state.error = action.payload || "Failed to fetch public events"
+        state.items.unshift(action.payload)
+        state.total += 1
       })
-
-      // Fetch all events
-      .addCase(fetchEvents.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(fetchEvents.fulfilled, (state, action: PayloadAction<Event[]>) => {
+      .addCase(updateEvent.fulfilled, (state, action) => {
         state.loading = false
-        state.items = action.payload
+        const index = state.items.findIndex((item) => item.id === action.payload.id)
+        if (index !== -1) state.items[index] = action.payload
       })
-      .addCase(fetchEvents.rejected, (state, action) => {
+      .addCase(publishEvent.fulfilled, (state, action) => {
         state.loading = false
-        state.error = action.payload || "Failed to fetch events"
+        const index = state.items.findIndex((item) => item.id === action.payload.id)
+        if (index !== -1) state.items[index].state = "PUBLISHED"
       })
-
-      // Fetch event by ID
-      .addCase(fetchEventById.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(fetchEventById.fulfilled, (state, action: PayloadAction<Event>) => {
+      .addCase(deleteEvent.fulfilled, (state, action) => {
         state.loading = false
-        state.currentEvent = action.payload
+        state.items = state.items.filter((item) => item.id !== action.payload)
+        state.total -= 1
       })
-      .addCase(fetchEventById.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || "Failed to fetch event"
-      })
-
-      // Create event
-      .addCase(createEvent.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(createEvent.fulfilled, (state, action: PayloadAction<Event>) => {
-        state.loading = false
-        if (!Array.isArray(state.items)) {
-          state.items = []
+      .addMatcher(
+        isAnyOf(fetchEvents.pending, createEvent.pending, updateEvent.pending, deleteEvent.pending, publishEvent.pending),
+        (state) => { state.loading = true; state.error = null }
+      )
+      .addMatcher(
+        isAnyOf(fetchEvents.rejected, createEvent.rejected, updateEvent.rejected, deleteEvent.rejected, publishEvent.rejected),
+        (state, action) => {
+          state.loading = false
+          state.error = action.error.message || "An error occurred"
         }
-        state.items.push(action.payload)
-      })
-      .addCase(createEvent.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || "Failed to create event"
-      })
-
-      // Update event
-      .addCase(updateEvent.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(updateEvent.fulfilled, (state, action: PayloadAction<Event>) => {
-        state.loading = false
-        const index = state.items.findIndex(e => e.id === action.payload.id)
-        if (index !== -1) {
-          state.items[index] = action.payload
-        }
-        if (state.currentEvent?.id === action.payload.id) {
-          state.currentEvent = action.payload
-        }
-      })
-      .addCase(updateEvent.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || "Failed to update event"
-      })
-
-      // Delete event
-      .addCase(deleteEvent.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(deleteEvent.fulfilled, (state, action: PayloadAction<string | number>) => {
-        state.loading = false
-        state.items = state.items.filter(e => e.id !== action.payload)
-        if (state.currentEvent?.id === action.payload) {
-          state.currentEvent = null
-        }
-      })
-      .addCase(deleteEvent.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || "Failed to delete event"
-      })
-
-      // Publish event
-      .addCase(publishEvent.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
-      .addCase(publishEvent.fulfilled, (state, action: PayloadAction<Event>) => {
-        state.loading = false
-        const index = state.items.findIndex(e => e.id === action.payload.id)
-        if (index !== -1) {
-          state.items[index] = action.payload
-        }
-      })
-      .addCase(publishEvent.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload || "Failed to publish event"
-      })
+      )
   },
 })
 
-export const { clearError } = eventsSlice.actions
+export const { clearEventsError, setCurrentEvent } = eventsSlice.actions
 export default eventsSlice.reducer

@@ -218,7 +218,7 @@ const DashboardLayout = () => {
     items.push({
       key: "/profile",
       icon: <UserOutlined />,
-      label: <Link to="/profile">Profile</Link>,
+      label: <Link to="/profile">{SIDEBAR_TEXT[currentLanguage].profile}</Link>,
     });
 
     // Roles Management
@@ -233,20 +233,20 @@ const DashboardLayout = () => {
       if (checkPermission(permissions, "roles", "view")) {
         rolesChildren.push({
           key: "/roles",
-          label: <Link to="/roles">View Roles</Link>,
+          label: <Link to="/roles">{SIDEBAR_TEXT[currentLanguage].rolesView}</Link>,
         });
       }
       if (checkPermission(permissions, "roles", "create")) {
         rolesChildren.push({
           key: "/roles/create",
-          label: <Link to="/roles/create">Create Role</Link>,
+          label: <Link to="/roles/create">{SIDEBAR_TEXT[currentLanguage].rolesCreate}</Link>,
         });
       }
       if (rolesChildren.length > 0) {
         items.push({
           key: "roles",
           icon: <TeamOutlined />,
-          label: "Roles",
+          label: SIDEBAR_TEXT[currentLanguage].roles,
           children: rolesChildren,
         });
       }
@@ -257,9 +257,9 @@ const DashboardLayout = () => {
       items.push({
         key: "users",
         icon: <UserOutlined />,
-        label: "Users",
+        label: SIDEBAR_TEXT[currentLanguage].users,
         children: [
-          { key: "/users", label: <Link to="/users">All Users</Link> },
+          { key: "/users", label: <Link to="/users">{SIDEBAR_TEXT[currentLanguage].usersAll}</Link> },
         ],
       });
     }
@@ -533,7 +533,7 @@ const DashboardLayout = () => {
                 {LANGUAGE_LABELS[currentLanguage]}
               </Button>
             </Dropdown>
-            <Badge count={notifications.length} overflowCount={99}>
+            {/* <Badge count={notifications.length} overflowCount={99}>
               <Button
                 aria-label="Notifications"
                 type="text"
@@ -541,15 +541,15 @@ const DashboardLayout = () => {
                 onClick={() => setNotificationsOpen(true)}
                 className="px-2 sm:px-3"
               />
-            </Badge>
+            </Badge> */}
             <Dropdown menu={userMenu} placement="bottomRight">
               <Space className="cursor-pointer">
                 <Avatar style={{ backgroundColor: "#17A2B8" }}>
-                  {user?.name?.charAt(0) || "U"}
+                  {user?.role?.charAt(0)?.toUpperCase() || "U"}
                 </Avatar>
                 <div className="hidden sm:block">
                   <div className="text-xs sm:text-sm font-medium">
-                    {user?.name || "User"}
+                    {user?.role || "User"}
                   </div>
                 </div>
               </Space>

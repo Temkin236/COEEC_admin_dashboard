@@ -65,9 +65,10 @@ export const getUserFromToken = (token: string): any => {
     
     // Handle roles - might be array or string
     let role = decoded.role || decoded.userRole || decoded.user_role
-    if (!role && decoded.roles && Array.isArray(decoded.roles)) {
-      // If roles is an array, take the first one or join them
-      role = decoded.roles[0] || (decoded.roles.length > 0 ? decoded.roles.join(',') : undefined)
+    const roles = decoded.roles && Array.isArray(decoded.roles) ? decoded.roles : undefined
+    if (!role && roles && roles.length > 0) {
+      // If roles is an array, take the first one
+      role = roles[0]
     }
     
     const name = decoded.name || decoded.displayName || decoded.username || decoded.user_name
@@ -105,6 +106,7 @@ export const getUserFromToken = (token: string): any => {
       id: userId,
       email: email,
       role: role,
+      roles: roles,
       name: name,
       permissions: permissions,
       staffId: staffId,

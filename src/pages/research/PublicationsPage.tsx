@@ -1,14 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, Tag, Button, Modal, Form, Input, InputNumber, message, Space } from "antd"
-import { PlusOutlined } from "@ant-design/icons"
+import { Card, Tag, Button, Modal, Form, Input, InputNumber, message, Space, Upload, Progress, Spin } from "antd"
+import { PlusOutlined, UploadOutlined, LoadingOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons"
 import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchMyPublications, createPublication, updatePublication, deletePublication, Publication } from "@/store/slices/publicationsSlice"
 import { formatDate } from "@/utils/helpers"
 import TableActions from "@/components/common/TableActions"
 import { usePermissions } from "@/hooks/usePermissions"
+import axiosInstance from "@/utils/axios"
 
 const PublicationsPage = () => {
   const dispatch = useAppDispatch()
@@ -17,13 +18,34 @@ const PublicationsPage = () => {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Publication | null>(null)
   const [form] = Form.useForm()
+  
+  // PDF Upload states
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null)
+  const [uploadedFileId, setUploadedFileId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   useEffect(() => {
     dispatch(fetchMyPublications() as any)
   }, [dispatch])
 
-  const handleAdd = () => { setEditing(null); form.resetFields(); setModalOpen(true) }
-  const handleEdit = (record: Publication) => { setEditing(record); form.setFieldsValue(record); setModalOpen(true) }
+  const handleAdd = () => { 
+    setEditing(null)
+    form.resetFields()
+    setFileToUpload(null)
+    setUploadedFileId(null)
+    setUploadProgress(0)
+    setModalOpen(true)
+  }
+  
+  const handleEdit = (record: Publication) => { 
+    setEditing(record)
+    form.setFieldsValue(record)
+    setFileToUpload(null)
+    setUploadedFileId(record.pdfId || null)
+    setUploadProgress(0)
+    setModalOpen(true)
+  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -34,12 +56,90 @@ const PublicationsPage = () => {
     }
   }
 
+  /* ---------------- PDF UPLOAD ---------------- */
+  const handleFileSelect = async (file: File) => {
+    setUploading(true)
+    setFileToUpload(file)
+    setUploadProgress(0)
+
+    try {
+      const fieldNames = ["file", "files", "upload", "media", "document"]
+      let uploadedData: any = null
+      let lastError: any = null
+
+      for (const fieldName of fieldNames) {
+        try {
+          const formData = new FormData()
+          formData.append(fieldName, file)
+          formData.append("visibility", "PUBLIC")
+
+          const response = await axiosInstance.post("/media/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+            onUploadProgress: (e) => {
+              if (e.total) {
+                setUploadProgress(Math.round((e.loaded / e.total) * 100))
+              }
+            },
+          })
+
+          uploadedData = response.data
+          break
+        } catch (err: any) {
+          lastError = err
+          const errorMsg = err?.response?.data?.message || err?.message || ""
+          
+          if (errorMsg.toLowerCase().includes("unexpected field")) {
+            console.log(`Field name "${fieldName}" failed, trying next...`)
+            continue
+          }
+          
+          throw err
+        }
+      }
+
+      if (!uploadedData) {
+        throw lastError || new Error("Failed to upload file")
+      }
+
+      const fileData = uploadedData?.data || uploadedData
+      const fileId = fileData?.id || (Array.isArray(fileData) ? fileData[0]?.id : null)
+
+      if (!fileId) {
+        throw new Error("No file ID returned from upload")
+      }
+
+      setUploadedFileId(fileId)
+      form.setFieldValue('pdfId', fileId)
+      setUploading(false)
+      message.success("PDF uploaded successfully")
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || "Upload failed")
+      setFileToUpload(null)
+      setUploadProgress(0)
+      setUploading(false)
+    }
+
+    return false
+  }
+
+  const handleRemoveUploadedFile = () => {
+    setFileToUpload(null)
+    setUploadedFileId(null)
+    setUploadProgress(0)
+    form.setFieldValue('pdfId', undefined)
+  }
+
   const handleSubmit = async (values: any) => {
     try {
       // Normalize authors: accept comma-separated string or array
       let payload = { ...values }
       if (typeof payload.authors === 'string') {
         payload.authors = payload.authors.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+
+      // Use uploaded file ID if available
+      if (uploadedFileId) {
+        payload.pdfId = uploadedFileId
       }
 
       // Validate pdfId if provided (backend expects a cuid-like id)
@@ -86,6 +186,9 @@ const PublicationsPage = () => {
       }
       setModalOpen(false)
       form.resetFields()
+      setFileToUpload(null)
+      setUploadedFileId(null)
+      setUploadProgress(0)
     } catch (err: any) {
       message.error(err?.message || 'Failed to save publication')
     }
@@ -142,7 +245,7 @@ const PublicationsPage = () => {
         />
       </Card>
 
-      <Modal title={editing ? 'Edit Publication' : 'Add Publication'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()}>
+      <Modal title={editing ? 'Edit Publication' : 'Add Publication'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okButtonProps={{ disabled: uploading }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ year: new Date().getFullYear() }}>
           <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Enter title' }]}><Input /></Form.Item>
           <Form.Item name="abstract" label="Abstract"><Input.TextArea rows={3} /></Form.Item>
@@ -150,9 +253,43 @@ const PublicationsPage = () => {
             <Input onChange={(e) => { const v = e.target.value; form.setFieldValue('authors', v.split(',').map((s: string) => s.trim())) }} />
           </Form.Item>
           <Form.Item name="year" label="Year"><InputNumber style={{ width: '100%' }} /></Form.Item>
-          <Form.Item name="pdfId" label="PDF Id" rules={[{ pattern: /^[cC][^\\s-]{8,}$/, message: 'PDF Id must be a valid cuid format' }]}>
-            <Input />
+          
+          <Form.Item name="pdfId" label="PDF Upload (Optional)">
+            <Space direction="vertical" style={{ width: '100%' }}>
+              {!uploadedFileId && !editing?.pdfId && !uploading && (
+                <Upload 
+                  beforeUpload={handleFileSelect} 
+                  maxCount={1} 
+                  showUploadList={false}
+                  disabled={uploading}
+                  accept=".pdf"
+                >
+                  <Button icon={<UploadOutlined />} size="small">
+                    Choose PDF
+                  </Button>
+                </Upload>
+              )}
+
+              {uploading && (
+                <Progress percent={uploadProgress} size="small" status="active" />
+              )}
+
+              {(uploadedFileId || editing?.pdfId) && !uploading && (
+                <Space size="small">
+                  <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                  <span className="text-sm">{fileToUpload?.name || 'PDF attached'}</span>
+                  <Button 
+                    type="text" 
+                    danger 
+                    size="small" 
+                    icon={<CloseCircleOutlined />} 
+                    onClick={handleRemoveUploadedFile}
+                  />
+                </Space>
+              )}
+            </Space>
           </Form.Item>
+
           <Form.Item name="url" label="URL" rules={[{ type: 'url', message: 'Enter a valid URL' }]}>
             <Input />
           </Form.Item>

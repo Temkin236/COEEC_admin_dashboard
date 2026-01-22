@@ -26,6 +26,12 @@ export const SIDEBAR_TEXT: Record<
     approvals: string
     news: string
     events: string
+    profile: string
+    roles: string
+    rolesView: string
+    rolesCreate: string
+    users: string
+    usersAll: string
   }
 > = {
   en: {
@@ -52,6 +58,12 @@ export const SIDEBAR_TEXT: Record<
     approvals: "Approvals",
     news: "News",
     events: "Events",
+    profile: "Profile",
+    roles: "Roles",
+    rolesView: "View Roles",
+    rolesCreate: "Create Role",
+    users: "Users",
+    usersAll: "All Users",
   },
   am: {
     dashboard: "ዳሽቦርድ",
@@ -77,6 +89,12 @@ export const SIDEBAR_TEXT: Record<
     approvals: "አጽድቆ ማጽደቅ",
     news: "ዜና",
     events: "ዝግጅቶች",
+    profile: "መገለጫ",
+    roles: "ሚናዎች",
+    rolesView: "ሚናዎችን ተመልከት",
+    rolesCreate: "ሚና ፍጠር",
+    users: "ተጠቃሚዎች",
+    usersAll: "ሁሉም ተጠቃሚዎች",
   },
   af: {
     dashboard: "Daashboordii",
@@ -102,5 +120,11 @@ export const SIDEBAR_TEXT: Record<
     approvals: "Hayyama",
     news: "Oduu",
     events: "Taateewwan",
+    profile: "Piroofaayilii",
+    roles: "Gahee",
+    rolesView: "Gahee Ilaali",
+    rolesCreate: "Gahee Uumi",
+    users: "Fayyadamtoota",
+    usersAll: "Fayyadamtoota Hundaa",
   },
 }
