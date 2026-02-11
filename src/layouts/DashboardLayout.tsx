@@ -459,40 +459,7 @@ const DashboardLayout = () => {
 
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
-      {/* Desktop sidebar; hidden on mobile */}
-      <Sider
-        width={240}
-        theme="light"
-        style={{ height: "100vh", position: "sticky", top: 0, left: 0 }}
-        className="hidden md:block"
-      >
-        <div className="h-16 flex items-center justify-center border-b border-neutral-200">
-          <Link to="/" className="flex items-center gap-2">
-            {/* <img
-              src="/downloads/coeec-logo.png"
-              alt="COEEC"
-              className="h-8 w-8 rounded-full object-cover"
-            />
-            <span className="text-primary-600 font-semibold tracking-wide text-sm">
-              COEEC Admin
-            </span> */}
-          </Link>
-        </div>
-        {/* Scrollable menu area when sidebar content exceeds viewport */}
-        <div
-          className="overflow-y-auto"
-          style={{ height: "calc(100vh - 64px)" }}
-        >
-          <Menu
-            mode="inline"
-            selectedKeys={getSelectedKeys()}
-            items={menuItems}
-            className="border-r-0"
-          />
-        </div>
-      </Sider>
-      <Layout style={{ height: "100vh", overflow: "hidden" }}>
-        <Header className="bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-3 sm:px-4 md:px-6 flex items-center justify-between">
+      <Header className="w-full bg-white sticky top-0 z-50 shadow-sm border-b border-neutral-200 px-3 sm:px-4 md:px-6 flex items-center justify-between">
           {/* Stack header content on small screens */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Mobile: menu button */}
@@ -555,6 +522,27 @@ const DashboardLayout = () => {
             </Dropdown>
           </Space>
         </Header>
+      <Layout style={{ height: "calc(100vh - 64px)", overflow: "hidden" }}>
+        {/* Desktop sidebar; hidden on mobile */}
+        <Sider
+          width={240}
+          theme="light"
+          style={{ height: "calc(100vh - 64px)", position: "sticky", top: 64, left: 0 }}
+          className="hidden md:block"
+        >
+          {/* Scrollable menu area when sidebar content exceeds viewport */}
+          <div
+            className="overflow-y-auto"
+            style={{ height: "calc(100vh - 64px)" }}
+          >
+            <Menu
+              mode="inline"
+              selectedKeys={getSelectedKeys()}
+              items={menuItems}
+              className="border-r-0"
+            />
+          </div>
+        </Sider>
         {/* Notifications Drawer */}
         <Content
           className="m-0 md:m-2"
