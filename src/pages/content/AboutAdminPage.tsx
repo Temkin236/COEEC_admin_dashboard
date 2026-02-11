@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Card, Button, Tabs, Form, Input, Select, message, Space, Upload, List, Avatar, Modal, Descriptions } from "antd";
+import { Card, Button, Tabs, Form, Input, Select, message, Space, Upload, List, Avatar, Modal, Descriptions, Alert } from "antd";
 import { SaveOutlined, PlusOutlined, DeleteOutlined, TrophyOutlined, TeamOutlined, CheckCircleOutlined, StarOutlined, SafetyCertificateOutlined, SmileOutlined, HeartOutlined, AimOutlined, EyeOutlined, BulbOutlined, ThunderboltOutlined, CodeOutlined, LaptopOutlined, RocketOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchContent, updateContent, createContent, addAboutTimelineItem, updateAboutTimelineItem, deleteAboutTimelineItem } from "@/store/slices/contentSlice";
@@ -39,6 +39,7 @@ const AboutAdminPage = () => {
     try {
         const fieldNames = ["file", "files", "upload", "media", "document"];
         let uploadedData = null;
+        let lastError = null;
         
         for (const name of fieldNames) {
              try {
@@ -50,7 +51,10 @@ const AboutAdminPage = () => {
                 });
                 uploadedData = res.data;
                 break;
-             } catch (e) { continue; }
+             } catch (e) { 
+               lastError = e;
+               continue; 
+             }
         }
 
         if (uploadedData) {
@@ -64,7 +68,8 @@ const AboutAdminPage = () => {
                  message.success("Image uploaded successfully");
              }
         } else {
-             message.error("Upload failed: No data returned");
+             console.error("Upload failed with errors:", lastError);
+             message.error("Upload failed: No data returned from server");
         }
     } catch (error) {
         console.error(error);
@@ -126,21 +131,50 @@ const AboutAdminPage = () => {
     dispatch(fetchContent({ type: "about", language: currentLanguage }) as any)
   }, [dispatch, currentLanguage])
 
+  // Helper to resolve image URL
+  const getImageUrl = (img: any) => {
+    if (!img) return '';
+    const url = typeof img === 'object' ? img.url : img;
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('blob:')) return url;
+    
+    // Resolve relative paths
+    const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || '';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   useEffect(() => {
     if (about.items.length > 0) {
       const data = about.items[0]
-      form.setFieldsValue({
-        ...data, // Map all matching fields
-        history: data.history,
+      console.log("Loaded About Data:", data); // Debug logging
+
+      // Map flat API structure to Form structure if specific fields are missing
+      const mappedData = {
+        ...data,
+        historySectionTitle: data.historySectionTitle || data.title,
+        historySectionDescription: data.historySectionDescription || data.description,
+        historySectionLabel: data.historySectionLabel || "Our Journey", // Default if missing
+        
+        // Map images correctly using the helper
+        historySectionImage: getImageUrl(data.historySectionImage || data.image),
+        
+        // Map other sections if they exist or leave as undefined
         mission: data.mission,
         vision: data.vision,
         deanName: data.deanName,
         deanMessage: data.deanMessage,
-        deanImage: data.deanImage,
+        deanImage: getImageUrl(data.deanImage),
         values: data.values,
         goals: data.goals
-      })
+      };
+
+      form.setFieldsValue(mappedData)
       setHistoryItems(data.timeline || data.historyItems || [])
+      
+      // Update image IDs ref if existing
+      if (data.imageId) setImageIds(prev => ({ ...prev, historySectionImage: data.imageId }));
+      if (data.deanImageId) setImageIds(prev => ({ ...prev, deanImage: data.deanImageId }));
+      if (data.deanSignatureId) setImageIds(prev => ({ ...prev, deanSignature: data.deanSignatureId }));
     }
   }, [about.items, form])
 
@@ -175,8 +209,15 @@ const AboutAdminPage = () => {
       const aboutId = currentItem?.id || currentItem?._id;
 
       // 1. Save Main Content
+      // Map Form fields back to API schema (title, description, subtitle)
       const mainData: any = { 
-          ...values, 
+          ...values,
+          
+          // Ensure core API fields are populated from Form specific fields
+          title: values.historySectionTitle || values.title,
+          description: values.historySectionDescription || values.description,
+          subtitle: values.historySectionLabel || values.subtitle,
+          
           language: currentLanguage,
           imageId: imageIds['historySectionImage'],
           deanImageId: imageIds['deanImage'],
@@ -269,20 +310,26 @@ const AboutAdminPage = () => {
                     <Form.Item name="historySectionImage" label="Section Image" valuePropName="historySectionImage">
                       <Upload
                         listType="picture-card"
-                        fileList={form.getFieldValue('historySectionImage') ? [{ uid: 'section', name: 'section-image', url: form.getFieldValue('historySectionImage') }] : []}
-                        onChange={({ fileList }) => {
-                          if (fileList.length > 0 && fileList[0].originFileObj) {
-                            handleImageUpload(fileList[0].originFileObj, 'historySectionImage');
-                          } else if (fileList.length === 0) {
-                            form.setFieldsValue({ historySectionImage: '' });
-                            setImageIds(prev => ({ ...prev, historySectionImage: '' }));
-                          }
+                        showUploadList={false}
+                        beforeUpload={(file) => {
+                          handleImageUpload(file, 'historySectionImage');
+                          return false; // Prevent default upload behavior
                         }}
-                        beforeUpload={() => false}
                         maxCount={1}
                         accept="image/*"
                       >
-                        {form.getFieldValue('historySectionImage') ? null : (
+                        {form.getFieldValue('historySectionImage') ? (
+                          <div className="relative w-full h-full group">
+                            <img 
+                              src={form.getFieldValue('historySectionImage')} 
+                              alt="Section" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                               <PlusOutlined className="text-white text-xl" />
+                            </div>
+                          </div>
+                        ) : (
                           <div style={{ width: 220, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                             {uploadingState['historySectionImage'] ? <LoadingOutlined /> : <PlusOutlined />}
                             <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Image</div>
@@ -427,20 +474,26 @@ const AboutAdminPage = () => {
                 <Form.Item name="deanImage" label="Dean's Photo">
                   <Upload
                     listType="picture-card"
-                    fileList={form.getFieldValue('deanImage') ? [{ uid: 'dean', name: 'dean-image', url: form.getFieldValue('deanImage') }] : []}
-                    onChange={({ fileList }) => {
-                      if (fileList.length > 0 && fileList[0].originFileObj) {
-                        handleImageUpload(fileList[0].originFileObj, 'deanImage');
-                      } else if (fileList.length === 0) {
-                        form.setFieldsValue({ deanImage: '' });
-                        setImageIds(prev => ({ ...prev, deanImage: '' }));
-                      }
+                    showUploadList={false}
+                    beforeUpload={(file) => {
+                      handleImageUpload(file, 'deanImage');
+                      return false; // Prevent default upload behavior
                     }}
-                    beforeUpload={() => false}
                     maxCount={1}
                     accept="image/*"
                   >
-                    {form.getFieldValue('deanImage') ? null : (
+                    {form.getFieldValue('deanImage') ? (
+                       <div className="relative w-full h-full group">
+                            <img 
+                              src={form.getFieldValue('deanImage')} 
+                              alt="Dean" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                               <PlusOutlined className="text-white text-xl" />
+                            </div>
+                      </div>
+                    ) : (
                       <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                         {uploadingState['deanImage'] ? <LoadingOutlined /> : <PlusOutlined />}
                         <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Photo</div>

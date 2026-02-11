@@ -27,6 +27,12 @@ export const fetchContent = createAsyncThunk<{ type: ContentType; data: any[] },
       const response = await axiosInstance.get(`/content/${type}?lang=${language}`)
       return { type, data: response.data }
     } catch (e) {
+      console.error(`Fetch failed for ${type}:`, e);
+      // Only generic content types use demo fallback
+      // For specific types like 'about', we usually want to know if it failed,
+      // but to preserve UI "static info" behavior for demo purposes, we keep it.
+      // However, we should verify if 'about' endpoint is correct.
+      
       const data = DEMO_CONTENT[type] || []
       return { type, data }
     }
