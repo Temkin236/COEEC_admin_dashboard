@@ -269,12 +269,43 @@ const NewsPage = () => {
 
   const columns = [
     {
-      title: "Title (English)",
+      title: "Title",
       dataIndex: "title",
       key: "title",
       render: (_: string, record: any) => {
+        // 1. Try English Translation
         const enTrans = record.translations?.find((t: any) => t.language === 'EN');
-        return <Typography.Text strong>{enTrans?.title || record.title}</Typography.Text>
+        if (enTrans?.title) return <Typography.Text strong>{enTrans.title}</Typography.Text>;
+        
+        // 2. Try Root Title (legacy/flat)
+        if (record.title && record.title.trim() !== "") return <Typography.Text strong>{record.title}</Typography.Text>;
+
+        // 3. Try Any Other Language
+        const otherTrans = record.translations?.find((t: any) => t.title);
+        if (otherTrans?.title) {
+           return (
+             <Space>
+               <Typography.Text strong>{otherTrans.title}</Typography.Text>
+               <Tag size="small">{otherTrans.language}</Tag>
+             </Space>
+           );
+        }
+
+        // 4. Fallback to Tags or Date
+        return (
+          <div className="flex flex-col gap-1">
+             <Typography.Text type="secondary" italic>Untitled Draft</Typography.Text>
+             {record.tags && record.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                   {record.tags.map((tag: string) => <Tag key={tag} className="m-0 text-xs">{tag}</Tag>)}
+                </div>
+             ) : (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                   Created: {formatDate(record.createdAt)}
+                </Typography.Text>
+             )}
+          </div>
+        );
       }
     },
     {

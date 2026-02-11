@@ -26,6 +26,14 @@ const { Title } = Typography
     const [previewValues, setPreviewValues] = useState<any>({})
     const isEdit = !!id && id !== "new"
 
+    const resolveImageUrl = (url?: string | null) => {
+      if (!url) return null
+      if (url.startsWith("data:") || url.startsWith("blob:")) return url
+      if (url.startsWith("http")) return url
+      const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") || ""
+      return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`
+    }
+
   useEffect(() => {
     dispatch(fetchDepartments() as any)
   }, [dispatch])
@@ -45,12 +53,6 @@ const { Title } = Typography
           photoUrl = currentStaff.photo
         } else if ((currentStaff.photo as any)?.url) {
           photoUrl = (currentStaff.photo as any).url
-        }
-        
-        // Convert localhost URLs to backend URL
-        if (photoUrl && (photoUrl.includes('localhost') || photoUrl.startsWith('http://localhost'))) {
-          const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || ''
-          photoUrl = photoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
         }
       }
       
@@ -75,7 +77,7 @@ const { Title } = Typography
         departmentId: currentStaff.departmentId
       }
       form.setFieldsValue(formData)
-      setPhotoPreview(photoUrl)
+      setPhotoPreview(resolveImageUrl(photoUrl))
       setPreviewValues(formData)
     }
   }, [currentStaff, form, isEdit])
