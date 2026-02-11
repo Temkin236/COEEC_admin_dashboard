@@ -49,7 +49,7 @@ import StaffListPage from "@/pages/staff/StaffListPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
 import ResearchPage from "@/pages/research/ResearchPage";
 import PublicationsPage from "@/pages/research/PublicationsPage";
-import AboutAdminPage from "@/pages/content/AboutAdminPage";
+import AboutAdminPage from "@/pages/content/about/AboutAdminPage";
 // Students pages
 import StudentsPage from "@/pages/students/StudentsPage";
 import StudentLifePage from "@/pages/students/StudentLifePage";
@@ -468,14 +468,14 @@ const DashboardLayout = () => {
       >
         <div className="h-16 flex items-center justify-center border-b border-neutral-200">
           <Link to="/" className="flex items-center gap-2">
-            <img
+            {/* <img
               src="/downloads/coeec-logo.png"
               alt="COEEC"
               className="h-8 w-8 rounded-full object-cover"
             />
             <span className="text-primary-600 font-semibold tracking-wide text-sm">
               COEEC Admin
-            </span>
+            </span> */}
           </Link>
         </div>
         {/* Scrollable menu area when sidebar content exceeds viewport */}

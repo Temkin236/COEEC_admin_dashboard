@@ -14,6 +14,7 @@ import {
   message,
   Descriptions,
   Tabs,
+  Upload,
 } from "antd"
 import {
   PlusOutlined,
@@ -22,11 +23,13 @@ import {
   EyeOutlined,
   InboxOutlined,
   ReloadOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
 import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
+import axiosInstance from "@/utils/axios"
 import {
   fetchDepartments,
   createDepartment,
@@ -55,6 +58,9 @@ const DepartmentsPage = () => {
   const [activeTab, setActiveTab] = useState("all")
   const [form] = Form.useForm()
 
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
   // Filter departments based on active tab
   const filteredItems = items.filter(item => {
     if (activeTab === "active") return !item.isDisabled
@@ -77,6 +83,7 @@ const DepartmentsPage = () => {
 
   const handleCreate = () => {
     setEditingItem(null)
+    setImageUrl(null)
     form.resetFields()
     setIsModalOpen(true)
   }
@@ -85,6 +92,17 @@ const DepartmentsPage = () => {
     setEditingItem(record)
 
     const initialValues = { ...record }
+
+    if (record.featuredImage) {
+        setImageUrl(record.featuredImage.url)
+        initialValues.featuredImageId = record.featuredImage.id
+    } else if (record.featuredImageId) {
+        // If image ID exists but object not fully loaded, try to use it (though URL might be missing)
+        initialValues.featuredImageId = record.featuredImageId
+        setImageUrl(null)
+    } else {
+        setImageUrl(null)
+    }
 
     if (initialValues.headId && !cuidRegex.test(initialValues.headId)) {
       initialValues.headId = undefined
@@ -97,6 +115,33 @@ const DepartmentsPage = () => {
     form.setFieldsValue(initialValues)
     setIsModalOpen(true)
   }
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("visibility", "PUBLIC");
+      const res = await axiosInstance.post("/media/upload", fd, {
+          headers: { "Content-Type": "multipart/form-data" }
+      });
+      const data = res.data.data || res.data;
+      const id = data.id || (Array.isArray(data) ? data[0]?.id : null);
+      const url = data.url || (Array.isArray(data) ? data[0]?.url : null);
+      
+      if (id) {
+          form.setFieldsValue({ featuredImageId: id });
+          setImageUrl(url); // For preview
+          message.success("Image uploaded successfully");
+      }
+    } catch (error) {
+       console.error(error);
+       message.error("Upload failed");
+    } finally {
+       setUploading(false);
+    }
+    return false; // Stop auto upload
+  };
 
   const handleView = (record: any) => {
     setViewingItem(record)
@@ -346,18 +391,56 @@ const DepartmentsPage = () => {
             label="Department Name"
             rules={[{ required: true }]}
           >
-            <Input />
+            <Input onChange={(e) => {
+               // Auto-generate slug if slug is empty
+               const val = e.target.value;
+               const currentSlug = form.getFieldValue('slug');
+               if (!currentSlug && !editingItem) {
+                 form.setFieldsValue({ 
+                   slug: val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') 
+                 });
+               }
+            }} />
           </Form.Item>
 
           <Form.Item
             name="slug"
-            label="Slug"
+            label="Slug (URL Identifier)"
             rules={[{ required: true }]}
           >
             <Input />
           </Form.Item>
 
-          <Form.Item name="headId" label="Department Head">
+          <Form.Item label="Cover Image">
+             <Form.Item name="featuredImageId" hidden>
+                <Input />
+             </Form.Item>
+             <div className="flex flex-col gap-3">
+                 {imageUrl && (
+                    <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                      <img 
+                        src={imageUrl} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                 )}
+                 <Upload
+                    beforeUpload={(file) => {
+                        handleImageUpload(file);
+                        return false;
+                    }}
+                    showUploadList={false}
+                    accept="image/*"
+                 >
+                    <Button icon={uploading ? <LoadingOutlined /> : <PlusOutlined />} loading={uploading}>
+                        {imageUrl ? "Replace Cover Image" : "Upload Cover Image"}
+                    </Button>
+                 </Upload>
+             </div>
+          </Form.Item>
+
+          <Form.Item name="headId" label="Department Head (Staff Member)">
             <Select
               allowClear
               showSearch
@@ -398,7 +481,18 @@ const DepartmentsPage = () => {
         style={{ maxWidth: 600 }}
       >
         {viewingItem && (
-          <Descriptions bordered column={1}>
+          <Descriptions bordered column={1} layout="vertical">
+             <Descriptions.Item label="Cover Image">
+               {viewingItem.featuredImage ? (
+                  <img 
+                    src={viewingItem.featuredImage.url} 
+                    alt={viewingItem.name} 
+                    className="w-full h-48 object-cover rounded-lg border border-gray-200" 
+                  />
+               ) : (
+                  <span className="text-gray-400 italic">No cover image set</span>
+               )}
+            </Descriptions.Item>
             <Descriptions.Item label="Name">
               {viewingItem.name}
             </Descriptions.Item>
