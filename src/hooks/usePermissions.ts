@@ -3,7 +3,7 @@ import { checkPermission, checkAnyPermission, checkAllPermissions, getResourcePe
 
 /**
  * Custom hook for checking user permissions
- * @returns Object with permission checking functions and user's permissions
+ * @returns 
  */
 export const usePermissions = () => {
   const user = useAppSelector((state) => state.auth.user)

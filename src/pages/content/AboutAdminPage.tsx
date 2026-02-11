@@ -1,13 +1,14 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, Button, Tabs, Form, Input, Select, message, Space, Upload, List, Avatar, Modal, Descriptions } from "antd";
-import { SaveOutlined, PlusOutlined, DeleteOutlined, TrophyOutlined, TeamOutlined, CheckCircleOutlined, StarOutlined, SafetyCertificateOutlined, SmileOutlined, HeartOutlined, AimOutlined, EyeOutlined, BulbOutlined, ThunderboltOutlined, CodeOutlined, LaptopOutlined, RocketOutlined } from "@ant-design/icons";
+import { SaveOutlined, PlusOutlined, DeleteOutlined, TrophyOutlined, TeamOutlined, CheckCircleOutlined, StarOutlined, SafetyCertificateOutlined, SmileOutlined, HeartOutlined, AimOutlined, EyeOutlined, BulbOutlined, ThunderboltOutlined, CodeOutlined, LaptopOutlined, RocketOutlined, LoadingOutlined } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchContent, updateContent, createContent } from "@/store/slices/contentSlice";
+import { fetchContent, updateContent, createContent, addAboutTimelineItem, updateAboutTimelineItem, deleteAboutTimelineItem } from "@/store/slices/contentSlice";
 import AboutHistorySection from "@/components/AboutHistorySection";
 import MissionVisionSection from "@/components/MissionVisionSection";
 import DeanMessageSection from "@/components/DeanMessageSection";
 import { LANGUAGE_LABELS } from "@/utils/constants";
+import axiosInstance from "@/utils/axios";
 
 const { TextArea } = Input;
 const { TabPane } = Tabs as any;
@@ -28,6 +29,50 @@ const AboutAdminPage = () => {
     { icon: 'TeamOutlined', title: 'Inclusivity', description: 'Fostering a diverse and welcoming academic environment.' },
     { icon: 'CheckCircleOutlined', title: 'Integrity', description: 'Upholding honesty, ethics, and accountability in all actions.' }
   ]);
+
+  // Image Upload Handling
+  const [imageIds, setImageIds] = useState<Record<string, string>>({});
+  const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
+
+  const handleImageUpload = async (file: File, fieldName: string) => {
+    setUploadingState(prev => ({ ...prev, [fieldName]: true }));
+    try {
+        const fieldNames = ["file", "files", "upload", "media", "document"];
+        let uploadedData = null;
+        
+        for (const name of fieldNames) {
+             try {
+                const fd = new FormData();
+                fd.append(name, file);
+                fd.append("visibility", "PUBLIC");
+                const res = await axiosInstance.post("/media/upload", fd, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                uploadedData = res.data;
+                break;
+             } catch (e) { continue; }
+        }
+
+        if (uploadedData) {
+             const fileData = uploadedData.data || uploadedData;
+             const id = fileData.id || (Array.isArray(fileData) ? fileData[0]?.id : null);
+             const url = fileData.url || (Array.isArray(fileData) ? fileData[0]?.url : null) || URL.createObjectURL(file);
+             
+             if (id) {
+                 setImageIds(prev => ({ ...prev, [fieldName]: id }));
+                 form.setFieldsValue({ [fieldName]: url });
+                 message.success("Image uploaded successfully");
+             }
+        } else {
+             message.error("Upload failed: No data returned");
+        }
+    } catch (error) {
+        console.error(error);
+        message.error("Upload failed");
+    } finally {
+        setUploadingState(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
 
   // Administration section state and handlers
   const [admins, setAdmins] = useState<any[]>([
@@ -85,6 +130,7 @@ const AboutAdminPage = () => {
     if (about.items.length > 0) {
       const data = about.items[0]
       form.setFieldsValue({
+        ...data, // Map all matching fields
         history: data.history,
         mission: data.mission,
         vision: data.vision,
@@ -94,7 +140,7 @@ const AboutAdminPage = () => {
         values: data.values,
         goals: data.goals
       })
-      setHistoryItems(data.historyItems || [])
+      setHistoryItems(data.timeline || data.historyItems || [])
     }
   }, [about.items, form])
 
@@ -124,21 +170,74 @@ const AboutAdminPage = () => {
     setSaveSuccess(false);
     try {
       const values = form.getFieldsValue();
-      const data = {
-        ...values,
-        language: currentLanguage,
-        historyItems: historyItems
+      // Robustly check for ID from loaded items
+      const currentItem = about.items.length > 0 ? about.items[0] : null;
+      const aboutId = currentItem?.id || currentItem?._id;
+
+      // 1. Save Main Content
+      const mainData: any = { 
+          ...values, 
+          language: currentLanguage,
+          imageId: imageIds['historySectionImage'],
+          deanImageId: imageIds['deanImage'],
+          deanSignatureId: imageIds['deanSignature'],
       };
-      if (about.items.length > 0) {
-        await dispatch(updateContent({ type: "about", id: about.items[0].id, data }) as any).unwrap();
+      
+      // Clean up undefined IDs and remove timeline arrays
+      if (!mainData.imageId) delete mainData.imageId;
+      if (!mainData.deanImageId) delete mainData.deanImageId;
+      if (!mainData.deanSignatureId) delete mainData.deanSignatureId;
+
+      delete mainData.historyItems;
+      delete mainData.timeline;
+
+      let savedAbout;
+      if (aboutId) {
+        // Update existing (PUT)
+        savedAbout = await dispatch(updateContent({ type: "about", id: aboutId, data: mainData }) as any).unwrap();
       } else {
-        await dispatch(createContent({ type: "about", data }) as any).unwrap();
+        // Create new (POST)
+        savedAbout = await dispatch(createContent({ type: "about", data: mainData }) as any).unwrap();
       }
-      setLastSavedData(data);
+      
+      // Get the real ID
+      const realAboutId = savedAbout.data?.id || aboutId;
+
+      // 2. Handle Timeline Items
+      if (realAboutId) {
+        const originalItems = about.items[0]?.timeline || about.items[0]?.historyItems || [];
+        const originalIds = new Set(originalItems.map((item: any) => item.id));
+        const currentIds = new Set(historyItems.map((item: any) => item.id).filter(Boolean));
+
+        // Delete removed items
+        for (const item of originalItems) {
+            if (item.id && !currentIds.has(item.id)) {
+                await dispatch(deleteAboutTimelineItem({ aboutId: realAboutId, itemId: item.id }) as any);
+            }
+        }
+
+        // Add or Update items
+        for (const item of historyItems) {
+            if (item.id && originalIds.has(item.id)) {
+                // Update existing
+                await dispatch(updateAboutTimelineItem({ aboutId: realAboutId, itemId: item.id, data: item }) as any);
+            } else {
+                // Add new
+                const { id, ...itemData } = item; // remove temp/empty ID
+                await dispatch(addAboutTimelineItem({ aboutId: realAboutId, data: itemData }) as any);
+            }
+        }
+      }
+
+      // Re-fetch to sync state with backend
+      dispatch(fetchContent({ type: "about", language: currentLanguage }) as any);
+
+      setLastSavedData(mainData);
       setShowSummary(true);
       setSaveSuccess(true);
       message.success("About page updated successfully");
     } catch (error) {
+      console.error(error);
       message.error("Failed to update about page");
     } finally {
       setSaving(false);
@@ -149,44 +248,6 @@ const AboutAdminPage = () => {
   return (
     <>
       <div className="space-y-4">
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4 text-blue-900">Live Preview</h2>
-          <React.Fragment>
-            {activeTab === "1" && (
-              <AboutHistorySection
-                sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
-                sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
-                sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
-                sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
-                timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
-              />
-            )}
-            {activeTab === "2" && (
-              <MissionVisionSection
-                mission={form.getFieldValue('mission') || about.items[0]?.mission || ''}
-                vision={form.getFieldValue('vision') || about.items[0]?.vision || ''}
-                missionIcon={form.getFieldValue('missionIcon') || about.items[0]?.missionIcon || 'AimOutlined'}
-                visionIcon={form.getFieldValue('visionIcon') || about.items[0]?.visionIcon || 'EyeOutlined'}
-                missionTitle={form.getFieldValue('missionTitle') || about.items[0]?.missionTitle || 'Our Mission'}
-                visionTitle={form.getFieldValue('visionTitle') || about.items[0]?.visionTitle || 'Our Vision'}
-              />
-            )}
-            {activeTab === "3" && (
-              <DeanMessageSection
-                leadershipLabel={form.getFieldValue('deanLeadershipLabel') || about.items[0]?.deanLeadershipLabel || 'LEADERSHIP'}
-                sectionTitle={form.getFieldValue('deanSectionTitle') || about.items[0]?.deanSectionTitle || 'Building the Future of Engineering'}
-                quote={form.getFieldValue('deanQuote') || about.items[0]?.deanQuote || 'We are not just teaching engineering; we are cultivating the mindset of innovation that will drive Ethiopia\'s digital transformation. Our students are the architects of tomorrow.'}
-                detail={form.getFieldValue('deanDetail') || about.items[0]?.deanDetail || 'Welcome to the College of Electrical Engineering and Computing (COEEC). For over three decades, we have been at the forefront of technological advancement in the region. Our curriculum balances rigorous theoretical foundations with hands-on practical experience, ensuring our graduates are industry-ready from day one.\nI invite you to explore our vibrant community, where cutting-edge research meets social impact.'}
-                deanName={form.getFieldValue('deanName') || about.items[0]?.deanName || ''}
-                deanTitle={form.getFieldValue('deanTitle') || about.items[0]?.deanTitle || ''}
-                deanMessage={form.getFieldValue('deanMessage') || about.items[0]?.deanMessage || ''}
-                deanImage={form.getFieldValue('deanImage') || about.items[0]?.deanImage || ''}
-                signature={form.getFieldValue('deanSignature') || about.items[0]?.deanSignature || ''}
-              />
-            )}
-            {/* Core Values and Administration previews handled below when activeTab matches */}
-          </React.Fragment>
-        </div>
         <Card
           title="About the College - Admin Editor"
         >
@@ -211,11 +272,10 @@ const AboutAdminPage = () => {
                         fileList={form.getFieldValue('historySectionImage') ? [{ uid: 'section', name: 'section-image', url: form.getFieldValue('historySectionImage') }] : []}
                         onChange={({ fileList }) => {
                           if (fileList.length > 0 && fileList[0].originFileObj) {
-                            getBase64(fileList[0].originFileObj).then(base64 => {
-                              form.setFieldsValue({ historySectionImage: base64 })
-                            })
+                            handleImageUpload(fileList[0].originFileObj, 'historySectionImage');
                           } else if (fileList.length === 0) {
-                            form.setFieldsValue({ historySectionImage: '' })
+                            form.setFieldsValue({ historySectionImage: '' });
+                            setImageIds(prev => ({ ...prev, historySectionImage: '' }));
                           }
                         }}
                         beforeUpload={() => false}
@@ -224,6 +284,7 @@ const AboutAdminPage = () => {
                       >
                         {form.getFieldValue('historySectionImage') ? null : (
                           <div style={{ width: 220, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                            {uploadingState['historySectionImage'] ? <LoadingOutlined /> : <PlusOutlined />}
                             <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Image</div>
                           </div>
                         )}
@@ -369,11 +430,10 @@ const AboutAdminPage = () => {
                     fileList={form.getFieldValue('deanImage') ? [{ uid: 'dean', name: 'dean-image', url: form.getFieldValue('deanImage') }] : []}
                     onChange={({ fileList }) => {
                       if (fileList.length > 0 && fileList[0].originFileObj) {
-                        getBase64(fileList[0].originFileObj).then(base64 => {
-                          form.setFieldsValue({ deanImage: base64 })
-                        })
+                        handleImageUpload(fileList[0].originFileObj, 'deanImage');
                       } else if (fileList.length === 0) {
-                        form.setFieldsValue({ deanImage: '' })
+                        form.setFieldsValue({ deanImage: '' });
+                        setImageIds(prev => ({ ...prev, deanImage: '' }));
                       }
                     }}
                     beforeUpload={() => false}
@@ -382,6 +442,7 @@ const AboutAdminPage = () => {
                   >
                     {form.getFieldValue('deanImage') ? null : (
                       <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                        {uploadingState['deanImage'] ? <LoadingOutlined /> : <PlusOutlined />}
                         <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Photo</div>
                       </div>
                     )}
@@ -393,11 +454,10 @@ const AboutAdminPage = () => {
                     fileList={form.getFieldValue('deanSignature') ? [{ uid: 'signature', name: 'signature-image', url: form.getFieldValue('deanSignature') }] : []}
                     onChange={({ fileList }) => {
                       if (fileList.length > 0 && fileList[0].originFileObj) {
-                        getBase64(fileList[0].originFileObj).then(base64 => {
-                          form.setFieldsValue({ deanSignature: base64 })
-                        })
+                        handleImageUpload(fileList[0].originFileObj, 'deanSignature');
                       } else if (fileList.length === 0) {
-                        form.setFieldsValue({ deanSignature: '' })
+                        form.setFieldsValue({ deanSignature: '' });
+                        setImageIds(prev => ({ ...prev, deanSignature: '' }));
                       }
                     }}
                     beforeUpload={() => false}
@@ -406,6 +466,7 @@ const AboutAdminPage = () => {
                   >
                     {form.getFieldValue('deanSignature') ? null : (
                       <div style={{ width: 120, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                         {uploadingState['deanSignature'] ? <LoadingOutlined /> : <PlusOutlined />}
                         <div style={{ marginTop: 8, color: '#6b7280' }}>Upload Signature</div>
                       </div>
                     )}
@@ -602,6 +663,24 @@ const AboutAdminPage = () => {
             </Tabs>
           </Form>
         </Card>
+
+        <div className="flex justify-end p-4 bg-white shadow rounded-lg mb-8">
+           <Button type="primary" size="large" icon={<SaveOutlined />} loading={saving} onClick={form.submit}>
+             Save & Publish Changes
+           </Button>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-4 text-blue-900 border-t pt-8">Live Preview</h2>
+
+        {activeTab === "1" && (
+              <AboutHistorySection
+                sectionLabel={form.getFieldValue('historySectionLabel') || about.items[0]?.historySectionLabel || 'Our Journey'}
+                sectionTitle={form.getFieldValue('historySectionTitle') || about.items[0]?.historySectionTitle || 'Three Decades of Growth'}
+                sectionDescription={form.getFieldValue('historySectionDescription') || about.items[0]?.historySectionDescription || 'From a small department to a leading college, our history is defined by resilience, expansion, and a relentless pursuit of academic quality.'}
+                sectionImage={form.getFieldValue('historySectionImage') || about.items[0]?.historySectionImage || 'https://picsum.photos/400/300?random=35'}
+                timeline={historyItems.length > 0 ? historyItems : about.items[0]?.historyItems || []}
+              />
+        )}
       
         {activeTab === "2" && (
           <MissionVisionSection

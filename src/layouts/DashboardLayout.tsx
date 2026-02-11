@@ -49,7 +49,6 @@ import StaffListPage from "@/pages/staff/StaffListPage";
 import StaffFormPage from "@/pages/staff/StaffFormPage";
 import ResearchPage from "@/pages/research/ResearchPage";
 import PublicationsPage from "@/pages/research/PublicationsPage";
-import AboutPage from "@/pages/content/AboutPage";
 import AboutAdminPage from "@/pages/content/AboutAdminPage";
 // Students pages
 import StudentsPage from "@/pages/students/StudentsPage";
@@ -310,7 +309,7 @@ const DashboardLayout = () => {
     });
 
     // Students section
-    const studentsPermissions = [
+    const studentsPermissions: [string, string][] = [
       ["students", "view"],
       ["studentlife", "view"],  // Fixed: backend uses "studentlife" not "student_life"
       ["alumni", "view"],
@@ -781,18 +780,17 @@ const DashboardLayout = () => {
               }
             />
 
-            {/* Public About page (no permission required) */}
-            <Route path="/content/about" element={<AboutPage />} />
-
-            {/* Admin editor for About page */}
+            {/* About Page (Admin Editor) */}
             <Route
-              path="/content/about/admin"
+              path="/content/about"
               element={
                 <ProtectedRoute
                   requiredAnyPermissions={[
-                    ["departments", "update"],
-                    ["news", "update"],
-                    ["research", "update"],
+                    ["about", "view"],
+                    ["about", "create"],
+                    ["about", "update"],
+                    ["departments", "update"], // Fallback perms
+                    ["news", "update"],        // Fallback perms
                   ]}
                 >
                   <AboutAdminPage />

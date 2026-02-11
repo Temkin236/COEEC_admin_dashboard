@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit"
 import axiosInstance from "@/utils/axios"
+import { aboutApi } from "@/api/aboutApi"
 
 type ContentType = "homepage" | "about" | "departments" | "news" | string
 
@@ -19,6 +20,10 @@ export const fetchContent = createAsyncThunk<{ type: ContentType; data: any[] },
   "content/fetchContent",
   async ({ type, language = "en" }) => {
     try {
+      if (type === 'about') {
+        const data = await aboutApi.getAbout();
+        return { type, data };
+      }
       const response = await axiosInstance.get(`/content/${type}?lang=${language}`)
       return { type, data: response.data }
     } catch (e) {
@@ -32,6 +37,10 @@ export const createContent = createAsyncThunk<{ type: ContentType; data: any }, 
   "content/createContent",
   async ({ type, data }) => {
     try {
+      if (type === 'about') {
+        const result = await aboutApi.createAbout(data);
+        return { type, data: result };
+      }
       const response = await axiosInstance.post(`/content/${type}`, data)
       return { type, data: response.data }
     } catch (e) {
@@ -44,6 +53,10 @@ export const updateContent = createAsyncThunk<{ type: ContentType; data: any }, 
   "content/updateContent",
   async ({ type, id, data }) => {
     try {
+      if (type === 'about') {
+        const result = await aboutApi.updateAbout(id, data);
+        return { type, data: result };
+      }
       const response = await axiosInstance.put(`/content/${type}/${id}`, data)
       return { type, data: response.data }
     } catch (e) {
@@ -56,11 +69,40 @@ export const deleteContent = createAsyncThunk<{ type: ContentType; id: string },
   "content/deleteContent",
   async ({ type, id }) => {
     try {
-      await axiosInstance.delete(`/content/${type}/${id}`)
+      if (type === 'about') {
+         await aboutApi.deleteAbout(id);
+      } else {
+         await axiosInstance.delete(`/content/${type}/${id}`)
+      }
     } catch (e) {}
     return { type, id }
   },
 )
+
+// Timeline Thunks
+export const addAboutTimelineItem = createAsyncThunk<any, { aboutId: string; data: any }>(
+  "content/addAboutTimelineItem",
+  async ({ aboutId, data }) => {
+    const response = await aboutApi.addTimelineItem(aboutId, data);
+    return response;
+  }
+);
+
+export const updateAboutTimelineItem = createAsyncThunk<any, { aboutId: string; itemId: string; data: any }>(
+  "content/updateAboutTimelineItem",
+  async ({ aboutId, itemId, data }) => {
+    const response = await aboutApi.updateTimelineItem(aboutId, itemId, data);
+    return response;
+  }
+);
+
+export const deleteAboutTimelineItem = createAsyncThunk<{ itemId: string }, { aboutId: string; itemId: string }>(
+  "content/deleteAboutTimelineItem",
+  async ({ aboutId, itemId }) => {
+    await aboutApi.deleteTimelineItem(aboutId, itemId);
+    return { itemId };
+  }
+);
 
 interface SectionState { items: any[]; loading: boolean; error: string | null }
 interface ContentState { [key: string]: SectionState }
@@ -137,6 +179,46 @@ const contentSlice = createSlice({
       .addCase(deleteContent.fulfilled, (state, action: PayloadAction<{ type: ContentType; id: string }>) => {
         const { type, id } = action.payload
         if (state[type]) state[type].items = state[type].items.filter((item: any) => item.id !== id)
+      })
+      // Timeline items reducers
+      .addCase(addAboutTimelineItem.fulfilled, (state, action) => {
+        const newItem = action.payload;
+        if (state.about && state.about.items && state.about.items.length > 0) {
+           const aboutSection = state.about.items[0];
+           // Ensure we access 'timeline' property correctly, assuming backend returns it
+           // If backend returns 'historyItems' instead, we might need adjustment, but docs say 'timeline'
+           if (!aboutSection.timeline) aboutSection.timeline = [];
+           aboutSection.timeline.push(newItem);
+           // Also update historyItems if that is what the frontend uses for display compatibility
+           if (!aboutSection.historyItems) aboutSection.historyItems = [];
+           aboutSection.historyItems.push(newItem);
+        }
+      })
+      .addCase(updateAboutTimelineItem.fulfilled, (state, action) => {
+        const updatedItem = action.payload; 
+        if (state.about && state.about.items && state.about.items.length > 0) {
+           const aboutSection = state.about.items[0];
+           if (aboutSection.timeline) {
+             const index = aboutSection.timeline.findIndex((t: any) => t.id === updatedItem.id);
+             if (index !== -1) aboutSection.timeline[index] = updatedItem;
+           }
+           if (aboutSection.historyItems) {
+             const index = aboutSection.historyItems.findIndex((t: any) => t.id === updatedItem.id);
+             if (index !== -1) aboutSection.historyItems[index] = updatedItem;
+           }
+        }
+      })
+      .addCase(deleteAboutTimelineItem.fulfilled, (state, action) => {
+        const { itemId } = action.payload;
+        if (state.about && state.about.items && state.about.items.length > 0) {
+           const aboutSection = state.about.items[0];
+           if (aboutSection.timeline) {
+             aboutSection.timeline = aboutSection.timeline.filter((t: any) => t.id !== itemId);
+           }
+           if (aboutSection.historyItems) {
+             aboutSection.historyItems = aboutSection.historyItems.filter((t: any) => t.id !== itemId);
+           }
+        }
       })
   },
 })
