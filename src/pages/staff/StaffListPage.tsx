@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Card, Button, Table, Space, Tag, Input, Select, Avatar, Modal, message } from "antd"
+import { Card, Button, Table, Space, Tag, Input, Select, Avatar, Modal, message, Descriptions } from "antd"
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaff, deleteStaff, setPage, setLimit } from "@/store/slices/staffSlice"
@@ -29,6 +29,31 @@ const StaffListPage = () => {
   // Has any action permission
   const hasAnyAction = hasStaffView || hasStaffUpdate || hasStaffDelete
 
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [viewingStaff, setViewingStaff] = useState<any>(null)
+
+  const getPhotoUrl = (record: any) => {
+    try {
+      let photoUrl: string | null = null
+      if (!record) return null
+      if (record.photo) {
+        if (typeof record.photo === "string") photoUrl = record.photo
+        else if (record.photo?.url) photoUrl = record.photo.url
+      } else if (record.photoUrl) {
+        photoUrl = record.photoUrl
+      }
+
+      if (photoUrl && (photoUrl.includes("localhost") || photoUrl.startsWith("http://localhost"))) {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || ''
+        photoUrl = photoUrl.replace(/http:\/\/localhost:\d+/, baseUrl)
+      }
+
+      return photoUrl
+    } catch (err) {
+      return null
+    }
+  }
+
   useEffect(() => {
     dispatch((fetchStaff as any)({ page, limit, filters }))
   }, [dispatch, page, limit, filters])
@@ -41,8 +66,10 @@ const StaffListPage = () => {
     Modal.confirm({
       title: "Delete Staff",
       content: "Are you sure you want to delete this staff member?",
+      centered: true,
+      width: 640,
       okText: "Delete",
-      okType: "danger",
+      okButtonProps: { danger: true },
       onOk: async () => {
         await dispatch((deleteStaff as any)(id))
         message.success("Staff deleted successfully")
@@ -199,7 +226,10 @@ const StaffListPage = () => {
       render: (_: any, record: any) => (
         <TableActions
           resource="staff"
-          onView={() => navigate(`/staff/${record.id}`)}
+          onView={() => {
+            setViewingStaff(record)
+            setViewModalOpen(true)
+          }}
           onEdit={() => navigate(`/staff/${record.id}`)}
           onDelete={() => handleDelete(record.id)}
           deleteConfirmTitle="Delete Staff Member?"
@@ -258,9 +288,10 @@ const StaffListPage = () => {
           loading={loading as any}
           rowKey="id"
           onRow={(record) => ({
-            onClick: () => {
-              // Navigate to staff form page for editing
-              navigate(`/staff/${record.id}`)
+            onClick: (e: any) => {
+              // Open detail modal when row clicked (buttons stop propagation)
+              setViewingStaff(record)
+              setViewModalOpen(true)
             },
             style: { cursor: 'pointer' }
           })}
@@ -280,6 +311,41 @@ const StaffListPage = () => {
           className="border-0"
         />
       </Card>
+        <Modal
+          title="Staff Details"
+          open={viewModalOpen}
+          onCancel={() => setViewModalOpen(false)}
+          footer={<Button onClick={() => setViewModalOpen(false)}>Close</Button>}
+          centered
+          width={640}
+          style={{ maxWidth: 600 }}
+        >
+          {viewingStaff && (() => {
+            const photoUrl = getPhotoUrl(viewingStaff)
+            return (
+              <Descriptions bordered column={1} layout="horizontal">
+                <Descriptions.Item label="Photo">
+                  {photoUrl ? (
+                    <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                      <img src={photoUrl} alt={viewingStaff.displayName || 'staff'} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic">No photo available</span>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Name">{viewingStaff.displayName || viewingStaff.fullName || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Email">{viewingStaff.email || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Title">{viewingStaff.title || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Department">{viewingStaff.department?.name || viewingStaff.department || 'None'}</Descriptions.Item>
+                <Descriptions.Item label="Research Areas">{(Array.isArray(viewingStaff.researchAreas) && viewingStaff.researchAreas.length) ? viewingStaff.researchAreas.join(', ') : 'None'}</Descriptions.Item>
+                <Descriptions.Item label="Office">{viewingStaff.officeLocation || 'Not set'}</Descriptions.Item>
+                <Descriptions.Item label="Status">{viewingStaff.status || 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Created At">{viewingStaff.createdAt ? new Date(viewingStaff.createdAt).toLocaleString() : 'N/A'}</Descriptions.Item>
+                <Descriptions.Item label="Updated At">{viewingStaff.updatedAt ? new Date(viewingStaff.updatedAt).toLocaleString() : 'N/A'}</Descriptions.Item>
+              </Descriptions>
+            )
+          })()}
+        </Modal>
     </div>
   )
 }

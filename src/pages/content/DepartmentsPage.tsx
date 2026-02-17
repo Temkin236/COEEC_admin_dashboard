@@ -148,6 +148,14 @@ const DepartmentsPage = () => {
     setViewModalOpen(true)
   }
 
+  const getPhotoUrl = (item: any) => {
+    if (!item) return null
+    const src = item.featuredImage?.url || item.featuredImage || null
+    if (!src) return null
+    // replace localhost with current host if someone stored local urls
+    return String(src).replace("http://localhost:1337", "")
+  }
+
   const handleDeactivate = (record: any) => {
     const isCurrentlyDisabled = record.isDisabled
     const action = isCurrentlyDisabled ? "reactivate" : "deactivate"
@@ -156,6 +164,8 @@ const DepartmentsPage = () => {
     Modal.confirm({
       title: `${isCurrentlyDisabled ? 'Reactivate' : 'Deactivate'} Department`,
       content: `Are you sure you want to ${action} "${record.name}"?`,
+      centered: true,
+      width: 640,
       okText: isCurrentlyDisabled ? 'Reactivate' : 'Deactivate',
       okType: isCurrentlyDisabled ? 'primary' : 'danger',
       onOk: async () => {
@@ -285,10 +295,12 @@ const DepartmentsPage = () => {
             onDelete={() => {
               // If user can delete globally, use delete flow; otherwise don't show delete
               if (hasDeptDelete) {
-                // confirm then delete
+                // confirm then delete (centered and larger)
                 Modal.confirm({
                   title: "Delete Department",
                   content: `Remove "${record.name}" permanently?`,
+                  centered: true,
+                  width: 640,
                   okText: "Delete",
                   okButtonProps: { danger: true },
                   onOk: async () => {
@@ -314,7 +326,10 @@ const DepartmentsPage = () => {
               type="text"
               danger={!record.isDisabled}
               icon={record.isDisabled ? <ReloadOutlined /> : <InboxOutlined />}
-              onClick={() => handleDeactivate(record)}
+              onClick={(e: any) => {
+                e.stopPropagation()
+                handleDeactivate(record)
+              }}
               title={record.isDisabled ? "Reactivate Department" : "Archive Department"}
               size="small"
             />
@@ -477,15 +492,15 @@ const DepartmentsPage = () => {
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
         footer={<Button onClick={() => setViewModalOpen(false)}>Close</Button>}
-        width={"90%"}
-        style={{ maxWidth: 600 }}
+        centered
+        width={640}
       >
         {viewingItem && (
-          <Descriptions bordered column={1} layout="vertical">
+          <Descriptions bordered column={1} layout="horizontal">
              <Descriptions.Item label="Cover Image">
-               {viewingItem.featuredImage ? (
+               {getPhotoUrl(viewingItem) ? (
                   <img 
-                    src={viewingItem.featuredImage.url} 
+                    src={getPhotoUrl(viewingItem)} 
                     alt={viewingItem.name} 
                     className="w-full h-48 object-cover rounded-lg border border-gray-200" 
                   />

@@ -1,4 +1,4 @@
-import { Space, Button, Popconfirm, Tooltip } from "antd"
+import { Space, Button, Tooltip } from "antd"
 import { EditOutlined, DeleteOutlined, EyeOutlined, CheckOutlined } from "@ant-design/icons"
 import { usePermissions } from "@/hooks/usePermissions"
 import { useAppSelector } from "@/store/hooks"
@@ -70,7 +70,10 @@ const TableActions = ({
           <Button
             type="text"
             icon={<EyeOutlined />}
-            onClick={onView}
+            onClick={(e: any) => {
+              e.stopPropagation()
+              onView()
+            }}
             size="small"
           />
         </Tooltip>
@@ -81,7 +84,10 @@ const TableActions = ({
           <Button
             type="text"
             icon={<CheckOutlined />}
-            onClick={onHandle}
+            onClick={(e: any) => {
+              e.stopPropagation()
+              onHandle()
+            }}
             size="small"
             className="text-green-600 hover:text-green-700"
           />
@@ -93,7 +99,10 @@ const TableActions = ({
           <Button
             type="text"
             icon={<EditOutlined />}
-            onClick={onEdit}
+            onClick={(e: any) => {
+              e.stopPropagation()
+              onEdit()
+            }}
             size="small"
             className="text-blue-600 hover:text-blue-700"
           />
@@ -101,23 +110,18 @@ const TableActions = ({
       )}
 
       {hasDelete && onDelete && (
-        <Popconfirm
-          title={deleteConfirmTitle}
-          description={deleteConfirmDescription}
-          onConfirm={onDelete}
-          okText="Yes, Delete"
-          cancelText="Cancel"
-          okButtonProps={{ danger: true }}
-        >
-          <Tooltip title="Delete">
-            <Button
-              type="text"
-              icon={<DeleteOutlined />}
-              size="small"
-              danger
-            />
-          </Tooltip>
-        </Popconfirm>
+        <Tooltip title="Delete">
+          <Button
+            type="text"
+            icon={<DeleteOutlined />}
+            size="small"
+            danger
+            onClick={(e: any) => {
+              e.stopPropagation()
+              onDelete()
+            }}
+          />
+        </Tooltip>
       )}
     </Space>
   )
