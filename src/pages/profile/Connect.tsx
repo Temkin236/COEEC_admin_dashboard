@@ -119,10 +119,7 @@ export default function Connect() {
             className="rounded-2xl shadow-sm overflow-hidden"
             title={
               <div className="flex items-center justify-between py-2">
-                <span className="text-lg font-bold text-[#18485e]">Manage Connections</span>
-                <Tag color="blue" className="rounded-full border-none px-3">
-                  {connections.length} Active Links
-                </Tag>
+                    <span className="text-lg font-bold text-[#18485e]">Edit Links</span>
               </div>
             }
           >
@@ -184,111 +181,61 @@ export default function Connect() {
                     {connections.map((c: any) => (
                       <div
                         key={c.id || c._id}
-                        className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2"
+                        className="flex items-start justify-between p-4 rounded-xl border border-gray-100 bg-white"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#17A2B8] group-hover:bg-[#17A2B8] group-hover:text-white transition-colors duration-300">
-                            {PLATFORM_ICON[c.icon] ? PLATFORM_ICON[c.icon]({ style: { fontSize: 22 } }) : <GlobalOutlined style={{ fontSize: 22 }} />}
+                          <div className="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center text-[#17A2B8]">
+                            {PLATFORM_ICON[c.icon] ? PLATFORM_ICON[c.icon]({ style: { fontSize: 20 } }) : <GlobalOutlined style={{ fontSize: 20 }} />}
                           </div>
                           <div>
-                            <div className="font-bold text-[#18485e]">{c.name}</div>
-                            <a
-                              href={c.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-gray-400 hover:text-[#17A2B8] hover:underline transition-colors"
-                            >
-                              {c.link}
-                            </a>
+                            <div className="font-medium text-[#18485e]">{c.name}</div>
+                            <div className="text-xs text-gray-500 truncate max-w-xs">{c.link}</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Tooltip title="Delete Connection">
-                            <Button
-                              type="text"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={() => handleDeleteLink(c.id || c._id, c.name)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            />
-                          </Tooltip>
+                        <div className="flex items-center">
+                          <a onClick={() => handleDeleteLink(c.id || c._id, c.name)} className="text-sm text-[#17A2B8]">Remove</a>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
+
+                <div className="pt-4">
+                  <Button block className="bg-[#17A2B8] text-white rounded-lg h-12">Save Changes</Button>
+                </div>
               </div>
             </div>
           </Card>
         </Col>
 
         <Col xs={24} md={10}>
-          <Card
-            bordered={false}
-            className="rounded-2xl shadow-lg border-none overflow-hidden sticky top-8"
-            bodyStyle={{ padding: 0 }}
-          >
-            <div className="bg-[#18485e] p-6 text-white">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <EyeOutlined />
-                Profile Preview
-              </h2>
-              <p className="text-blue-100 text-xs mt-1">How others see your professional links</p>
+          <Card bordered={false} className="rounded-2xl shadow-sm border-none overflow-hidden sticky top-8" bodyStyle={{ padding: 0 }}>
+            <div className="p-6 bg-white">
+              <h3 className="text-lg font-bold text-[#18485e]">Connect With Me</h3>
             </div>
-
-            <div className="p-8 space-y-8 bg-white min-h-[400px]">
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-full bg-gray-100 mx-auto mb-4 border-4 border-white shadow-xl flex items-center justify-center overflow-hidden">
-                  {profileData?.photo ? (
-                    <img src={profileData.photo} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl font-bold text-gray-300">{profileData?.displayName?.[0] || 'U'}</span>
-                  )}
-                </div>
-                <h3 className="text-xl font-bold text-[#18485e]">{profileData?.displayName || 'Your Name'}</h3>
-                <p className="text-gray-400 text-sm">{profileData?.title || 'Academic Title'}</p>
-              </div>
-
-              <div className="rounded-2xl p-6 bg-gradient-to-br from-[#18485e] to-[#2c3e50] shadow-inner">
-                <div className="flex flex-wrap justify-center gap-4">
+            <div className="p-6 bg-[#eaf6f8]">
+              <div className="flex items-start gap-4">
+                <div className="flex flex-wrap gap-3">
                   {connections.map((c: any) => (
                     <Tooltip key={c.id || c._id} title={c.name}>
-                      <a
-                        href={c.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10 hover:bg-white hover:text-[#18485e] text-white transition-all duration-300 shadow-lg backdrop-blur-sm scale-100 hover:scale-110"
-                      >
-                        {PLATFORM_ICON[c.icon] ? PLATFORM_ICON[c.icon]({ style: { fontSize: 24 } }) : <GlobalOutlined style={{ fontSize: 24 }} />}
+                      <a href={c.link} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
+                        {PLATFORM_ICON[c.icon] ? PLATFORM_ICON[c.icon]({ style: { fontSize: 20, color: '#17A2B8' } }) : <GlobalOutlined style={{ fontSize: 20, color: '#17A2B8' }} />}
                       </a>
                     </Tooltip>
                   ))}
-                  {connections.length === 0 && (
-                    <div className="py-8 text-center w-full">
-                      <p className="text-blue-200/50 text-sm italic">No links linked yet</p>
-                    </div>
-                  )}
                 </div>
-
-                {connections.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-white/10 space-y-3">
-                    {connections.slice(0, 3).map((c: any) => (
-                      <div key={c.id || c._id} className="flex items-center gap-3 text-white/80">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#17A2B8]" />
-                        <span className="text-xs truncate">{c.link}</span>
-                      </div>
-                    ))}
-                    {connections.length > 3 && (
-                      <p className="text-[10px] text-white/40 text-center mt-2 italic">and {connections.length - 3} more links</p>
-                    )}
-                  </div>
-                )}
               </div>
 
-              <div className="text-center pt-4">
-                <Button block className="rounded-full border-[#17A2B8] text-[#17A2B8] hover:bg-[#17A2B8] hover:text-white transition-all">
-                  View Full Profile
-                </Button>
+              <div className="mt-6 p-4 bg-white rounded-lg border border-white/40">
+                <div className="space-y-2">
+                  {connections.length === 0 ? (
+                    <p className="text-gray-400 text-sm italic">No links added yet</p>
+                  ) : (
+                    connections.map((c: any) => (
+                      <div key={c.id || c._id} className="text-sm text-gray-600">{c.link}</div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </Card>
