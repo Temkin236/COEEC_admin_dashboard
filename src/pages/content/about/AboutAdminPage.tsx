@@ -6,6 +6,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchContent, updateContent, createContent, addAboutTimelineItem, updateAboutTimelineItem, deleteAboutTimelineItem } from "@/store/slices/contentSlice";
 import axiosInstance from "@/utils/axios";
 
+import { usePermissions } from "@/hooks/usePermissions";
+
 // Components
 import HistoryTab from "./components/HistoryTab";
 import MissionTab from "./components/MissionTab";
@@ -17,6 +19,7 @@ import AboutPreview from "./components/AboutPreview";
 const { TabPane } = Tabs;
 
 const AboutPage = () => {
+  const { can } = usePermissions();
   // Dummy state to force re-render for live preview
   const [previewKey, setPreviewKey] = useState(0);
   const dispatch = useAppDispatch();
@@ -263,7 +266,7 @@ const AboutPage = () => {
           <Form form={form} layout="vertical" onFinish={handleSubmit}>
             <Tabs defaultActiveKey="1" activeKey={activeTab} onChange={setActiveTab}>
               <TabPane tab="History Section (Photo)" key="1">
-                <HistoryTab 
+                <HistoryTab
                    form={form}
                    historyItems={historyItems}
                    activeHistoryIndex={activeHistoryIndex}
@@ -273,6 +276,9 @@ const AboutPage = () => {
                    addHistoryItem={addHistoryItem}
                    updateHistoryItem={updateHistoryItem}
                    removeHistoryItem={removeHistoryItem}
+                   canCreate={can('about', 'create')}
+                   canUpdate={can('about', 'update')}
+                   canDelete={can('about', 'delete')}
                 />
               </TabPane>
               
@@ -309,7 +315,14 @@ const AboutPage = () => {
         </Card>
 
         <div className="flex justify-end p-4 bg-white shadow rounded-lg mb-8">
-           <Button type="primary" size="large" icon={<SaveOutlined />} loading={saving} onClick={form.submit}>
+           <Button 
+            type="primary" 
+            size="large" 
+            icon={<SaveOutlined />} 
+            loading={saving} 
+            onClick={form.submit}
+            disabled={!can('about', 'update') && !can('about', 'create')}
+           >
              Save & Publish Changes
            </Button>
         </div>

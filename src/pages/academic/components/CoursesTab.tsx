@@ -44,7 +44,12 @@ const CoursesTab = () => {
 
   const openEditCourse = (record: any) => {
     setCourseEditing(record)
-    courseForm.setFieldsValue(record)
+    // Ensure all numeric fields are set properly for the form
+    courseForm.setFieldsValue({
+      ...record,
+      programId: record.programId || selectedProgramId,
+      department: record.departmentId || (departments.length > 0 ? departments[0].id : undefined)
+    })
     setCourseModalOpen(true)
   }
 
@@ -81,7 +86,13 @@ const CoursesTab = () => {
   }
 
   const handleCourseSubmit = (values: any) => {
-    const payloadValues = { ...values, title: values.title ?? values.name }
+    const payloadValues = { 
+      ...values, 
+      title: values.title ?? values.name,
+      credits: values.credits ? Number(values.credits) : 0,
+      semester: values.semester ? Number(values.semester) : undefined,
+      year: values.year ? Number(values.year) : undefined
+    }
     const programIdToUse = payloadValues.programId ?? selectedProgramId
     if (!programIdToUse) {
       message.error('Please select a program for this course')
@@ -165,6 +176,9 @@ const CoursesTab = () => {
     },
   ]
 
+  // Filter programs by selected department if one is selected, or use all programs
+  const programOptions = programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))
+
   return (
     <div>
       <Card
@@ -214,26 +228,33 @@ const CoursesTab = () => {
         onOk={() => courseForm.submit()}
       >
         <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, department: departments.length > 0 ? departments[0].id : undefined }}>
-            <Form.Item name="programId" label="Program" rules={[{ required: true, message: 'Select program' }]}> 
-              <Select
-                options={programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))}
-                placeholder="Select program"
-              />
-            </Form.Item>
-          <Form.Item name="code" label="Course Code" rules={[{ required: true, message: 'Enter course code' }]}>
-            <Input />
+          <Form.Item name="programId" label="Program" rules={[{ required: true, message: 'Select program' }]}> 
+            <Select
+              options={programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))}
+              placeholder="Select program"
+            />
           </Form.Item>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Form.Item name="code" label="Course Code" rules={[{ required: true, message: 'Enter course code' }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="credits" label="Credits" rules={[{ required: true, message: 'Enter credits' }]}>
+              <Input type="number" min={0} />
+            </Form.Item>
+          </div>
           <Form.Item name="name" label="Course Name" rules={[{ required: true, message: 'Enter course name' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="department" label="Department" rules={[{ required: true, message: 'Select department' }]}> 
-            <Select
-              options={departments.map(d => ({ value: d.id, label: d.name }))}
-              placeholder="Select department"
-            />
-          </Form.Item>
-          <Form.Item name="credits" label="Credits" rules={[{ required: true, message: 'Enter credits' }]}>
-            <Input type="number" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <Form.Item name="semester" label="Semester" initialValue={1}>
+                <Input type="number" min={1} max={8} />
+             </Form.Item>
+             <Form.Item name="year" label="Year" initialValue={1}>
+                <Input type="number" min={1} max={5} />
+             </Form.Item>
+          </div>
+          <Form.Item name="description" label="Description">
+            <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
       </Modal>
