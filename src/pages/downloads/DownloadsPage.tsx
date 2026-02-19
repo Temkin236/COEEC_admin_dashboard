@@ -228,10 +228,10 @@ const DownloadsPage = () => {
       dataIndex: "createdAt",
       render: (d: string) => formatRelativeTime(d),
     },
-    {
-      title: "Downloads",
-      dataIndex: "downloadCount",
-    },
+    // {
+    //   title: "Downloads",
+    //   dataIndex: "downloadCount",
+    // },
     ...(hasDownloadsView || hasDownloadsDelete
       ? [
           {

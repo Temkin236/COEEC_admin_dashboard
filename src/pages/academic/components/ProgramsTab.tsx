@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Button, Modal, Form, Input, Select, message, Tag, Space, Descriptions, Card } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Button, Modal, Form, Input, Select, message, Tag, Space, Descriptions, Card, Radio } from 'antd'
+import { PlusOutlined, FilterOutlined } from '@ant-design/icons'
 import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { createProgram, deleteProgram, fetchPrograms, publishProgram, updateProgram } from "@/store/slices/programsSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
+import { ProgramType, ProgramLevel } from "@/types/academic.types"
 import TableActions from "@/components/common/TableActions"
 import dayjs from 'dayjs'
 
@@ -20,6 +21,11 @@ const ProgramsTab = () => {
   const [viewProgram, setViewProgram] = useState<any | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [programNameOptions, setProgramNameOptions] = useState<string[]>([])
+  
+  // Filters state removed as we will use column filters
+  // const [typeFilter, setTypeFilter] = useState<ProgramType | 'ALL'>('ALL')
+  // const [levelFilter, setLevelFilter] = useState<ProgramLevel | 'ALL'>('ALL')
+  // const [filteredPrograms, setFilteredPrograms] = useState<any[]>([])
 
   const { canView, canCreate, canUpdate, canDelete, can } = usePermissions()
   const hasProgramsView = canView("programs")
@@ -35,6 +41,21 @@ const ProgramsTab = () => {
   useEffect(() => {
     setProgramNameOptions(programs.map(p => p.name || p.title || ''))
   }, [programs])
+
+  // Removed custom filtering effect
+  // useEffect(() => {
+  //   let result = [...programs]
+  //   
+  //   if (typeFilter !== 'ALL') {
+  //     result = result.filter(p => p.type === typeFilter)
+  //   }
+  //   
+  //   if (levelFilter !== 'ALL') {
+  //     result = result.filter(p => p.level === levelFilter)
+  //   }
+  //   
+  //   setFilteredPrograms(result)
+  // }, [programs, typeFilter, levelFilter])
 
   const openAdd = () => {
     setEditing(null)
@@ -102,6 +123,7 @@ const ProgramsTab = () => {
       slug: values.slug || values.name?.toLowerCase().replace(/\s+/g, '-'),
       title: values.title || values.name,
       level: values.level,
+      type: values.type,
       duration: values.duration,
       credits: Number(values.credits) || 0,
       description: values.description || '',
@@ -143,14 +165,50 @@ const ProgramsTab = () => {
       dataIndex: "code", 
       key: "code" 
     },
-    { title: "Level", dataIndex: "level", key: "level", render: (level: string) => <Tag color="blue">{level}</Tag> },
+    { 
+      title: "Level", 
+      dataIndex: "level", 
+      key: "level", 
+      filters: [
+        { text: 'BSc (Bachelor)', value: 'BSC' },
+        { text: 'MSc (Master)', value: 'MSC' },
+        { text: 'PhD (Doctorate)', value: 'PHD' },
+      ],
+      onFilter: (value: any, record: any) => record.level === value,
+      render: (level: string) => <Tag color="blue">{level}</Tag> 
+    },
+    { 
+      title: "Type", 
+      dataIndex: "type", 
+      key: "type", 
+      filters: [
+        { text: 'Undergraduate', value: ProgramType.UNDERGRADUATE },
+        { text: 'Postgraduate', value: ProgramType.POSTGRADUATE },
+        { text: 'Extension', value: ProgramType.EXTENSION },
+        { text: 'Weekend', value: ProgramType.WEEKEND },
+      ],
+      onFilter: (value: any, record: any) => record.type === value,
+      render: (type: string) => <Tag color="purple">{type}</Tag> 
+    },
+    /*
     { 
       title: "Duration", 
-      dataIndex: "durationMonths", 
-      key: "durationMonths",
-      render: (months: number | null, record: any) => months ? `${months} months` : (record.duration || 'N/A')
+      dataIndex: "duration", 
+      key: "duration",
+      render: (text: string, record: any) => {
+        // Prefer explicit duration field from form, fallback to converted durationMonths
+        if (text) return text
+        if (record.durationMonths) return `${record.durationMonths} months`
+        return 'N/A'
+      }
     },
-    { title: "Credits", dataIndex: "credits", key: "credits" },
+    { 
+      title: "Credits", 
+      dataIndex: "credits", 
+      key: "credits",
+      render: (credits: number) => credits || 'N/A'
+    },
+    */
     { 
       title: "Status", 
       dataIndex: "state", 
@@ -168,10 +226,11 @@ const ProgramsTab = () => {
       title: "Actions",
       key: "actions",
       fixed: 'right' as const,
+      width: 200, // Added explicit width to prevent overflow
       render: (_: any, record: any) => {
         const currentState = record.state || record.status || 'DRAFT'
         return (
-          <Space>
+          <Space size="small">
             <TableActions
               resource="programs"
               onView={() => openView(record)}
@@ -191,6 +250,7 @@ const ProgramsTab = () => {
                   e.stopPropagation(); 
                   handlePublishProgram(record.id); 
                 }}
+                className="bg-green-600 hover:bg-green-500 border-green-600 hover:border-green-500"
               >
                 Publish
               </Button>
@@ -257,6 +317,7 @@ const ProgramsTab = () => {
             <Descriptions.Item label="Program Name">{viewProgram.title || viewProgram.name}</Descriptions.Item>
             <Descriptions.Item label="Code">{viewProgram.code}</Descriptions.Item>
             <Descriptions.Item label="Level">{viewProgram.level}</Descriptions.Item>
+            <Descriptions.Item label="Type">{viewProgram.type}</Descriptions.Item>
             <Descriptions.Item label="Duration">{viewProgram.durationMonths ?? viewProgram.duration ?? 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Credits">{viewProgram.credits ?? 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="State"><Tag color={viewProgram.state === 'PUBLISHED' ? 'green' : 'orange'}>{viewProgram.state || 'DRAFT'}</Tag></Descriptions.Item>
@@ -279,7 +340,7 @@ const ProgramsTab = () => {
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ level: 'BSC', duration: '4 years', credits: 0 }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ level: 'BSC', type: ProgramType.UNDERGRADUATE, duration: '4 years', credits: 0 }}>
           <Form.Item name="name" label="Program Name" rules={[{ required: true, message: 'Please enter program name' }]}>
             <Input placeholder="e.g., BSc in Computer Science" />
           </Form.Item>
@@ -310,6 +371,17 @@ const ProgramsTab = () => {
                 { value: 'BSC', label: 'BSC (Bachelor)' },
                 { value: 'MSC', label: 'MSC (Master)' },
                 { value: 'PHD', label: 'PHD (Doctorate)' },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item name="type" label="Program Type" rules={[{ required: true, message: 'Select program type' }]}>
+            <Select
+              options={[
+                { value: ProgramType.UNDERGRADUATE, label: 'Undergraduate' },
+                { value: ProgramType.POSTGRADUATE, label: 'Postgraduate' },
+                { value: ProgramType.EXTENSION, label: 'Extension' },
+                { value: ProgramType.WEEKEND, label: 'Weekend' },
               ]}
             />
           </Form.Item>
