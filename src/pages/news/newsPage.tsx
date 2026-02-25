@@ -18,6 +18,7 @@ import {
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface'
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import DataTable from "@/components/common/DataTable"
+import RichEditor from "@/components/common/RichEditor"
 import {
   fetchNews,
   createNews,
@@ -126,27 +127,29 @@ const NewsPage = () => {
   }
 
   const handleFormLanguageChange = (newLang: string) => {
-    // Save current form values to draft
-    const currentValues = form.getFieldsValue()
+    // Save current visible form values to draft (content is kept in drafts)
+    const titleVal = form.getFieldValue('title')
+    const slugVal = form.getFieldValue('slug')
+    const excerptVal = form.getFieldValue('excerpt')
+
     setDrafts(prev => ({
       ...prev,
       [currentFormLang]: {
         ...prev[currentFormLang],
-        title: currentValues.title,
-        slug: currentValues.slug,
-        content: currentValues.content,
-        excerpt: currentValues.excerpt,
+        title: titleVal,
+        slug: slugVal,
+        content: prev[currentFormLang]?.content,
+        excerpt: excerptVal,
       }
     }))
 
     // Switch language
     setCurrentFormLang(newLang)
 
-    // Load new language draft
+    // Load new language draft into form fields (editor reads from drafts)
     form.setFieldsValue({
       title: drafts[newLang]?.title || "",
       slug: drafts[newLang]?.slug || "",
-      content: drafts[newLang]?.content || "",
       excerpt: drafts[newLang]?.excerpt || "",
     })
   }
@@ -213,7 +216,7 @@ const NewsPage = () => {
           title: values.title,
           slug: values.slug,
           excerpt: values.excerpt,
-          content: values.content
+          content: drafts[currentFormLang]?.content || values.content
         }
       }
 
@@ -507,12 +510,23 @@ const NewsPage = () => {
                     name="content"
                     label={<span className="font-semibold text-gray-700">Article Content</span>}
                     rules={[{ required: currentFormLang === "EN" }]}
+                    shouldUpdate
                   >
-                    <TextArea
-                      rows={12}
-                      className="font-mono text-sm rounded-lg"
-                      placeholder="Paste JSON document structure or write plain text article content here..."
-                    />
+                    <div>
+                      <RichEditor
+                        value={drafts[currentFormLang]?.content || ''}
+                        onChange={(val) => {
+                          setDrafts(prev => ({
+                            ...prev,
+                            [currentFormLang]: { ...prev[currentFormLang], content: val }
+                          }))
+                        }}
+                        uploadImage={async (file: File) => {
+                          const result = await dispatch(uploadMedia(file)).unwrap()
+                          return result
+                        }}
+                      />
+                    </div>
                   </Form.Item>
                 </div>
               </div>

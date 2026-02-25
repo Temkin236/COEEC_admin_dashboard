@@ -76,7 +76,7 @@ function profileTabs() {
       {(!showSetupModal || setupAccepted) ? (
         <Card className="shadow-sm">
           <Tabs activeKey={activeKey} onChange={(k) => setActiveKey(k)} type="line">
-          <TabPane tab="Edit photo" key="edit">
+          <TabPane tab="to" key="edit">
             <Editphoto />
           </TabPane>
           <TabPane tab="Experience" key="experience">

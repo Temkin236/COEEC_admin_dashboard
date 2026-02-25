@@ -274,7 +274,7 @@ export default function photo() {
         <Col xs={24} md={14}>
           <Card bordered={false} style={{ borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.03)" }}>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-bold text-[#18485e] m-0">Edit photo</h2>
+              <h2 className="font-bold text-[#18485e] m-0">Profile</h2>
               <Button
                 type="primary"
                 loading={photoLoading}
