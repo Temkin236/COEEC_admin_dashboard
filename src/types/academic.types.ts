@@ -9,6 +9,19 @@ export interface Department {
     updatedAt?: string
 }
 
+export enum ProgramLevel {
+    BSC = 'BSC',
+    MSC = 'MSC',
+    PHD = 'PHD'
+}
+
+export enum ProgramType {
+    UNDERGRADUATE = 'UNDERGRADUATE',
+    POSTGRADUATE = 'POSTGRADUATE',
+    EXTENSION = 'EXTENSION',
+    WEEKEND = 'WEEKEND'
+}
+
 export type Course = {
     id: number
     code: string
@@ -24,7 +37,8 @@ export interface Program {
     title?: string
     slug?: string
     description?: string
-    level?: string
+    level?: string | ProgramLevel
+    type?: string | ProgramType
     duration?: string
     durationMonths?: number | null
     credits?: number
