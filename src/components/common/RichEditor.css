@@ -7,6 +7,11 @@
   color: #1f2937;
 }
 
+/* Read-only viewer tweaks (keep formatting, but don't force large editor height) */
+.editor-content.rich-viewer .ProseMirror {
+  min-height: auto;
+}
+
 .editor-content .ProseMirror p {
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
@@ -31,6 +36,24 @@
   margin-top: 1.25rem;
   margin-bottom: 0.75rem;
   line-height: 1.3;
+  color: #111827;
+}
+
+.editor-content .ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.125rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+  color: #111827;
+}
+
+.editor-content .ProseMirror h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
   color: #111827;
 }
 
@@ -113,6 +136,43 @@
   display: block;
 }
 
+/* Resizable Image NodeView */
+.editor-content .ProseMirror .resizable-image {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.editor-content .ProseMirror .resizable-image__inner {
+  position: relative;
+  max-width: 100%;
+}
+
+.editor-content .ProseMirror .resizable-image__inner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0;
+}
+
+.editor-content .ProseMirror .resizable-image.is-selected .resizable-image__inner {
+  outline: 2px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
+
+.editor-content .ProseMirror .resizable-image__handle {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #3b82f6;
+  border: 2px solid #ffffff;
+  cursor: nwse-resize;
+}
+
 .editor-content .ProseMirror strong {
   font-weight: 600;
   color: #111827;
@@ -145,6 +205,10 @@
 
 .editor-content .ProseMirror [style*="text-align: right"] {
   text-align: right;
+}
+
+.editor-content .ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
 }
 
 /* Selection */

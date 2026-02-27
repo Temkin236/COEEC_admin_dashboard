@@ -27,7 +27,8 @@ export const uploadMedia = createAsyncThunk<MediaItem, File>(
     "media/upload",
     async (file) => {
         const formData = new FormData()
-        formData.append("file", file)
+        // Backend expects the file field to be named `files`
+        formData.append("files", file)
         // Default visibility to PUBLIC for news images
         formData.append("visibility", "PUBLIC")
 
@@ -36,7 +37,10 @@ export const uploadMedia = createAsyncThunk<MediaItem, File>(
                 "Content-Type": "multipart/form-data",
             },
         })
-        return response.data
+
+        // Some endpoints return an array when uploading via `files`.
+        const data = response.data
+        return (Array.isArray(data) ? data[0] : data) as MediaItem
     }
 )
 

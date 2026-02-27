@@ -19,6 +19,7 @@ import type { UploadFile, UploadProps } from 'antd/es/upload/interface'
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import DataTable from "@/components/common/DataTable"
 import RichEditor from "@/components/common/RichEditor"
+import RichViewer from "@/components/common/RichViewer"
 import {
   fetchNews,
   createNews,
@@ -54,6 +55,7 @@ const NewsPage = () => {
     OM: { title: "", slug: "", excerpt: "", content: "" },
   })
   const [fileList, setFileList] = useState<UploadFile[]>([])
+  const [isEditorUploading, setIsEditorUploading] = useState(false)
 
   const [form] = Form.useForm()
 
@@ -209,6 +211,11 @@ const NewsPage = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      if (isEditorUploading) {
+        message.error("Please wait for image uploads to finish before saving.")
+        return
+      }
+
       // Final save for current visible tab
       const finalDrafts = {
         ...drafts,
@@ -221,6 +228,23 @@ const NewsPage = () => {
       }
 
       const languages: Record<string, any> = {}
+
+      const contentHasBlobImages = (node: any): boolean => {
+        if (!node) return false
+        if (Array.isArray(node)) return node.some(contentHasBlobImages)
+        if (typeof node === "object") {
+          if ((node as any).type === "image") {
+            const src = (node as any).attrs?.src
+            if (typeof src === "string" && (src.startsWith("blob:") || src.startsWith("data:"))) {
+              return true
+            }
+          }
+          if (Array.isArray((node as any).content)) {
+            return (node as any).content.some(contentHasBlobImages)
+          }
+        }
+        return false
+      }
 
       Object.entries(finalDrafts).forEach(([lang, data]) => {
         if (data.title) {
@@ -248,6 +272,13 @@ const NewsPage = () => {
           }
         }
       })
+
+      for (const [lang, data] of Object.entries(languages)) {
+        if (contentHasBlobImages((data as any).content)) {
+          message.error(`Some images in ${lang} are still uploading. Please wait and try again.`)
+          return
+        }
+      }
 
       const payload = {
         languages,
@@ -289,7 +320,7 @@ const NewsPage = () => {
            return (
              <Space>
                <Typography.Text strong>{otherTrans.title}</Typography.Text>
-               <Tag size="small">{otherTrans.language}</Tag>
+               <Tag className="text-xs">{otherTrans.language}</Tag>
              </Space>
            );
         }
@@ -433,6 +464,7 @@ const NewsPage = () => {
         onCancel={() => setIsFormModalOpen(false)}
         onOk={() => form.submit()}
         confirmLoading={loading}
+        okButtonProps={{ disabled: isEditorUploading }}
         width={1000}
         centered
         className="news-modal"
@@ -525,6 +557,7 @@ const NewsPage = () => {
                           const result = await dispatch(uploadMedia(file)).unwrap()
                           return result
                         }}
+                        onUploadingChange={setIsEditorUploading}
                       />
                     </div>
                   </Form.Item>
@@ -686,6 +719,16 @@ const NewsPage = () => {
                       </div>
                     </Descriptions.Item>
                   </Descriptions>
+                </Card>
+
+                <Card
+                  size="small"
+                  title={<span className="text-gray-800 font-bold">Article Content</span>}
+                  className="shadow-sm border-gray-100 rounded-2xl overflow-hidden"
+                >
+                  <div className="px-2 py-1">
+                    <RichViewer content={viewContent.content} />
+                  </div>
                 </Card>
 
 

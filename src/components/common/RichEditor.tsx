@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
-import { useEditor, EditorContent } from "@tiptap/react"
+import React, { useEffect, useMemo, useRef } from "react"
+import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import Link from "@tiptap/extension-link"
@@ -20,26 +20,217 @@ type RichEditorProps = {
   value: any
   onChange: (content: any) => void
   uploadImage: (file: File) => Promise<{ id?: string; url?: string }>
+  onUploadingChange?: (isUploading: boolean) => void
 }
 
-const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage }) => {
+const DEFAULT_IMAGE_WIDTH_PX = 280
+
+const ResizableImageView = (props: any) => {
+  const { node, selected, updateAttributes } = props
+  const startXRef = useRef(0)
+  const startWidthRef = useRef<number>(Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX)
+
+  const onHandleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    startXRef.current = e.clientX
+    startWidthRef.current = Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX
+
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startXRef.current
+      const next = Math.max(120, Math.min(900, startWidthRef.current + delta))
+      updateAttributes({ width: Math.round(next) })
+    }
+
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("mouseup", onUp)
+    }
+
+    window.addEventListener("mousemove", onMove)
+    window.addEventListener("mouseup", onUp)
+  }
+
+  const width = Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX
+  const align: string = node?.attrs?.align || "left"
+
+  const computedWidth = align === "justify" ? "100%" : width
+  const marginStyle =
+    align === "center" ? { marginLeft: "auto", marginRight: "auto" } :
+      align === "right" ? { marginLeft: "auto" } :
+        { }
+
+  return (
+    <NodeViewWrapper className={`resizable-image ${selected ? "is-selected" : ""}`.trim()}>
+      <div className="resizable-image__inner" style={{ width: computedWidth, ...marginStyle }} contentEditable={false}>
+        <img src={node.attrs.src} alt={node.attrs.alt || ""} draggable={false} />
+        {selected && align !== "justify" && (
+          <div className="resizable-image__handle" onMouseDown={onHandleMouseDown} />
+        )}
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage, onUploadingChange }) => {
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const pendingUploadsRef = useRef(0)
+  const lastUploadingRef = useRef(false)
+
+  const bumpUploading = (delta: number) => {
+    pendingUploadsRef.current = Math.max(0, pendingUploadsRef.current + delta)
+    const nextUploading = pendingUploadsRef.current > 0
+    if (nextUploading !== lastUploadingRef.current) {
+      lastUploadingRef.current = nextUploading
+      onUploadingChange?.(nextUploading)
+    }
+  }
+
+  const ResizableImage = useMemo(
+    () =>
+      Image.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            width: {
+              default: DEFAULT_IMAGE_WIDTH_PX,
+              parseHTML: (element) => {
+                const widthAttr = element.getAttribute("width")
+                const parsed = widthAttr ? Number(widthAttr) : DEFAULT_IMAGE_WIDTH_PX
+                return Number.isFinite(parsed) ? parsed : DEFAULT_IMAGE_WIDTH_PX
+              },
+              renderHTML: (attributes) => {
+                const width = Number(attributes.width) || DEFAULT_IMAGE_WIDTH_PX
+                return { width: String(width) }
+              },
+            },
+            uploadId: {
+              default: null,
+              parseHTML: (element) => element.getAttribute("data-upload-id"),
+              renderHTML: (attributes) =>
+                attributes.uploadId ? { "data-upload-id": String(attributes.uploadId) } : {},
+            },
+            align: {
+              default: "left",
+              parseHTML: (element) => element.getAttribute("data-align") || "left",
+              renderHTML: (attributes) =>
+                attributes.align ? { "data-align": String(attributes.align) } : {},
+            },
+          }
+        },
+        addNodeView() {
+          return ReactNodeViewRenderer(ResizableImageView)
+        },
+      }).configure({
+        inline: false,
+        allowBase64: true,
+      }),
+    [],
+  )
+
+  const normalizeMediaUrl = (rawUrl: string) => {
+    if (!rawUrl) return rawUrl
+    const cleaned = rawUrl.replace(/\\/g, "/")
+    if (cleaned.startsWith('blob:') || cleaned.startsWith('data:')) return cleaned
+    if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned
+
+    // Media is typically served from the backend root, not the `/api` path.
+    const backendRoot = (import.meta as any)?.env?.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || ''
+    if (!backendRoot) return cleaned
+
+    if (cleaned.startsWith('/')) return `${backendRoot}${cleaned}`
+    return `${backendRoot}/${cleaned}`
+  }
+
+  const isLikelyImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url)
+
+  const getMediaUrlCandidates = (result: any) => {
+    const raw = [
+      result?.path,
+      result?.url,
+      result?.data?.path,
+      result?.data?.url,
+    ].filter(Boolean) as string[]
+
+    const normalized = raw.map(normalizeMediaUrl)
+    // De-dupe while preserving order
+    const unique: string[] = []
+    for (const u of normalized) {
+      if (!unique.includes(u)) unique.push(u)
+    }
+
+    // Prefer URLs that look like actual image files
+    const likely = unique.filter(isLikelyImageUrl)
+    const other = unique.filter((u) => !isLikelyImageUrl(u))
+    return [...likely, ...other]
+  }
+
+  const waitForImageLoad = (src: string) =>
+    new Promise<void>((resolve, reject) => {
+      const img = new window.Image()
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error(`Failed to load image: ${src}`))
+      img.src = src
+    })
+
+  const replaceImageSrcByUploadId = (uploadId: string, newSrc: string) => {
+    if (!editor) return false
+
+    let foundPos: number | null = null
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs?.uploadId === uploadId) {
+        foundPos = pos
+        return false
+      }
+      return true
+    })
+
+    if (foundPos == null) return false
+
+    const { tr } = editor.state
+    tr.setNodeMarkup(foundPos, undefined, {
+      ...editor.state.doc.nodeAt(foundPos)?.attrs,
+      src: newSrc,
+      uploadId: null,
+    })
+    editor.view.dispatch(tr)
+    return true
+  }
+
+  const deleteImageByUploadId = (uploadId: string) => {
+    if (!editor) return false
+
+    let foundPos: number | null = null
+    let nodeSize: number | null = null
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'image' && node.attrs?.uploadId === uploadId) {
+        foundPos = pos
+        nodeSize = node.nodeSize
+        return false
+      }
+      return true
+    })
+
+    if (foundPos == null || nodeSize == null) return false
+    const { tr } = editor.state
+    tr.delete(foundPos, foundPos + nodeSize)
+    editor.view.dispatch(tr)
+    return true
+  }
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2]
+          levels: [1, 2, 3, 4]
         }
       }),
-      Image.configure({
-        inline: false,
-        allowBase64: true,
-      }),
+      ResizableImage,
       Underline,
       TextAlign.configure({ 
         types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right']
+        alignments: ['left', 'center', 'right', 'justify']
       }),
       Link.configure({ 
         openOnClick: false,
@@ -79,6 +270,11 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
   const handleImagePick = async (file?: File) => {
     const chosen = file || (inputRef.current?.files && inputRef.current.files[0])
     if (!chosen || !editor) return
+
+    // Capture the current selection so we can insert the image where the cursor was
+    // when the user picked the file (async upload may complete after selection changes).
+    const selectionFrom = editor.state.selection.from
+    const selectionTo = editor.state.selection.to
     
     // Validate file type
     if (!chosen.type.startsWith('image/')) {
@@ -92,22 +288,73 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
       return
     }
     
+    let previewUrl: string | null = null
+    let uploadId: string | null = null
+
     try {
+      bumpUploading(1)
+
+      // 1) Insert immediate local preview (like Profile upload)
+      previewUrl = URL.createObjectURL(chosen)
+      uploadId = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+      const docSize = editor.state.doc.content.size
+      const from = Math.max(0, Math.min(selectionFrom, docSize))
+      const to = Math.max(0, Math.min(selectionTo, docSize))
+
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from, to })
+        .setImage({ src: previewUrl, alt: chosen.name, width: DEFAULT_IMAGE_WIDTH_PX, uploadId } as any)
+        .run()
+
+      // 2) Upload, then replace preview src without moving cursor
       const result = await uploadImage(chosen)
-      const imageUrl = result?.url || (result as any)?.data?.url
-      
-      if (imageUrl) {
-        editor.chain().focus().setImage({ 
-          src: imageUrl, 
-          alt: chosen.name 
-        }).run()
-      } else {
+      const candidates = getMediaUrlCandidates(result)
+      if (candidates.length === 0) {
+        if (uploadId) deleteImageByUploadId(uploadId)
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
         throw new Error('No URL returned from upload')
       }
+
+      // Choose the first candidate that actually loads.
+      // IMPORTANT: even if none load, we still replace blob: with the first persistent candidate
+      // so content doesn't end up saving a blob URL.
+      let chosenFinalUrl = candidates[0]
+      for (const candidate of candidates) {
+        try {
+          await waitForImageLoad(candidate)
+          chosenFinalUrl = candidate
+          break
+        } catch {
+          // try next
+        }
+      }
+
+      const replaced = replaceImageSrcByUploadId(uploadId, chosenFinalUrl)
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+
+      // If we couldn't find the preview image node, it was likely deleted; avoid inserting duplicates.
+      if (!replaced) return
     } catch (error) {
       console.error("Image upload failed:", error)
+
+      // Don't leave blob: images in the document.
+      if (uploadId) {
+        deleteImageByUploadId(uploadId)
+      }
+
+      if (previewUrl) {
+        try {
+          URL.revokeObjectURL(previewUrl)
+        } catch {
+          // ignore
+        }
+      }
+
       alert('Failed to upload image. Please try again.')
     } finally {
+      bumpUploading(-1)
       // Reset file input
       if (inputRef.current) {
         inputRef.current.value = ''
@@ -126,7 +373,7 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
       return
     }
     
-    editor.chain().focus().setImage({ src: url }).run()
+    editor.chain().focus().setImage({ src: url, width: DEFAULT_IMAGE_WIDTH_PX } as any).run()
   }
 
   const clearContent = () => {
@@ -139,6 +386,16 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
   const addSpacing = () => {
     if (!editor) return
     editor.chain().focus().insertContent('<p></p>').run()
+  }
+
+  const setAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
+    if (!editor) return
+    editor.chain().focus().setTextAlign(align).run()
+
+    // Also apply alignment to the currently selected image (if any)
+    if (editor.isActive('image')) {
+      editor.commands.updateAttributes('image', { align })
+    }
   }
 
   const btnClass = "inline-flex items-center justify-center min-w-[36px] h-[36px] px-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded transition-colors duration-150 active:bg-gray-200"
@@ -210,7 +467,7 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
         <button 
           type="button"
           title="Align Left" 
-          onClick={() => editor?.chain().focus().setTextAlign('left').run()} 
+          onClick={() => setAlign('left')} 
           className={`${btnClass} ${btnActiveClass(editor?.isActive({ textAlign: 'left' }) || false)}`}
         >
           <AlignLeftOutlined />
@@ -218,7 +475,7 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
         <button 
           type="button"
           title="Align Center" 
-          onClick={() => editor?.chain().focus().setTextAlign('center').run()} 
+          onClick={() => setAlign('center')} 
           className={`${btnClass} ${btnActiveClass(editor?.isActive({ textAlign: 'center' }) || false)}`}
         >
           <AlignCenterOutlined />
@@ -226,10 +483,18 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
         <button 
           type="button"
           title="Align Right" 
-          onClick={() => editor?.chain().focus().setTextAlign('right').run()} 
+          onClick={() => setAlign('right')} 
           className={`${btnClass} ${btnActiveClass(editor?.isActive({ textAlign: 'right' }) || false)}`}
         >
           <AlignRightOutlined />
+        </button>
+        <button 
+          type="button"
+          title="Justify" 
+          onClick={() => setAlign('justify')} 
+          className={`${btnClass} ${btnActiveClass(editor?.isActive({ textAlign: 'justify' }) || false)}`}
+        >
+          J
         </button>
 
         <Divider type="vertical" className="h-6 mx-1" />
@@ -250,6 +515,22 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage })
           className={`${btnClass} font-semibold ${btnActiveClass(editor?.isActive('heading', { level: 2 }) || false)}`}
         >
           H2
+        </button>
+        <button 
+          type="button"
+          title="Heading 3" 
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} 
+          className={`${btnClass} font-semibold ${btnActiveClass(editor?.isActive('heading', { level: 3 }) || false)}`}
+        >
+          H3
+        </button>
+        <button 
+          type="button"
+          title="Heading 4" 
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 4 }).run()} 
+          className={`${btnClass} font-semibold ${btnActiveClass(editor?.isActive('heading', { level: 4 }) || false)}`}
+        >
+          H4
         </button>
 
         <Divider type="vertical" className="h-6 mx-1" />
