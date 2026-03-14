@@ -8,6 +8,7 @@ import { SaveOutlined, UploadOutlined, UserOutlined, ArrowLeftOutlined, IdcardOu
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaffById, createStaff, updateStaff, uploadCV } from "@/store/slices/staffSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
+import { fetchUsers } from "@/store/slices/usersSlice"
 
 
 const { TextArea } = Input
@@ -20,11 +21,26 @@ const { Title } = Typography
     const navigate = useNavigate()
     const { currentStaff, loading } = useAppSelector((state) => state.staff)
     const { items: departments } = useAppSelector((state) => state.departments)
+    const authUser = useAppSelector((state) => state.auth.user)
+    const { items: users } = useAppSelector((state) => state.users)
     const [form] = Form.useForm()
     const [cvFile, setCvFile] = useState<any>(null)
     const [photoPreview, setPhotoPreview] = useState<string | null>(null)
     const [previewValues, setPreviewValues] = useState<any>({})
     const isEdit = !!id && id !== "new"
+
+    const ownDepartmentId = authUser?.departmentId || null
+    const userPermissions = authUser?.permissions || []
+    const hasStaffCreateGlobal = userPermissions.some(
+      (p: any) => p.action === "staff" && p.resource === "create"
+    )
+    const hasStaffCreateOwn = userPermissions.some(
+      (p: any) => p.action === "staff" && p.resource === "create_own"
+    )
+    // Only lock department selection if user has an own-department permission
+    // AND we actually know their departmentId from the token.
+    const isOwnHeadCreateOnly =
+      !isEdit && !!ownDepartmentId && hasStaffCreateOwn && !hasStaffCreateGlobal
 
     const resolveImageUrl = (url?: string | null) => {
       if (!url) return null
@@ -36,6 +52,7 @@ const { Title } = Typography
 
   useEffect(() => {
     dispatch(fetchDepartments() as any)
+    dispatch(fetchUsers() as any)
   }, [dispatch])
 
   useEffect(() => {
@@ -67,6 +84,8 @@ const { Title } = Typography
       }
       
       const formData = {
+        staffId: (currentStaff as any).staffId || "",
+        userId: (currentStaff as any).userId || "",
         displayName: currentStaff.displayName,
         title: currentStaff.title,
         email: currentStaff.email,
@@ -85,6 +104,8 @@ const { Title } = Typography
   const handleSubmit = async (values: any) => {
     try {
       const data = {
+        staffId: values.staffId?.trim() || (isEdit ? (currentStaff as any)?.staffId : undefined),
+        userId: values.userId || (isEdit ? (currentStaff as any)?.userId : undefined),
         displayName: values.displayName?.trim(),
         title: values.title?.trim(),
         email: values.email?.trim(),
@@ -180,7 +201,12 @@ const { Title } = Typography
           layout="vertical"
           onFinish={handleSubmit}
           onValuesChange={handleFormChange}
-          initialValues={{ status: "active" }}
+          initialValues={{
+            status: "active",
+            ...(isOwnHeadCreateOnly && ownDepartmentId
+              ? { departmentId: ownDepartmentId }
+              : {}),
+          }}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Form */}
@@ -188,6 +214,41 @@ const { Title } = Typography
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Staff Information</h2>
                 <div className="space-y-4">
+                  <Form.Item 
+                    name="userId" 
+                    label="User Account"
+                    rules={[{ required: true, message: "Please select a user" }]}
+                  >
+                    <Select
+                      placeholder="Select existing user"
+                      showSearch
+                      optionFilterProp="children"
+                      disabled={isEdit}
+                      onChange={(value) => {
+                        const selected = users.find((u: any) => u.id === value)
+                        if (selected && !isEdit) {
+                          form.setFieldsValue({
+                            displayName: selected.displayName,
+                            email: selected.email,
+                          })
+                        }
+                      }}
+                    >
+                      {users.map((u: any) => (
+                        <Select.Option key={u.id} value={u.id}>
+                          {u.displayName} ({u.email})
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
+                  <Form.Item 
+                    name="staffId" 
+                    label="Staff ID"
+                  >
+                    <Input placeholder="e.g., EMP-12345" />
+                  </Form.Item>
+
                   <Form.Item 
                     name="displayName" 
                     label="Full Name" 
@@ -224,8 +285,12 @@ const { Title } = Typography
                   <Form.Item name="officeLocation" label="Office Location">
                     <Input placeholder="e.g., B-504 R-12" />
                   </Form.Item>
-                  <Form.Item name="departmentId" label="Department">
-                    <Select placeholder="Select Department" allowClear>
+                  <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: "Please select department" }]}>
+                    <Select
+                      placeholder="Select Department"
+                      allowClear={!isOwnHeadCreateOnly}
+                      disabled={isOwnHeadCreateOnly}
+                    >
                       {departments.map((d) => (
                         <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
                       ))}
@@ -285,7 +350,10 @@ const { Title } = Typography
                 <div className="p-6 w-full">
                   <div className="text-xs font-semibold text-primary-600 uppercase mb-2">{previewValues.title || 'TITLE'}</div>
                   <div className="text-2xl font-extrabold text-gray-900 mb-1">{previewValues.displayName || 'Full Name'}</div>
-                  <div className="text-sm text-gray-500 mb-4">{previewValues.email || 'email@example.com'}</div>
+                  <div className="text-sm text-gray-500 mb-1">{previewValues.email || 'email@example.com'}</div>
+                  {previewValues.staffId && (
+                    <div className="text-xs text-gray-400 mb-3">ID: {previewValues.staffId}</div>
+                  )}
 
                   <div className="flex flex-col gap-3 text-gray-600 mb-4">
                     <div className="flex items-center gap-3"><IdcardOutlined className="text-gray-400" /> <span>{previewValues.title || 'Position/Role'}</span></div>

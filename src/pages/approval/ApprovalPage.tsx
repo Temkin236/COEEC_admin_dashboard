@@ -79,15 +79,16 @@ const ApprovalPage = () => {
     },
   ]
 
-  const mockData = [
-    { id: 1, type: "News", title: "New research lab opening", submittedBy: "Dr. Abebe Kebede", submittedAt: new Date("2024-01-20"), content: "We are excited to announce the opening of our new AI research lab..." },
-    { id: 2, type: "Staff Profile", title: "Profile update - Dr. Chaltu Gemechu", submittedBy: "Dr. Chaltu Gemechu", submittedAt: new Date("2024-01-19"), content: "Updated research interests and publications" },
-  ]
-
   return (
     <div className="space-y-4">
       <Card title="Pending Approvals">
-        <DataTable columns={columns as any} dataSource={mockData} loading={!!loading} rowKey="id" pagination={{ pageSize: 10 }} />
+        <DataTable
+          columns={columns as any}
+          dataSource={items}
+          loading={!!loading}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+        />
       </Card>
 
       <Modal

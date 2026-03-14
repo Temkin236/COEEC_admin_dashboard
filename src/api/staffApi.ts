@@ -3,6 +3,7 @@ import axiosInstance from "@/utils/axios"
 export interface StaffItem {
   id: string
   userId?: string
+  staffId?: string
   displayName: string
   title: string
   departmentId?: string
@@ -49,6 +50,7 @@ export const staffApi = {
   // Create new staff
   createStaff: async (data: any) => {
     const payload = {
+      staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
       departmentId: data.departmentId,
@@ -68,6 +70,7 @@ export const staffApi = {
   updateStaff: async (params: { id: string; data: any }) => {
     const { id, data } = params
     const payload = {
+      staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
       biography: data.biography || {},

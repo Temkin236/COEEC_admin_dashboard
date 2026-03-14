@@ -19,6 +19,7 @@ export interface AuthUser {
   name?: string
   permissions?: Permission[]
   staffId?: string // Staff ID from token for profile management
+  departmentId?: string | null // Department scope for own-head roles
 }
 
 const DEMO_USERS: AuthUser[] & Array<{ password?: string }> = [

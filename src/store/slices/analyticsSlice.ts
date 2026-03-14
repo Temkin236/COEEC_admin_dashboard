@@ -72,8 +72,9 @@ export const fetchDashboardStats = createAsyncThunk<DashboardStats, void, { reje
       const response = await axiosInstance.get<DashboardStats>("/analytics/dashboard")
       return response.data
     } catch (err: any) {
-      // On failure, reject the promise. The reducer will handle the fallback.
-      console.error("Failed to fetch dashboard stats, using demo data as fallback.", err)
+      // On failure, reject the promise. Do not provide demo fallback here —
+      // the UI should avoid showing demo data automatically.
+      console.error("Failed to fetch dashboard stats.", err)
       return rejectWithValue(err.response?.data?.message || "Failed to fetch dashboard stats")
     }
   }
@@ -124,8 +125,9 @@ const analyticsSlice = createSlice({
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
-        // Fallback to demo data on API failure
-        state.dashboardStats = demoDashboard()
+        // Do not populate demo data here. Leave `dashboardStats` null so
+        // the UI can show loading/empty states instead of dummy data.
+        state.dashboardStats = null
       })
       .addCase(fetchVisitorStats.pending, (state) => {
         state.loading = true

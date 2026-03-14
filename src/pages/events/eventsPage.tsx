@@ -21,8 +21,8 @@ import {
   deleteEvent,
   publishEvent
 } from "@/store/slices/eventsSlice"
+import { uploadMedia } from "@/store/slices/mediaSlice"
 import { formatDate } from "@/utils/helpers"
-import axiosInstance from "@/utils/axios"
 import dayjs from "dayjs"
 
 const { TextArea } = Input
@@ -83,7 +83,8 @@ const EventsPage = () => {
         title: t.title,
         slug: t.slug,
         description: t.description,
-        location: t.location
+        // Backend might use either `location` or `venue` field
+        location: t.location || (t as any).venue || "",
       }
     })
 
@@ -168,23 +169,25 @@ const EventsPage = () => {
     })
   }
 
-  const handleUpload = async (options: any) => {
-    const { file, onSuccess, onError } = options
-    const formData = new FormData()
-    formData.append('file', file)
+  const handleUpload: UploadProps['customRequest'] = async ({ file, onSuccess, onError }) => {
     try {
-      const res = await axiosInstance.post('/media/upload', formData)
-      onSuccess(res.data)
-      form.setFieldValue('featuredImageId', res.data.id)
-      message.success('Image uploaded successfully')
-    } catch (err) {
-      onError(err)
-      message.error('Upload failed')
+      const result = await dispatch(uploadMedia(file as File)).unwrap()
+      if (onSuccess) onSuccess(result)
+      form.setFieldValue("featuredImageId", result.id)
+      message.success(`${(file as File).name} uploaded successfully`)
+    } catch (error) {
+      if (onError) onError(error as Error)
+      message.error(`${(file as File).name} upload failed.`)
     }
   }
 
-  const handleChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
+  const handleChange: UploadProps['onChange'] = (info) => {
+    const newFileList = [...info.fileList].slice(-1)
     setFileList(newFileList)
+
+    if (info.file.status === "done" && (info.file as any).response?.id) {
+      form.setFieldValue("featuredImageId", (info.file as any).response.id)
+    }
   }
 
   const handleSubmit = async (values: any) => {
@@ -201,7 +204,9 @@ const EventsPage = () => {
             title: data.title,
             slug: data.slug || generateSlug(data.title),
             description: data.description,
-            location: data.location
+            // Send both keys to be compatible with different backend schemas
+            location: data.location,
+            venue: data.location,
           }
         }
       })
@@ -393,9 +398,13 @@ const EventsPage = () => {
                       size="large"
                       placeholder={`Enter the ${currentFormLang} event title...`}
                       className="rounded-lg"
-                      onChange={(e) => {
+                      onBlur={() => {
                         if (!editingEvent && currentFormLang === 'EN') {
-                          form.setFieldValue('slug', generateSlug(e.target.value))
+                          const titleVal = form.getFieldValue('title')
+                          const slugVal = form.getFieldValue('slug')
+                          if (!slugVal && titleVal) {
+                            form.setFieldValue('slug', generateSlug(titleVal))
+                          }
                         }
                       }}
                     />
@@ -568,6 +577,16 @@ const EventsPage = () => {
 
             {viewContent ? (
               <div className="space-y-8 animate-in fade-in duration-300">
+                {selectedEvent.featuredImage?.url && (
+                  <div className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
+                    <img
+                      src={selectedEvent.featuredImage.url}
+                      alt={viewContent.title || "Event banner"}
+                      className="w-full max-h-72 object-cover"
+                    />
+                  </div>
+                )}
+
                 <header className="space-y-4">
                   <Typography.Title level={2} className="text-blue-900 !mb-2 leading-tight">
                     {viewContent.title}
@@ -586,6 +605,11 @@ const EventsPage = () => {
                     </Space>
                     <Typography.Text type="secondary">
                       {selectedEvent.isOnline ? 'Online Activity' : 'Physical Location'}
+                    </Typography.Text>
+                    <Typography.Text type="secondary">
+                      {formatDate(selectedEvent.startAt, "MMM DD, YYYY HH:mm")}
+                      {selectedEvent.endAt && ` 
+→ ${formatDate(selectedEvent.endAt, "MMM DD, YYYY HH:mm")}`}
                     </Typography.Text>
                   </Space>
                 </header>

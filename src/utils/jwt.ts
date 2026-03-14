@@ -75,6 +75,13 @@ export const getUserFromToken = (token: string): any => {
     
     // Extract staffId - might be in different fields
     const staffId = decoded.staffId || decoded.staff_id || decoded.staff || null
+
+    // Extract departmentId for own-head and other department-scoped roles
+    const departmentId =
+      decoded.departmentId ||
+      decoded.department_id ||
+      (decoded.department && (decoded.department.id || decoded.department._id)) ||
+      null
     
     // Parse permissions - they might be in different formats
     let permissions = []
@@ -110,6 +117,7 @@ export const getUserFromToken = (token: string): any => {
       name: name,
       permissions: permissions,
       staffId: staffId,
+      departmentId: departmentId,
     }
   } catch (error) {
     console.error('Error extracting user from token:', error)

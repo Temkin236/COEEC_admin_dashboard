@@ -1,6 +1,7 @@
 export interface StaffItem {
     id: string
     userId?: string
+    staffId?: string
     displayName: string
     title: string
     departmentId?: string

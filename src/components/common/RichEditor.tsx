@@ -29,6 +29,7 @@ const ResizableImageView = (props: any) => {
   const { node, selected, updateAttributes } = props
   const startXRef = useRef(0)
   const startWidthRef = useRef<number>(Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX)
+  const startHeightRef = useRef<number | null>(node?.attrs?.height ? Number(node.attrs.height) : null)
 
   const onHandleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -38,7 +39,7 @@ const ResizableImageView = (props: any) => {
 
     const onMove = (ev: MouseEvent) => {
       const delta = ev.clientX - startXRef.current
-      const next = Math.max(120, Math.min(900, startWidthRef.current + delta))
+      const next = Math.max(120, Math.min(2000, startWidthRef.current + delta))
       updateAttributes({ width: Math.round(next) })
     }
 
@@ -52,6 +53,7 @@ const ResizableImageView = (props: any) => {
   }
 
   const width = Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX
+  const height = node?.attrs?.height ? Number(node.attrs.height) : null
   const align: string = node?.attrs?.align || "left"
 
   const computedWidth = align === "justify" ? "100%" : width
@@ -63,9 +65,38 @@ const ResizableImageView = (props: any) => {
   return (
     <NodeViewWrapper className={`resizable-image ${selected ? "is-selected" : ""}`.trim()}>
       <div className="resizable-image__inner" style={{ width: computedWidth, ...marginStyle }} contentEditable={false}>
-        <img src={node.attrs.src} alt={node.attrs.alt || ""} draggable={false} />
-        {selected && align !== "justify" && (
-          <div className="resizable-image__handle" onMouseDown={onHandleMouseDown} />
+        <img src={node.attrs.src} alt={node.attrs.alt || ""} draggable={false} style={{ width: computedWidth, height: height ? `${height}px` : 'auto' }} />
+        {selected && (
+          <div className="resizable-image__controls" contentEditable={false}>
+            {align !== "justify" && <div className="resizable-image__handle" onMouseDown={onHandleMouseDown} />}
+            <div className="resizable-image__inputs" contentEditable={false}>
+              <input
+                type="number"
+                min={50}
+                max={2000}
+                value={Number(node?.attrs?.width) || DEFAULT_IMAGE_WIDTH_PX}
+                onChange={(e) => {
+                  const v = Number(e.target.value) || DEFAULT_IMAGE_WIDTH_PX
+                  updateAttributes({ width: Math.round(v) })
+                }}
+                className="resizable-image__input"
+                title="Width (px)"
+              />
+              <input
+                type="number"
+                min={0}
+                max={2000}
+                value={height || ''}
+                onChange={(e) => {
+                  const raw = e.target.value
+                  const v = raw === '' ? null : Number(raw)
+                  updateAttributes({ height: v })
+                }}
+                className="resizable-image__input"
+                title="Height (px) (leave blank for auto)"
+              />
+            </div>
+          </div>
         )}
       </div>
     </NodeViewWrapper>
@@ -103,6 +134,17 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage, o
               renderHTML: (attributes) => {
                 const width = Number(attributes.width) || DEFAULT_IMAGE_WIDTH_PX
                 return { width: String(width) }
+              },
+            },
+            height: {
+              default: null,
+              parseHTML: (element) => {
+                const val = element.getAttribute("height")
+                const parsed = val ? Number(val) : null
+                return Number.isFinite(parsed) ? parsed : null
+              },
+              renderHTML: (attributes) => {
+                return attributes.height ? { height: String(attributes.height) } : {}
               },
             },
             uploadId: {
@@ -256,12 +298,20 @@ const RichEditor: React.FC<RichEditorProps> = ({ value, onChange, uploadImage, o
   })
 
   useEffect(() => {
-    if (!editor || !value) return
-    
+    if (!editor) return
+
+    // Keep editor synchronized with external value, including empty values.
+    if (value === undefined || value === null || value === "") {
+      if (!editor.isEmpty) {
+        editor.commands.clearContent(false)
+      }
+      return
+    }
+
     // Only update if content is different
     const currentContent = editor.getJSON()
     const newContent = typeof value === 'string' ? value : value
-    
+
     if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
       editor.commands.setContent(value, false)
     }

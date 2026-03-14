@@ -99,9 +99,17 @@ const researchProjectsSlice = createSlice({
         state.loading = true
         state.error = null
       })
-      .addCase(fetchResearchProjects.fulfilled, (state, action: PayloadAction<ResearchProject[]>) => {
+      .addCase(fetchResearchProjects.fulfilled, (state, action: PayloadAction<ResearchProject[] | any>) => {
         state.loading = false
-        state.items = action.payload
+        const payload = action.payload
+        if (Array.isArray(payload)) {
+          state.items = payload
+        } else if (payload && Array.isArray(payload.items)) {
+          state.items = payload.items
+        } else {
+          // Fallback: ensure items is always an array to avoid runtime errors in components
+          state.items = []
+        }
       })
       .addCase(fetchResearchProjects.rejected, (state, action) => {
         state.loading = false

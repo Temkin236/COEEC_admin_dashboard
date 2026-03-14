@@ -65,7 +65,8 @@ const ProgramsTab = () => {
 
   const openEdit = (record: any) => {
     setEditing(record)
-    form.setFieldsValue(record)
+    // Map existing record.level into form field `subProgram` so the select shows correctly
+    form.setFieldsValue({ ...record, subProgram: record.level })
     setIsModalOpen(true)
   }
 
@@ -122,7 +123,8 @@ const ProgramsTab = () => {
       code: values.code.trim(),
       slug: values.slug || values.name?.toLowerCase().replace(/\s+/g, '-'),
       title: values.title || values.name,
-      level: values.level,
+      // Accept form field `subProgram` but keep payload property `level` for backend compatibility
+      level: values.subProgram ?? values.level,
       type: values.type,
       duration: values.duration,
       credits: Number(values.credits) || 0,
@@ -166,7 +168,7 @@ const ProgramsTab = () => {
       key: "code" 
     },
     { 
-      title: "Level", 
+      title: "Sub Program", 
       dataIndex: "level", 
       key: "level", 
       filters: [
@@ -316,7 +318,7 @@ const ProgramsTab = () => {
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Program Name">{viewProgram.title || viewProgram.name}</Descriptions.Item>
             <Descriptions.Item label="Code">{viewProgram.code}</Descriptions.Item>
-            <Descriptions.Item label="Level">{viewProgram.level}</Descriptions.Item>
+            <Descriptions.Item label="Sub Program">{viewProgram.level}</Descriptions.Item>
             <Descriptions.Item label="Type">{viewProgram.type}</Descriptions.Item>
             <Descriptions.Item label="Duration">{viewProgram.durationMonths ?? viewProgram.duration ?? 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Credits">{viewProgram.credits ?? 'N/A'}</Descriptions.Item>
@@ -340,7 +342,7 @@ const ProgramsTab = () => {
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ level: 'BSC', type: ProgramType.UNDERGRADUATE, duration: '4 years', credits: 0 }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ subProgram: 'BSC', type: ProgramType.UNDERGRADUATE, duration: '4 years', credits: 0 }}>
           <Form.Item name="name" label="Program Name" rules={[{ required: true, message: 'Please enter program name' }]}>
             <Input placeholder="e.g., BSc in Computer Science" />
           </Form.Item>
@@ -365,11 +367,11 @@ const ProgramsTab = () => {
             />
           </Form.Item>
           
-          <Form.Item name="level" label="Level" rules={[{ required: true, message: 'Select level' }]}>
+          <Form.Item name="subProgram" label="Sub Program" rules={[{ required: true, message: 'Select level' }]}>
             <Select
               options={[
                 { value: 'BSC', label: 'BSC (Bachelor)' },
-                { value: 'MSC', label: 'MSC (Master)' },
+                { value: 'MSC', label: 'MSc (Master)' },
                 { value: 'PHD', label: 'PHD (Doctorate)' },
               ]}
             />

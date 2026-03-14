@@ -125,6 +125,7 @@ export const checkPermission = (
   if (!permissions || permissions.length === 0) return false
   const normalize = (s?: string) => (s || "").toString().toLowerCase().trim()
   const stripPlural = (s: string) => s.replace(/s$/i, "")
+  const stripOwn = (s: string) => s.replace(/_own$/i, "")
 
   const a = normalize(action)
   const r = normalize(resource)
@@ -133,12 +134,20 @@ export const checkPermission = (
     const pa = normalize(p.action)
     const pr = normalize(p.resource)
 
+    const paBase = stripPlural(pa)
+    const prBase = stripOwn(stripPlural(pr))
+    const aBase = stripPlural(a)
+    const rBase = stripOwn(stripPlural(r))
+
     // direct match
     if (pa === a && pr === r) return true
 
     // allow plural/singular mismatches (department vs departments)
     if (stripPlural(pa) === stripPlural(a) && pr === r) return true
     if (pa === a && stripPlural(pr) === stripPlural(r)) return true
+
+    // treat *_own as variant of the same action (e.g., create vs create_own)
+    if (paBase === aBase && prBase === rBase) return true
 
     // tolerate swapped fields (some sources may emit action/resource reversed)
     if (pa === r && pr === a) return true
