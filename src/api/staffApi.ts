@@ -37,9 +37,44 @@ export const staffApi = {
   // Fetch staff list with pagination and filters
   fetchStaff: async (params: { page?: number; limit?: number; filters?: Record<string, any> }) => {
     const { page = 1, limit = 10, filters = {} } = params
-    const queryParams = new URLSearchParams({ page: String(page), limit: String(limit), ...filters as any })
-    const response = await axiosInstance.get(`/staff?${queryParams}`)
-    return response.data
+    const queryParams = new URLSearchParams()
+    const search = filters.search?.toString().trim()
+    const departmentId = filters.departmentId || filters.department
+
+    queryParams.set("page", String(page))
+    queryParams.set("limit", String(limit))
+
+    if (search) {
+      queryParams.set("search", search)
+    }
+
+    if (departmentId) {
+      queryParams.set("departmentId", String(departmentId))
+    }
+
+    const queryString = queryParams.toString()
+    const response = await axiosInstance.get(`/staff${queryString ? `?${queryString}` : ""}`)
+    const payload = response.data
+
+    const source = payload?.data ?? payload
+    const items =
+      (Array.isArray(source) && source) ||
+      source?.items ||
+      source?.results ||
+      source?.rows ||
+      source?.staff ||
+      []
+
+    return {
+      items: Array.isArray(items) ? items : [],
+      total:
+        Number(source?.total) ||
+        Number(source?.count) ||
+        Number(source?.meta?.total) ||
+        (Array.isArray(items) ? items.length : 0),
+      page: Number(source?.page) || Number(source?.meta?.page) || page,
+      limit: Number(source?.limit) || Number(source?.meta?.limit) || limit,
+    }
   },
 
   // Fetch staff by ID
@@ -50,21 +85,23 @@ export const staffApi = {
 
   // Create new staff
   createStaff: async (data: any) => {
-    const payload = {
-      userId: data.userId,
+    const payload: Record<string, any> = {
       staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
       rank: data.rank,
-      departmentId: data.departmentId,
       email: data.email,
       phone: data.phone,
       officeLocation: data.officeLocation,
       researchAreas: data.researchAreas || [],
       biography: data.biography || {},
-      photo: data.photoId,
-      cv: data.cv
+      photo: data.photo || data.photoId || null,
+      cv: data.cv || data.cvId || null,
     }
+
+    if (data.userId) payload.userId = data.userId
+    if (data.departmentId) payload.departmentId = data.departmentId
+
     const response = await axiosInstance.post("/staff", payload)
     return response.data
   },
@@ -72,8 +109,7 @@ export const staffApi = {
   // Update staff
   updateStaff: async (params: { id: string; data: any }) => {
     const { id, data } = params
-    const payload = {
-      userId: data.userId,
+    const payload: Record<string, any> = {
       staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
@@ -83,12 +119,14 @@ export const staffApi = {
       email: data.email,
       phone: data.phone,
       officeLocation: data.officeLocation,
-      departmentId: data.departmentId,
       // Use photo and cv, not photoId and cvId
       photo: data.photo || data.photoId || null,
       cv: data.cv || data.cvId || null,
       socialLinks: data.socialLinks || []
     }
+
+    if (data.departmentId !== undefined) payload.departmentId = data.departmentId
+
     const response = await axiosInstance.put(`/staff/${id}`, payload)
     return response.data
   },

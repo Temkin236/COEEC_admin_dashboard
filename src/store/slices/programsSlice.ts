@@ -38,13 +38,19 @@ export const fetchPrograms = createAsyncThunk<Program[], void, { rejectValue: st
   "programs/fetchPrograms",
   async (_, { rejectWithValue }) => {
     try {
-      console.log('Fetching programs from /programs endpoint...')
-      // Add state parameter to get all programs (DRAFT and PUBLISHED)
-      const res = await axiosInstance.get("/programs?all=true")
-      console.log('Programs fetched successfully:', res.data)
-      return res.data
+      const res = await axiosInstance.get("/programs/admin?all=true")
+      const data = res.data
+
+      if (Array.isArray(data)) {
+        return data
+      }
+
+      if (Array.isArray(data?.items)) {
+        return data.items
+      }
+
+      return []
     } catch (err: any) {
-      console.error('Failed to fetch programs:', err.response?.data || err.message)
       return rejectWithValue(err?.response?.data?.message || err.message || "Failed to fetch programs")
     }
   },
@@ -66,12 +72,9 @@ export const createProgram = createAsyncThunk<Program, Partial<Program>, { rejec
   "programs/createProgram",
   async (payload, { rejectWithValue }) => {
     try {
-      console.log('Creating program with payload:', payload)
-      console.log('Current token:', localStorage.getItem('token')?.substring(0, 50) + '...')
       const res = await axiosInstance.post(`/programs`, payload)
       return res.data
     } catch (err: any) {
-      console.error('Create program error:', err.response?.data || err.message)
       const errorMsg = err?.response?.data?.message || err?.response?.data?.error || err.message || "Failed to create program"
       return rejectWithValue(errorMsg)
     }

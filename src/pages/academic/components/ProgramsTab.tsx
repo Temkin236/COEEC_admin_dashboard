@@ -6,14 +6,16 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { createProgram, deleteProgram, fetchPrograms, publishProgram, updateProgram } from "@/store/slices/programsSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
-import { ProgramType, ProgramLevel } from "@/types/academic.types"
 import TableActions from "@/components/common/TableActions"
 import dayjs from 'dayjs'
+import { hasScopedPermission } from '@/utils/helpers'
+import { fetchOptionListItems } from '@/api/optionListsApi'
 
 const ProgramsTab = () => {
   const dispatch = useAppDispatch()
   const { items: programs, loading } = useAppSelector((state) => state.programs)
   const { items: departments, loading: departmentsLoading } = useAppSelector((state) => state.departments)
+  const authUser = useAppSelector((state) => state.auth.user)
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
@@ -21,6 +23,8 @@ const ProgramsTab = () => {
   const [viewProgram, setViewProgram] = useState<any | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [programNameOptions, setProgramNameOptions] = useState<string[]>([])
+  const [subProgramOptions, setSubProgramOptions] = useState<Array<{ value: string; label: string }>>([])
+  const [programTypeOptions, setProgramTypeOptions] = useState<Array<{ value: string; label: string }>>([])
   
   // Filters state removed as we will use column filters
   // const [typeFilter, setTypeFilter] = useState<ProgramType | 'ALL'>('ALL')
@@ -32,11 +36,38 @@ const ProgramsTab = () => {
   const hasProgramsCreate = canCreate("programs")
   const hasProgramsUpdate = canUpdate("programs")
   const hasProgramsDelete = canDelete("programs")
+  const ownDepartmentId = authUser?.departmentId || null
+  const userPermissions = authUser?.permissions || []
+  const hasProgramsCreateGlobal = hasScopedPermission(userPermissions, 'programs', 'create')
+  const hasProgramsCreateOwn = hasScopedPermission(userPermissions, 'programs', 'create_own')
+  const hasProgramsUpdateGlobal = hasScopedPermission(userPermissions, 'programs', 'update')
+  const hasProgramsUpdateOwn = hasScopedPermission(userPermissions, 'programs', 'update_own')
+  const isOwnScopedCreate = !editing && !!ownDepartmentId && hasProgramsCreateOwn && !hasProgramsCreateGlobal
+  const isOwnScopedUpdate = !!editing && !!ownDepartmentId && hasProgramsUpdateOwn && !hasProgramsUpdateGlobal
+  const hideDepartmentField = isOwnScopedCreate || isOwnScopedUpdate
 
   useEffect(() => {
     dispatch(fetchPrograms())
     dispatch(fetchDepartments())
   }, [dispatch])
+
+  useEffect(() => {
+    const loadOptionLists = async () => {
+      try {
+        const [subPrograms, programTypes] = await Promise.all([
+          fetchOptionListItems('program-subprograms'),
+          fetchOptionListItems('program-types'),
+        ])
+
+        setSubProgramOptions(subPrograms.map((item) => ({ value: item.name, label: item.name })))
+        setProgramTypeOptions(programTypes.map((item) => ({ value: item.name, label: item.name })))
+      } catch {
+        // Keep forms usable even if lookup list request fails.
+      }
+    }
+
+    loadOptionLists()
+  }, [])
 
   useEffect(() => {
     setProgramNameOptions(programs.map(p => p.name || p.title || ''))
@@ -60,13 +91,25 @@ const ProgramsTab = () => {
   const openAdd = () => {
     setEditing(null)
     form.resetFields()
+    if (subProgramOptions.length > 0) {
+      form.setFieldValue('subProgram', subProgramOptions[0].value)
+    }
+    if (programTypeOptions.length > 0) {
+      form.setFieldValue('type', programTypeOptions[0].value)
+    }
+    if (ownDepartmentId && hasProgramsCreateOwn && !hasProgramsCreateGlobal) {
+      form.setFieldsValue({ departmentId: ownDepartmentId })
+    }
     setIsModalOpen(true)
   }
 
   const openEdit = (record: any) => {
     setEditing(record)
-    // Map existing record.level into form field `subProgram` so the select shows correctly
-    form.setFieldsValue({ ...record, subProgram: record.level })
+    form.setFieldsValue({
+      ...record,
+      subProgram: record.subProgram || record.level,
+      type: record.type || record.programType,
+    })
     setIsModalOpen(true)
   }
 
@@ -104,8 +147,12 @@ const ProgramsTab = () => {
     if (values.name && !programNameOptions.includes(values.name)) {
       setProgramNameOptions(prev => [...prev, values.name])
     }
-    
-    if (!values.departmentId) {
+
+    const departmentId = editing
+      ? (isOwnScopedUpdate ? undefined : values.departmentId)
+      : (isOwnScopedCreate ? ownDepartmentId : values.departmentId)
+
+    if (!editing && !departmentId) {
       message.error('Please select a department')
       return
     }
@@ -118,17 +165,24 @@ const ProgramsTab = () => {
       }
     }
     
-    const payload = {
-      departmentId: values.departmentId,
+    const payload: Record<string, any> = {
       code: values.code.trim(),
       slug: values.slug || values.name?.toLowerCase().replace(/\s+/g, '-'),
       title: values.title || values.name,
-      // Accept form field `subProgram` but keep payload property `level` for backend compatibility
-      level: values.subProgram ?? values.level,
+      subProgram: values.subProgram ?? values.level,
       type: values.type,
+      programType: values.type,
       duration: values.duration,
       credits: Number(values.credits) || 0,
       description: values.description || '',
+    }
+
+    if (!editing && departmentId) {
+      payload.departmentId = departmentId
+    }
+
+    if (editing && departmentId !== undefined) {
+      payload.departmentId = departmentId
     }
 
     try {
@@ -169,27 +223,13 @@ const ProgramsTab = () => {
     },
     { 
       title: "Sub Program", 
-      dataIndex: "level", 
-      key: "level", 
-      filters: [
-        { text: 'BSc (Bachelor)', value: 'BSC' },
-        { text: 'MSc (Master)', value: 'MSC' },
-        { text: 'PhD (Doctorate)', value: 'PHD' },
-      ],
-      onFilter: (value: any, record: any) => record.level === value,
-      render: (level: string) => <Tag color="blue">{level}</Tag> 
+      key: "subProgram", 
+      render: (_: any, record: any) => <Tag color="blue">{record.subProgram || record.level || 'N/A'}</Tag>
     },
     { 
       title: "Type", 
       dataIndex: "type", 
       key: "type", 
-      filters: [
-        { text: 'Undergraduate', value: ProgramType.UNDERGRADUATE },
-        { text: 'Postgraduate', value: ProgramType.POSTGRADUATE },
-        { text: 'Extension', value: ProgramType.EXTENSION },
-        { text: 'Weekend', value: ProgramType.WEEKEND },
-      ],
-      onFilter: (value: any, record: any) => record.type === value,
       render: (type: string) => <Tag color="purple">{type}</Tag> 
     },
     /*
@@ -318,7 +358,7 @@ const ProgramsTab = () => {
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Program Name">{viewProgram.title || viewProgram.name}</Descriptions.Item>
             <Descriptions.Item label="Code">{viewProgram.code}</Descriptions.Item>
-            <Descriptions.Item label="Sub Program">{viewProgram.level}</Descriptions.Item>
+            <Descriptions.Item label="Sub Program">{viewProgram.subProgram || viewProgram.level || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Type">{viewProgram.type}</Descriptions.Item>
             <Descriptions.Item label="Duration">{viewProgram.durationMonths ?? viewProgram.duration ?? 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Credits">{viewProgram.credits ?? 'N/A'}</Descriptions.Item>
@@ -342,7 +382,7 @@ const ProgramsTab = () => {
         onCancel={() => setIsModalOpen(false)}
         onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ subProgram: 'BSC', type: ProgramType.UNDERGRADUATE, duration: '4 years', credits: 0 }}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ duration: '4 years', credits: 0 }}>
           <Form.Item name="name" label="Program Name" rules={[{ required: true, message: 'Please enter program name' }]}>
             <Input placeholder="e.g., BSc in Computer Science" />
           </Form.Item>
@@ -356,36 +396,25 @@ const ProgramsTab = () => {
             <Input placeholder="e.g., CS_BSC" />
           </Form.Item>
           
-          <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: 'Select department' }]}>
-            <Select
-              placeholder="Select department"
-              loading={departmentsLoading}
-              options={departments.map(d => ({ 
-                value: d.id, 
-                label: d.name 
-              }))}
-            />
-          </Form.Item>
+          {!hideDepartmentField && (
+            <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: 'Select department' }]}> 
+              <Select
+                placeholder="Select department"
+                loading={departmentsLoading}
+                options={departments.map(d => ({ 
+                  value: d.id, 
+                  label: d.name 
+                }))}
+              />
+            </Form.Item>
+          )}
           
           <Form.Item name="subProgram" label="Sub Program" rules={[{ required: true, message: 'Select level' }]}>
-            <Select
-              options={[
-                { value: 'BSC', label: 'BSC (Bachelor)' },
-                { value: 'MSC', label: 'MSc (Master)' },
-                { value: 'PHD', label: 'PHD (Doctorate)' },
-              ]}
-            />
+            <Select options={subProgramOptions} placeholder="Select sub program" />
           </Form.Item>
 
           <Form.Item name="type" label="Program Type" rules={[{ required: true, message: 'Select program type' }]}>
-            <Select
-              options={[
-                { value: ProgramType.UNDERGRADUATE, label: 'Undergraduate' },
-                { value: ProgramType.POSTGRADUATE, label: 'Postgraduate' },
-                { value: ProgramType.EXTENSION, label: 'Extension' },
-                { value: ProgramType.WEEKEND, label: 'Weekend' },
-              ]}
-            />
+            <Select options={programTypeOptions} placeholder="Select program type" />
           </Form.Item>
           
           <Form.Item name="duration" label="Duration" rules={[{ required: true, message: 'Enter duration' }]}>

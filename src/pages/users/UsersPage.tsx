@@ -29,6 +29,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  uploadUsersCsv,
   clearLastInvite,
   setCurrentUser,
   User,
@@ -46,8 +47,11 @@ const UsersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<User | null>(null)
   const [viewingItem, setViewingItem] = useState<User | null>(null)
+  const [bulkFile, setBulkFile] = useState<File | null>(null)
+  const [isBulkUploading, setIsBulkUploading] = useState(false)
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -137,6 +141,60 @@ const UsersPage = () => {
     dispatch(clearLastInvite())
   }
 
+  const handleOpenBulkModal = () => {
+    setBulkFile(null)
+    setIsBulkModalOpen(true)
+  }
+
+  const handleBulkFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    if (!file) {
+      setBulkFile(null)
+      return
+    }
+
+    const fileName = file.name.toLowerCase()
+    const allowedExtensions = [".csv", ".xls", ".xlsx", ".xlsm"]
+    const isAllowed = allowedExtensions.some((ext) => fileName.endsWith(ext))
+
+    if (!isAllowed) {
+      message.error("Please select a CSV or Excel file (.csv, .xls, .xlsx, .xlsm)")
+      event.target.value = ""
+      setBulkFile(null)
+      return
+    }
+
+    setBulkFile(file)
+  }
+
+  const handleBulkUpload = async () => {
+    if (!bulkFile) {
+      message.error("Please select a CSV file first")
+      return
+    }
+
+    try {
+      setIsBulkUploading(true)
+      const response = await dispatch(uploadUsersCsv(bulkFile) as any).unwrap()
+
+      const createdCount = response?.createdCount
+      const failedCount = response?.failedCount
+      if (typeof createdCount === "number" || typeof failedCount === "number") {
+        message.success(`CSV uploaded: ${createdCount || 0} created, ${failedCount || 0} failed`)
+      } else {
+        message.success(response?.message || "CSV uploaded successfully")
+      }
+
+      setIsBulkModalOpen(false)
+      setBulkFile(null)
+      dispatch(fetchUsers() as any)
+    } catch (error: any) {
+      message.error(error || "Failed to upload CSV")
+    } finally {
+      setIsBulkUploading(false)
+    }
+  }
+
   const columns = [
     {
       title: "Display Name",
@@ -208,13 +266,16 @@ const UsersPage = () => {
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">User Management</span>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
-              onClick={handleAdd}
-            >
-              Add User
-            </Button>
+            <Space>
+              <Button onClick={handleOpenBulkModal}>Bulk User</Button>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={handleAdd}
+              >
+                Add User
+              </Button>
+            </Space>
           </div>
         }
       >
@@ -352,6 +413,37 @@ const UsersPage = () => {
               Share this link with the user to activate their account.
             </Text>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Bulk User Upload"
+        open={isBulkModalOpen}
+        onCancel={() => setIsBulkModalOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsBulkModalOpen(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="upload"
+            type="primary"
+            loading={isBulkUploading}
+            onClick={handleBulkUpload}
+          >
+            Upload
+          </Button>,
+        ]}
+      >
+        <div className="space-y-3">
+          <input
+            type="file"
+            accept=".csv,.xls,.xlsx,.xlsm,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleBulkFileChange}
+          />
+          <Text type="secondary" className="text-xs block">
+            File columns: name,email
+          </Text>
+          {bulkFile && <Text>{bulkFile.name}</Text>}
         </div>
       </Modal>
     </div>

@@ -31,6 +31,7 @@ export interface DownloadItem {
 
 interface FetchArgs {
   category?: string
+  departmentId?: string
   page?: number
   limit?: number
 }
@@ -45,9 +46,15 @@ interface DownloadState {
 
 export const fetchDownloads = createAsyncThunk<{ items: DownloadItem[]; total: number }, FetchArgs>(
   "downloads/fetchDownloads",
-  async ({ category, page = 1, limit = 10 }) => {
+  async ({ category, departmentId, page = 1, limit = 10 }) => {
     try {
-      const params = category ? `?category=${category}&page=${page}&limit=${limit}` : `?page=${page}&limit=${limit}`
+      const queryParams = new URLSearchParams()
+      queryParams.set("page", String(page))
+      queryParams.set("limit", String(limit))
+      if (category) queryParams.set("category", category)
+      if (departmentId) queryParams.set("departmentId", departmentId)
+
+      const params = `?${queryParams.toString()}`
       const response = await axiosInstance.get(`/downloads${params}`)
       // support APIs that return { data: [...], meta: { total } }
       const body = response.data
@@ -186,6 +193,9 @@ const downloadSlice = createSlice({
           url: it.url || (it.file && it.file.url) || "#",
           downloadCount: it.downloadCount || 0,
           description: it.description,
+          departmentId: it.departmentId || it.department?.id,
+          department: it.department,
+          file: it.file,
         }))
         state.total = action.payload.total
       })

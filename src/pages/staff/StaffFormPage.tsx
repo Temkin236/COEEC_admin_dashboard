@@ -9,6 +9,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaffById, createStaff, updateStaff, uploadCV } from "@/store/slices/staffSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { fetchUsers } from "@/store/slices/usersSlice"
+import { hasScopedPermission } from "@/utils/helpers"
+import { fetchOptionListItems } from "@/api/optionListsApi"
 
 
 const { TextArea } = Input
@@ -27,16 +29,13 @@ const { Title } = Typography
     const [cvFile, setCvFile] = useState<any>(null)
     const [photoPreview, setPhotoPreview] = useState<string | null>(null)
     const [previewValues, setPreviewValues] = useState<any>({})
+    const [rankOptions, setRankOptions] = useState<Array<{ value: string; label: string }>>([])
     const isEdit = !!id && id !== "new"
 
     const ownDepartmentId = authUser?.departmentId || null
     const userPermissions = authUser?.permissions || []
-    const hasStaffCreateGlobal = userPermissions.some(
-      (p: any) => p.action === "staff" && p.resource === "create"
-    )
-    const hasStaffCreateOwn = userPermissions.some(
-      (p: any) => p.action === "staff" && p.resource === "create_own"
-    )
+    const hasStaffCreateGlobal = hasScopedPermission(userPermissions, "staff", "create")
+    const hasStaffCreateOwn = hasScopedPermission(userPermissions, "staff", "create_own")
     // Only lock department selection if user has an own-department permission
     // AND we actually know their departmentId from the token.
     const isOwnHeadCreateOnly =
@@ -54,6 +53,19 @@ const { Title } = Typography
     dispatch(fetchDepartments() as any)
     dispatch(fetchUsers() as any)
   }, [dispatch])
+
+  useEffect(() => {
+    const loadRankOptions = async () => {
+      try {
+        const ranks = await fetchOptionListItems('staff-ranks')
+        setRankOptions(ranks.map((item) => ({ value: item.name, label: item.name })))
+      } catch {
+        // Keep static fallback options if lookup request fails.
+      }
+    }
+
+    loadRankOptions()
+  }, [])
 
   useEffect(() => {
     if (isEdit) {
@@ -104,16 +116,20 @@ const { Title } = Typography
 
   const handleSubmit = async (values: any) => {
     try {
+      const departmentId = !isEdit && isOwnHeadCreateOnly
+        ? ownDepartmentId
+        : values.departmentId || (isEdit ? currentStaff?.departmentId : undefined)
+
       const data = {
         staffId: values.staffId?.trim() || (isEdit ? (currentStaff as any)?.staffId : undefined),
-        userId: values.userId || (isEdit ? (currentStaff as any)?.userId : undefined),
+        ...(!isEdit && values.userId ? { userId: values.userId } : {}),
         displayName: values.displayName?.trim(),
         title: values.title?.trim(),
         rank: values.rank || (isEdit ? (currentStaff as any)?.rank : undefined),
         email: values.email?.trim(),
         phone: values.phone?.trim(),
         officeLocation: values.officeLocation?.trim(),
-        departmentId: values.departmentId,
+        departmentId,
         researchAreas: values.researchAreas || [],
         biography: values.biography?.trim() || '',
         photoId: values.photoId,
@@ -258,9 +274,19 @@ const { Title } = Typography
                     rules={[{ required: true, message: "Please select rank" }]}
                   >
                     <Select placeholder="Select rank">
-                      <Select.Option value="ACADEMIC">Academic </Select.Option>
-                      <Select.Option value="RESEARCH_ASSISTANT">Research Assistant</Select.Option>
-                      <Select.Option value="SENIOR_RESEARCH_ASSISTANT">Senior Research Assistant</Select.Option>
+                      {rankOptions.length > 0 ? (
+                        rankOptions.map((option) => (
+                          <Select.Option key={option.value} value={option.value}>
+                            {option.label}
+                          </Select.Option>
+                        ))
+                      ) : (
+                        <>
+                          <Select.Option value="ACADEMIC">Academic</Select.Option>
+                          <Select.Option value="RESEARCH_ASSISTANT">Research Assistant</Select.Option>
+                          <Select.Option value="SENIOR_RESEARCH_ASSISTANT">Senior Research Assistant</Select.Option>
+                        </>
+                      )}
                     </Select>
                   </Form.Item>
 
@@ -300,17 +326,18 @@ const { Title } = Typography
                   <Form.Item name="officeLocation" label="Office Location">
                     <Input placeholder="e.g., B-504 R-12" />
                   </Form.Item>
-                  <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: "Please select department" }]}>
-                    <Select
-                      placeholder="Select Department"
-                      allowClear={!isOwnHeadCreateOnly}
-                      disabled={isOwnHeadCreateOnly}
-                    >
-                      {departments.map((d) => (
-                        <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
+                  {!isOwnHeadCreateOnly && (
+                    <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: "Please select department" }]}> 
+                      <Select
+                        placeholder="Select Department"
+                        allowClear
+                      >
+                        {departments.map((d) => (
+                          <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  )}
                   <Form.Item name="researchAreas" label="Research Areas">
                     <Select mode="tags" placeholder="Add research areas" tokenSeparators={[","]} />
                   </Form.Item>
@@ -363,7 +390,7 @@ const { Title } = Typography
                   )}
                 </div>
                 <div className="p-6 w-full">
-                  <div className="text-xs font-semibold text-primary-600 uppercase mb-2">{previewValues.title || 'TITLE'}</div>
+                  <div className="text-xs font-semibold text-primary-600 uppercase mb-2">{previewValues.rank || 'RANK'}</div>
                   <div className="text-2xl font-extrabold text-gray-900 mb-1">{previewValues.displayName || 'Full Name'}</div>
                   <div className="text-sm text-gray-500 mb-1">{previewValues.email || 'email@example.com'}</div>
                   {previewValues.staffId && (

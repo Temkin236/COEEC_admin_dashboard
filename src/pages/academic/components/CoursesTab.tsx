@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Button, Modal, Form, Input, Select, message, Tag, Space, Descriptions, Card } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import DataTable from "@/components/common/DataTable"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { createCourse, deleteCourse, fetchCoursesByProgram, publishCourse, updateCourse } from "@/store/slices/academicSlice"
+import { fetchPrograms } from "@/store/slices/programsSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
+import { fetchOptionListItems } from '@/api/optionListsApi'
 
 const CoursesTab = () => {
   const dispatch = useAppDispatch()
@@ -19,8 +21,10 @@ const CoursesTab = () => {
   const [courseForm] = Form.useForm()
   const [courseView, setCourseView] = useState<any | null>(null)
   const [courseViewModalOpen, setCourseViewModalOpen] = useState(false)
+  const [courseCategoryOptions, setCourseCategoryOptions] = useState<Array<{ value: string; label: string }>>([])
   
   const selectedProgramId = programs.length ? programs[0].id : null
+  const selectedProgramForModal = Form.useWatch('programId', courseForm) ?? selectedProgramId
   const courses = selectedProgramId ? (academic.coursesByProgram[String(selectedProgramId)] || []) : []
   const loading = academic.loading
 
@@ -31,14 +35,40 @@ const CoursesTab = () => {
   const hasCoursesDelete = canDelete("courses")
 
   useEffect(() => {
+    dispatch(fetchPrograms())
+  }, [dispatch])
+
+  useEffect(() => {
+    const loadCourseCategories = async () => {
+      try {
+        const categories = await fetchOptionListItems('course-categories')
+        setCourseCategoryOptions(categories.map((item) => ({ value: item.name, label: item.name })))
+      } catch {
+        // Keep modal usable if lookup request fails.
+      }
+    }
+
+    loadCourseCategories()
+  }, [])
+
+  useEffect(() => {
     if (selectedProgramId) {
       dispatch(fetchCoursesByProgram(selectedProgramId))
     }
   }, [dispatch, selectedProgramId])
 
+  useEffect(() => {
+    if (courseModalOpen && selectedProgramForModal) {
+      dispatch(fetchCoursesByProgram(selectedProgramForModal))
+    }
+  }, [dispatch, courseModalOpen, selectedProgramForModal])
+
   const openAddCourse = () => {
     setCourseEditing(null)
     courseForm.resetFields()
+    if (selectedProgramId) {
+      courseForm.setFieldsValue({ programId: selectedProgramId })
+    }
     setCourseModalOpen(true)
   }
 
@@ -48,6 +78,7 @@ const CoursesTab = () => {
     courseForm.setFieldsValue({
       ...record,
       programId: record.programId || selectedProgramId,
+      courseCategory: record.courseCategory || record.category,
       department: record.departmentId || (departments.length > 0 ? departments[0].id : undefined)
     })
     setCourseModalOpen(true)
@@ -89,6 +120,8 @@ const CoursesTab = () => {
     const payloadValues = { 
       ...values, 
       title: values.title ?? values.name,
+      category: values.courseCategory || values.category,
+      courseCategory: values.courseCategory || values.category,
       credits: values.credits ? Number(values.credits) : 0,
       semester: values.semester ? Number(values.semester) : undefined,
       year: values.year ? Number(values.year) : undefined
@@ -106,7 +139,7 @@ const CoursesTab = () => {
         if (courseEditing) {
           await dispatch(updateCourse({ id: courseEditing.id, payload: payloadValues })).unwrap()
           message.success('Course updated')
-        } else if (selectedProgramId) {
+        } else if (programIdToUse) {
           await dispatch(createCourse({ programId: programIdToUse, payload: bodyPayload })).unwrap()
           message.success('Course added')
         } else {
@@ -178,6 +211,17 @@ const CoursesTab = () => {
 
   // Filter programs by selected department if one is selected, or use all programs
   const programOptions = programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))
+  const prerequisiteOptions = useMemo(() => {
+    if (!selectedProgramForModal) return []
+
+    const selectedProgramCourses = academic.coursesByProgram[String(selectedProgramForModal)] || []
+    return selectedProgramCourses
+      .filter((c: any) => !courseEditing || c.id !== courseEditing.id)
+      .map((c: any) => ({
+        value: c.code || String(c.id),
+        label: c.code ? `${c.code} - ${c.name || c.title || 'Untitled Course'}` : (c.name || c.title || `Course ${c.id}`),
+      }))
+  }, [academic.coursesByProgram, selectedProgramForModal, courseEditing])
 
   return (
     <div>
@@ -230,8 +274,18 @@ const CoursesTab = () => {
         <Form form={courseForm} layout="vertical" onFinish={handleCourseSubmit} initialValues={{ credits: 3, department: departments.length > 0 ? departments[0].id : undefined }}>
           <Form.Item name="programId" label="Program" rules={[{ required: true, message: 'Select program' }]}> 
             <Select
-              options={programs.map(p => ({ value: p.id, label: p.name || p.title || String(p.id) }))}
+              options={programOptions}
               placeholder="Select program"
+            />
+          </Form.Item>
+          <Form.Item
+            name="courseCategory"
+            label="Course Category"
+            rules={[{ required: true, message: 'Select course category' }]}
+          >
+            <Select
+              placeholder="Select course category"
+              options={courseCategoryOptions}
             />
           </Form.Item>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -244,6 +298,16 @@ const CoursesTab = () => {
           </div>
           <Form.Item name="name" label="Course Name" rules={[{ required: true, message: 'Enter course name' }]}>
             <Input />
+          </Form.Item>
+          <Form.Item name="prerequisite" label="Prerequisite">
+            <Select
+              placeholder="Optional prerequisite"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              options={prerequisiteOptions}
+              disabled={!selectedProgramForModal}
+            />
           </Form.Item>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
              <Form.Item name="semester" label="Semester" initialValue={1}>

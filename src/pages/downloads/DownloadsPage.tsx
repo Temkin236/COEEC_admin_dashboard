@@ -32,20 +32,32 @@ import {
   removeDownload,
   incrementDownloadCount,
 } from "@/store/slices/downloadSlice"
+import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { formatRelativeTime } from "@/utils/helpers"
 import { usePermissions } from "@/hooks/usePermissions"
 import axiosInstance from "@/utils/axios"
+import { hasScopedPermission } from "@/utils/helpers"
 
 const { TextArea } = Input
 
 const DownloadsPage = () => {
   const dispatch = useAppDispatch()
   const { items, loading } = useAppSelector((state) => state.downloads)
+  const { items: departments } = useAppSelector((state) => state.departments)
+  const authUser = useAppSelector((state) => state.auth.user)
 
   const { canCreate, canDelete, canView } = usePermissions()
   const hasDownloadsCreate = canCreate("downloads")
   const hasDownloadsDelete = canDelete("downloads")
   const hasDownloadsView = canView("downloads")
+  const ownDepartmentId = authUser?.departmentId || ""
+  const hasDownloadsViewGlobal = hasScopedPermission(authUser?.permissions, "downloads", "view")
+  const hasDownloadsViewOwn = hasScopedPermission(authUser?.permissions, "downloads", "view_own")
+  const hasDownloadsCreateGlobal = hasScopedPermission(authUser?.permissions, "downloads", "create")
+  const hasDownloadsCreateOwn = hasScopedPermission(authUser?.permissions, "downloads", "create_own")
+  const isOwnScopedViewOnly = !!ownDepartmentId && hasDownloadsViewOwn && !hasDownloadsViewGlobal
+  const isOwnScopedCreateOnly = !!ownDepartmentId && hasDownloadsCreateOwn && !hasDownloadsCreateGlobal
+  const shouldFilterByDepartment = !!ownDepartmentId
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [fileToUpload, setFileToUpload] = useState<File | null>(null)
@@ -56,8 +68,19 @@ const DownloadsPage = () => {
   const [form] = Form.useForm()
 
   useEffect(() => {
-    dispatch(fetchDownloads({ page: 1, limit: 10 }) as any)
+    dispatch(fetchDownloads({ page: 1, limit: 10, departmentId: shouldFilterByDepartment ? ownDepartmentId : undefined }) as any)
+  }, [dispatch, shouldFilterByDepartment, ownDepartmentId])
+
+  useEffect(() => {
+    dispatch(fetchDepartments() as any)
   }, [dispatch])
+
+  const openUploadModal = () => {
+    if (isOwnScopedCreateOnly && ownDepartmentId) {
+      form.setFieldValue("departmentId", ownDepartmentId)
+    }
+    setIsModalOpen(true)
+  }
 
   /* ---------------- FILE UPLOAD ---------------- */
   const handleFileSelect = async (file: File) => {
@@ -135,18 +158,27 @@ const DownloadsPage = () => {
     }
 
     try {
+      const departmentId = isOwnScopedCreateOnly ? ownDepartmentId : values.departmentId
       await axiosInstance.post("/downloads", {
         ...values,
+        departmentId,
         fileId: uploadedFileId,
       })
 
       message.success("Download created")
       handleModalClose()
-      dispatch(fetchDownloads({ page: 1, limit: 10 }) as any)
+      dispatch(fetchDownloads({ page: 1, limit: 10, departmentId: shouldFilterByDepartment ? ownDepartmentId : undefined }) as any)
     } catch (err: any) {
       message.error(err?.response?.data?.message || "Creation failed")
     }
   }
+  const visibleItems = shouldFilterByDepartment
+    ? (items || []).filter((item: any) => {
+        const rowDepartmentId = item.departmentId || item.department?.id
+        return !!rowDepartmentId && String(rowDepartmentId) === String(ownDepartmentId)
+      })
+    : (items || [])
+
 
   const handleModalClose = () => {
     setIsModalOpen(false)
@@ -272,7 +304,7 @@ const DownloadsPage = () => {
             <Button
               type="primary"
               icon={<UploadOutlined />}
-              onClick={() => setIsModalOpen(true)}
+              onClick={openUploadModal}
             >
               Upload File
             </Button>
@@ -281,7 +313,7 @@ const DownloadsPage = () => {
       >
         <DataTable
           columns={columns as any}
-          dataSource={items || []}
+          dataSource={visibleItems}
           loading={loading}
           rowKey="id"
         />
@@ -307,6 +339,18 @@ const DownloadsPage = () => {
               <Select.Option value="Guides">Guides</Select.Option>
             </Select>
           </Form.Item>
+
+          {!isOwnScopedCreateOnly && (
+            <Form.Item name="departmentId" label="Department" rules={[{ required: true, message: "Please select department" }]}>
+              <Select placeholder="Select department" showSearch optionFilterProp="children">
+                {departments.map((dept: any) => (
+                  <Select.Option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
 
           <Form.Item name="description" label="Description">
             <TextArea rows={3} />

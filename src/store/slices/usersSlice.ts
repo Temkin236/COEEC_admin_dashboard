@@ -16,6 +16,13 @@ export interface InviteResponse {
   inviteUrl: string
 }
 
+export interface BulkUsersResponse {
+  message?: string
+  createdCount?: number
+  failedCount?: number
+  [key: string]: any
+}
+
 interface UsersState {
   items: User[]
   currentUser: User | null
@@ -92,6 +99,25 @@ export const deleteUser = createAsyncThunk<string, string, { rejectValue: string
   }
 )
 
+export const uploadUsersCsv = createAsyncThunk<BulkUsersResponse, File, { rejectValue: string }>(
+  "users/uploadUsersCsv",
+  async (file, { rejectWithValue }) => {
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await axiosInstance.post("/users/bulk", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      return rejectWithValue(error?.response?.data?.message || "Failed to upload CSV")
+    }
+  }
+)
+
 const usersSlice = createSlice({
   name: "users",
   initialState,
@@ -147,6 +173,17 @@ const usersSlice = createSlice({
       })
       .addCase(deleteUser.fulfilled, (state, action: PayloadAction<string>) => {
         state.items = state.items.filter((item) => item.id !== action.payload)
+      })
+      .addCase(uploadUsersCsv.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(uploadUsersCsv.fulfilled, (state) => {
+        state.loading = false
+      })
+      .addCase(uploadUsersCsv.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload as string
       })
   },
 })

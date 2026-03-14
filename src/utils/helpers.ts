@@ -110,6 +110,33 @@ export interface Permission {
   description?: string | null
 }
 
+const normalizePermissionToken = (value?: string) => (value || "").toString().toLowerCase().trim()
+const stripPluralPermissionToken = (value: string) => value.replace(/s$/i, "")
+
+export const hasScopedPermission = (
+  permissions: Permission[] | undefined,
+  subject: string,
+  scope: string
+): boolean => {
+  if (!permissions || permissions.length === 0) return false
+
+  const normalizedSubject = stripPluralPermissionToken(normalizePermissionToken(subject))
+  const normalizedScope = normalizePermissionToken(scope)
+
+  const matchesSubject = (value?: string) =>
+    stripPluralPermissionToken(normalizePermissionToken(value)) === normalizedSubject
+
+  return permissions.some((permission) => {
+    const action = normalizePermissionToken(permission.action)
+    const resource = normalizePermissionToken(permission.resource)
+
+    return (
+      (matchesSubject(action) && resource === normalizedScope) ||
+      (matchesSubject(resource) && action === normalizedScope)
+    )
+  })
+}
+
 /**
  * Check if user has a specific permission
  * @param permissions - User's permissions array from token

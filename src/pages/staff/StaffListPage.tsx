@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Card, Button, Table, Space, Tag, Input, Select, Avatar, Modal, message, Descriptions } from "antd"
+import { Card, Button, Space, Tag, Input, Select, Avatar, Modal, message, Descriptions, Tabs } from "antd"
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from "@ant-design/icons"
 import { useAppDispatch, useAppSelector } from "@/store/hooks"
 import { fetchStaff, deleteStaff, setPage, setLimit } from "@/store/slices/staffSlice"
@@ -11,13 +11,16 @@ import { fetchDepartments } from "@/store/slices/departmentSlice"
 import { usePermissions } from "@/hooks/usePermissions"
 import TableActions from "@/components/common/TableActions"
 import DataTable from "@/components/common/DataTable"
+import { hasScopedPermission } from "@/utils/helpers"
+import OptionListManager from "@/components/common/OptionListManager"
 
 const StaffListPage = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { items, total, page, limit, loading } = useAppSelector((state) => state.staff)
   const { items: departments = [] } = useAppSelector((state) => state.departments)
-  const [filters, setFilters] = useState<{ search: string; department: string }>({ search: "", department: "" })
+  const authUser = useAppSelector((state) => state.auth.user)
+  const [filters, setFilters] = useState<{ search: string; departmentId: string }>({ search: "", departmentId: "" })
   const perms = usePermissions()
   const { canCreate, canView, canUpdate, canDelete, permissions: userPermissions } = perms
 
@@ -25,6 +28,7 @@ const StaffListPage = () => {
   const hasStaffCreate = canCreate("staff")
   const hasStaffUpdate = canUpdate("staff")
   const hasStaffDelete = canDelete("staff")
+  const hasStaffViewGlobal = hasScopedPermission(authUser?.permissions, "staff", "view")
 
   // Has any action permission
   const hasAnyAction = hasStaffView || hasStaffUpdate || hasStaffDelete
@@ -82,7 +86,7 @@ const StaffListPage = () => {
   }
 
   const handleDepartmentFilter = (value: string) => {
-    setFilters({ ...filters, department: value })
+    setFilters({ ...filters, departmentId: value || "" })
   }
 
   const columns = [
@@ -242,6 +246,8 @@ const StaffListPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
+      <Tabs defaultActiveKey="staff-members">
+        <Tabs.TabPane tab="Staff Members" key="staff-members">
       <Card
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -260,7 +266,7 @@ const StaffListPage = () => {
           </div>
         }
       >
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={`mb-6 grid grid-cols-1 ${hasStaffViewGlobal ? "sm:grid-cols-2" : ""} gap-4`}>
           <Input 
             placeholder="Search by name or email..." 
             prefix={<SearchOutlined />} 
@@ -268,18 +274,20 @@ const StaffListPage = () => {
             className="w-full"
             allowClear 
           />
-          <Select
-            placeholder="Filter by department"
-            onChange={handleDepartmentFilter}
-            className="w-full"
-            allowClear
-          >
-            {Array.isArray(departments) && departments.map((dept: any) => (
-              <Select.Option key={dept.id || dept.code} value={dept.code || dept.id}>
-                {dept.name || dept.title || dept.code}
-              </Select.Option>
-            ))}
-          </Select>
+          {hasStaffViewGlobal && (
+            <Select
+              placeholder="Filter by department"
+              onChange={handleDepartmentFilter}
+              className="w-full"
+              allowClear
+            >
+              {Array.isArray(departments) && departments.map((dept: any) => (
+                <Select.Option key={dept.id} value={dept.id}>
+                  {dept.name || dept.title || dept.code}
+                </Select.Option>
+              ))}
+            </Select>
+          )}
         </div>
 
         <DataTable
@@ -346,6 +354,15 @@ const StaffListPage = () => {
             )
           })()}
         </Modal>
+        </Tabs.TabPane>
+        <Tabs.TabPane tab="Staff Ranks" key="staff-ranks">
+          <OptionListManager
+            title="Staff Ranks"
+            type="staff-ranks"
+            addButtonLabel="Add Rank"
+          />
+        </Tabs.TabPane>
+      </Tabs>
     </div>
   )
 }
