@@ -88,6 +88,7 @@ const { Title } = Typography
         userId: (currentStaff as any).userId || "",
         displayName: currentStaff.displayName,
         title: currentStaff.title,
+        rank: (currentStaff as any).rank || "",
         email: currentStaff.email,
         phone: currentStaff.phone,
         officeLocation: currentStaff.officeLocation,
@@ -108,6 +109,7 @@ const { Title } = Typography
         userId: values.userId || (isEdit ? (currentStaff as any)?.userId : undefined),
         displayName: values.displayName?.trim(),
         title: values.title?.trim(),
+        rank: values.rank || (isEdit ? (currentStaff as any)?.rank : undefined),
         email: values.email?.trim(),
         phone: values.phone?.trim(),
         officeLocation: values.officeLocation?.trim(),
@@ -245,8 +247,21 @@ const { Title } = Typography
                   <Form.Item 
                     name="staffId" 
                     label="Staff ID"
+                    rules={[{ required: true, message: "Please enter staff ID" }]}
                   >
                     <Input placeholder="e.g., EMP-12345" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="rank"
+                    label="Rank"
+                    rules={[{ required: true, message: "Please select rank" }]}
+                  >
+                    <Select placeholder="Select rank">
+                      <Select.Option value="ACADEMIC">Academic </Select.Option>
+                      <Select.Option value="RESEARCH_ASSISTANT">Research Assistant</Select.Option>
+                      <Select.Option value="SENIOR_RESEARCH_ASSISTANT">Senior Research Assistant</Select.Option>
+                    </Select>
                   </Form.Item>
 
                   <Form.Item 

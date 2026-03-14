@@ -6,6 +6,7 @@ export interface StaffItem {
   staffId?: string
   displayName: string
   title: string
+  rank?: string
   departmentId?: string
   photoId?: string | null
   researchAreas?: string[]
@@ -50,9 +51,11 @@ export const staffApi = {
   // Create new staff
   createStaff: async (data: any) => {
     const payload = {
+      userId: data.userId,
       staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
+      rank: data.rank,
       departmentId: data.departmentId,
       email: data.email,
       phone: data.phone,
@@ -70,9 +73,11 @@ export const staffApi = {
   updateStaff: async (params: { id: string; data: any }) => {
     const { id, data } = params
     const payload = {
+      userId: data.userId,
       staffId: data.staffId,
       displayName: data.displayName,
       title: data.title,
+      rank: data.rank,
       biography: data.biography || {},
       researchAreas: data.researchAreas || [],
       email: data.email,
