@@ -14,6 +14,7 @@ import { uploadCV, uploadPhoto, updateStaff } from "@/store/slices/staffSlice"
 import { fetchDepartments } from "@/store/slices/departmentSlice"
 
 interface photoFormData {
+  staffId: string
   fullName: string
   title: string
   department: string
@@ -50,6 +51,7 @@ export default function photo() {
   const { canEdit, isOwnProfile, hasProfileUpdate } = useProfilePermissions(profileIdBeingEdited)
 
   const [formData, setFormData] = useState<photoFormData>({
+    staffId: "",
     fullName: "",
     title: "",
     department: "",
@@ -154,6 +156,7 @@ export default function photo() {
       }
       
       setFormData({
+        staffId: storedphoto.staffId || "",
         fullName: storedphoto.displayName || "",
         title: storedphoto.title || "",
         department: storedphoto.departmentId || "",
@@ -197,6 +200,7 @@ export default function photo() {
 
   const handleSave = async () => {
     const payload: any = {
+      staffId: formData.staffId?.trim() || undefined,
       displayName: formData.fullName,
       title: formData.title,
       departmentId: formData.department,
@@ -286,6 +290,15 @@ export default function photo() {
             </div>
 
             <Form layout="vertical">
+              <Form.Item label="Staff ID">
+                <Input
+                  size="large"
+                  value={formData.staffId}
+                  onChange={(e) => handleChange("staffId", e.target.value)}
+                  placeholder="Enter staff ID"
+                />
+              </Form.Item>
+
               <Form.Item label="Full Name">
                 <Input size="large" value={formData.fullName} onChange={(e) => handleChange("fullName", e.target.value)} />
               </Form.Item>

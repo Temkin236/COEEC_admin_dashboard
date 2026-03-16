@@ -89,11 +89,16 @@ const NewsPage = () => {
     if (record.translations && record.translations.length > 0) {
       record.translations.forEach((t: any) => {
         if (newDrafts[t.language]) {
+          const normalizedContent =
+            typeof t.content === 'string'
+              ? t.content
+              : (t.content || "")
+
           newDrafts[t.language] = {
             title: t.title,
             slug: t.slug,
             excerpt: t.excerpt,
-            content: typeof t.content === 'object' ? JSON.stringify(t.content, null, 2) : t.content,
+            content: normalizedContent,
           }
         }
       })
@@ -101,11 +106,16 @@ const NewsPage = () => {
       // Fallback for legacy data
       const lang = record.language || "EN"
       if (newDrafts[lang]) {
+        const normalizedContent =
+          typeof record.content === 'string'
+            ? record.content
+            : (record.content || "")
+
         newDrafts[lang] = {
           title: record.title,
           slug: record.slug,
           excerpt: record.excerpt,
-          content: typeof record.content === 'object' ? JSON.stringify(record.content, null, 2) : record.content,
+          content: normalizedContent,
         }
       }
     }
@@ -116,7 +126,8 @@ const NewsPage = () => {
     form.setFieldsValue({
       ...record,
       publishAt: record.publishAt ? dayjs(record.publishAt) : null,
-      ...newDrafts["EN"] // Initial form values for EN
+      ...newDrafts["EN"], // Initial form values for EN
+      content: newDrafts["EN"]?.content || "",
     })
 
     if (record.featuredImageId) {
@@ -153,6 +164,7 @@ const NewsPage = () => {
       title: drafts[newLang]?.title || "",
       slug: drafts[newLang]?.slug || "",
       excerpt: drafts[newLang]?.excerpt || "",
+      content: drafts[newLang]?.content || "",
     })
   }
 
@@ -223,7 +235,8 @@ const NewsPage = () => {
           title: values.title,
           slug: values.slug,
           excerpt: values.excerpt,
-          content: drafts[currentFormLang]?.content || values.content
+          // Prefer form value so submit includes the latest editor change.
+          content: values.content ?? drafts[currentFormLang]?.content ?? ""
         }
       }
 
@@ -548,6 +561,7 @@ const NewsPage = () => {
                       <RichEditor
                         value={drafts[currentFormLang]?.content || ''}
                         onChange={(val) => {
+                          form.setFieldValue('content', val)
                           setDrafts(prev => ({
                             ...prev,
                             [currentFormLang]: { ...prev[currentFormLang], content: val }

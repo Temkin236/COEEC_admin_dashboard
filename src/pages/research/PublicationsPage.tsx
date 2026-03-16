@@ -249,10 +249,36 @@ const PublicationsPage = () => {
         <Form form={form} layout="vertical" onFinish={handleSubmit} initialValues={{ year: new Date().getFullYear() }}>
           <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Enter title' }]}><Input /></Form.Item>
           <Form.Item name="abstract" label="Abstract"><Input.TextArea rows={3} /></Form.Item>
-          <Form.Item name="authors" label="Authors" help="Comma-separated list">
-            <Input onChange={(e) => { const v = e.target.value; form.setFieldValue('authors', v.split(',').map((s: string) => s.trim())) }} />
+          <Form.Item
+            name="authors"
+            label="Authors"
+            help="Comma-separated list"
+            rules={[
+              { required: true, message: 'Enter at least one author' },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.reject(new Error('Enter at least one author'))
+                  const normalized = Array.isArray(value) ? value.join(',') : String(value)
+                  if (!normalized.split(',').map((s: string) => s.trim()).filter(Boolean).length) {
+                    return Promise.reject(new Error('Enter at least one author'))
+                  }
+                  return Promise.resolve()
+                }
+              }
+            ]}
+          >
+            <Input placeholder="e.g. John Doe, Jane Smith" />
           </Form.Item>
-          <Form.Item name="year" label="Year"><InputNumber style={{ width: '100%' }} /></Form.Item>
+          <Form.Item
+            name="year"
+            label="Year"
+            rules={[
+              { required: true, message: 'Enter publication year' },
+              { type: 'number', min: 1900, max: 2100, message: 'Enter a valid year' }
+            ]}
+          >
+            <InputNumber style={{ width: '100%' }} />
+          </Form.Item>
           
           <Form.Item name="pdfId" label="PDF Upload (Optional)">
             <Space direction="vertical" style={{ width: '100%' }}>
