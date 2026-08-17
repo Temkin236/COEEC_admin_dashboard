@@ -17,7 +17,8 @@ const StaffListPage = () => {
 
   useEffect(() => {
     dispatch((fetchStaff as any)({ page, limit, filters }))
-  }, [dispatch, page, limit, filters])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, page, limit, filters.search, filters.department])
 
   const handleDelete = async (id: string | number) => {
     Modal.confirm({
@@ -63,25 +64,25 @@ const StaffListPage = () => {
         )
       },
     },
-    { 
-      title: "Title", 
-      dataIndex: "title", 
+    {
+      title: "Title",
+      dataIndex: "title",
       key: "title",
       width: 150,
       ellipsis: { showTitle: true },
       render: (title: string) => title || 'N/A'
     },
-    { 
-      title: "Department", 
-      dataIndex: "department", 
+    {
+      title: "Department",
+      dataIndex: "department",
       key: "department",
       width: 200,
       render: (dept: any, record: any) => {
         if (!dept) return <Tag color="default">No Department</Tag>
-        
+
         const deptName = dept.name || 'Unknown Department'
         const isDisabled = dept.isDisabled
-        
+
         return (
           <div>
             <Tag color={isDisabled ? "orange" : "blue"}>{deptName}</Tag>
@@ -101,7 +102,7 @@ const StaffListPage = () => {
         if (!areas || !Array.isArray(areas) || areas.length === 0) {
           return <span className="text-gray-400">None</span>
         }
-        
+
         return (
           <div className="flex flex-wrap gap-1">
             {areas.slice(0, 2).map((area, idx) => (
@@ -121,9 +122,9 @@ const StaffListPage = () => {
       width: 120,
       render: (office: string) => office || <span className="text-gray-400 text-xs">Not set</span>,
     },
-    { 
-      title: "Status", 
-      dataIndex: "status", 
+    {
+      title: "Status",
+      dataIndex: "status",
       key: "status",
       width: 100,
       render: (status: any, record: any) => {
@@ -143,10 +144,10 @@ const StaffListPage = () => {
       render: (_: any, record: any) => {
         const hasCv = record.cvUrl || record.cv
         return hasCv ? (
-          <Button 
-            type="link" 
-            icon={<DownloadOutlined />} 
-            onClick={() => window.open(record.cvUrl, "_blank")} 
+          <Button
+            type="link"
+            icon={<DownloadOutlined />}
+            onClick={() => window.open(record.cvUrl, "_blank")}
             size="small"
             disabled={!record.cvUrl}
           >
@@ -178,9 +179,9 @@ const StaffListPage = () => {
         title={
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">Staff Members</span>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />} 
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
               onClick={() => navigate("/staff/new")}
               className="min-w-fit"
             >
@@ -191,16 +192,16 @@ const StaffListPage = () => {
         }
       >
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input 
-            placeholder="Search by name or email..." 
-            prefix={<SearchOutlined />} 
-            onChange={(e) => handleSearch(e.target.value)} 
+          <Input
+            placeholder="Search by name or email..."
+            prefix={<SearchOutlined />}
+            onChange={(e) => handleSearch(e.target.value)}
             className="w-full"
-            allowClear 
+            allowClear
           />
-          <Select 
-            placeholder="Filter by department" 
-            onChange={handleDepartmentFilter} 
+          <Select
+            placeholder="Filter by department"
+            onChange={handleDepartmentFilter}
             className="w-full"
             allowClear
           >
@@ -218,11 +219,11 @@ const StaffListPage = () => {
           loading={loading as any}
           rowKey="id"
           scroll={{ x: 800 }}
-          pagination={{ 
-            current: page, 
-            pageSize: limit, 
-            total, 
-            showSizeChanger: true, 
+          pagination={{
+            current: page,
+            pageSize: limit,
+            total,
+            showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (t, range) => `${range[0]}-${range[1]} of ${t} staff members`
           }}
